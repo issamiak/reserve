@@ -49,14 +49,30 @@
   .tricolor{ height:4px; background:linear-gradient(90deg, var(--bleu-fr) 0 33%, #fff 33% 66%, var(--rouge-fr) 66% 100%); }
 
   /* ---------- QUOTA (panneau sobre) ---------- */
-  .quota-panel{ margin:14px 16px 0; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:13px 14px; }
-  .quota-top-row{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
-  .quota-label{ font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; }
-  .quota-value{ font-size:15px; font-weight:800; color:var(--encre); }
-  .quota-value span{ font-size:11px; font-weight:600; color:var(--slate); }
-  .quota-bar-outer{ height:8px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
-  .quota-bar-inner{ height:100%; background:var(--bleu); transition:width .3s ease; }
-  .quota-remaining{ font-size:11px; color:var(--slate); margin-top:7px; }
+  .hero-quota{ margin-top:14px; padding-top:14px; border-top:1px solid var(--gris-fond); }
+  .hero-quota-top{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:7px; }
+  .hero-quota-label{ font-size:10.5px; font-weight:700; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; }
+  .hero-quota-value{ font-size:14px; font-weight:800; color:var(--encre); }
+  .hero-quota-bar-outer{ height:7px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
+  .hero-quota-bar-inner{ height:100%; background:var(--bleu); transition:width .3s ease; }
+  .hero-quota-remaining{ font-size:10.5px; color:var(--slate); margin-top:6px; }
+  .hero-next{ margin-top:10px; padding:9px 11px; background:var(--bleu-clair-bg); border:1px solid var(--bleu-clair-bd); border-radius:5px; font-size:11.5px; color:#1B3A63; display:flex; align-items:center; gap:6px; }
+  .hero-next b{ color:#1B3A63; }
+
+  .week-strip{ display:flex; gap:6px; padding:12px 16px; background:var(--paper); border-bottom:1px solid var(--gris-bord2); }
+  .week-day{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 2px; border-radius:6px; cursor:pointer; background:var(--gris-fond); border:1px solid transparent; transition:transform .1s ease; }
+  .week-day:active{ transform:scale(0.92); }
+  .week-day.today{ border-color:var(--bleu); }
+  .week-day.has-entry{ background:var(--bleu-clair-bg); }
+  .week-day .wd-label{ font-size:8.5px; color:var(--slate); text-transform:uppercase; font-weight:700; }
+  .week-day .wd-num{ font-size:14px; font-weight:800; color:var(--encre); }
+  .week-day .wd-dot{ width:5px; height:5px; border-radius:50%; margin-top:1px; }
+
+  .today-card{ background:linear-gradient(135deg, var(--bleu) 0%, var(--bleu-fonce) 100%); color:#fff; border-radius:8px; padding:14px 16px; margin-bottom:14px; }
+  .today-card .tc-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; color:rgba(255,255,255,0.7); margin-bottom:4px; }
+  .today-card .tc-title{ font-size:15px; font-weight:800; margin-bottom:2px; }
+  .today-card .tc-meta{ font-size:12px; color:rgba(255,255,255,0.8); margin-bottom:10px; }
+  .today-card button{ background:#fff; color:var(--bleu); border:none; border-radius:5px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }
 
   /* ---------- BANNIÈRES ---------- */
   .banner{ margin:14px 16px 0; padding:10px 13px; border-radius:5px; font-size:12.5px; line-height:1.5; border:1px solid; }
@@ -87,7 +103,7 @@
   .next-info .t{ font-weight:700; font-size:13px; color:var(--encre); }
   .next-info .s{ font-size:11px; color:var(--slate); margin-top:1px; }
 
-  .trend-chart{ display:flex; align-items:flex-end; gap:6px; height:62px; margin-top:4px; }
+  .trend-chart{ display:flex; align-items:flex-end; gap:3px; height:62px; margin-top:4px; }
   .trend-bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
   .trend-bar{ width:100%; border-radius:2px; background:var(--bleu); min-height:3px; }
   .trend-bar.current{ background:var(--bleu-fonce); }
@@ -134,10 +150,15 @@
   .toolbar{ display:flex; align-items:center; justify-content:space-between; padding:0 16px 12px; gap:10px; }
 
   /* ---------- LISTE DES VACATIONS ---------- */
-  .entry-wrap{ position:relative; margin:0 16px 9px; overflow:hidden; border-radius:6px; }
-  .entry-swipe-bg{ position:absolute; inset:0; background:var(--rouge); display:flex; align-items:center; justify-content:flex-end; padding-right:18px; color:#fff; font-weight:700; font-size:12px; }
-  .entry-wrap .entry{ margin:0; position:relative; touch-action:pan-y; transition:transform .25s ease; z-index:1; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px; }
+  .entry{ margin:0 16px 9px; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px; }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .entry-check{
+    width:26px; height:26px; border-radius:50%; border:2px solid var(--bleu); background:#fff;
+    flex-shrink:0; cursor:pointer; padding:0; margin-top:1px;
+  }
+  .entry-check:active{ transform:scale(0.9); }
+  .entry-check.done{ border-color:var(--vert); background:var(--vert); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; cursor:default; }
+  .entry-check.cancelled{ border:2px solid var(--rouge); background:var(--rouge-bg); color:var(--rouge); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; cursor:default; }
   .entry-title{ font-weight:700; font-size:13.5px; color:var(--encre); }
   .entry-meta{ font-size:11px; color:var(--slate); margin-top:3px; }
   .badge{ font-size:9.5px; font-weight:800; padding:3px 8px; border-radius:4px; white-space:nowrap; border:1px solid; }
@@ -194,8 +215,20 @@
   .habil-dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
   .habil-del{ background:none; border:none; color:var(--slate-light); font-size:14px; cursor:pointer; padding:4px 6px; }
   .profile-field{ margin-bottom:11px; }
+  .money-box{ background:var(--gris-fond); border-radius:6px; padding:2px 12px; }
+  .money-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid var(--gris-bord); }
+  .money-row:last-child{ border-bottom:none; }
+  .money-label{ font-size:12.5px; font-weight:700; color:var(--encre); }
+  .money-sub{ font-size:10.5px; color:var(--slate); margin-top:2px; }
+  .money-amount{ font-size:19px; font-weight:800; white-space:nowrap; }
+  .money-amount.ok{ color:var(--vert); }
+  .money-amount.due{ color:var(--rouge); }
   .bilan-type-row{ display:flex; align-items:center; gap:10px; padding:6px 0; }
   .bilan-type-label{ font-size:12px; width:105px; flex-shrink:0; color:var(--slate); }
+  .month-row{ display:grid; grid-template-columns:70px 1fr 1fr 1fr; gap:6px; align-items:center; padding:7px 0; border-bottom:1px solid var(--gris-fond); font-size:11.5px; }
+  .month-row.head{ font-weight:800; color:var(--slate); text-transform:uppercase; font-size:9.5px; letter-spacing:0.03em; border-bottom:1px solid var(--gris-bord2); }
+  .month-row .m-name{ font-weight:700; color:var(--encre); text-transform:capitalize; }
+  .month-row .m-flag{ color:var(--rouge); font-weight:800; }
   .bilan-type-bar-outer{ flex:1; height:7px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
   .bilan-type-bar-inner{ height:100%; background:var(--bleu); }
   .bilan-type-count{ font-size:11px; font-weight:700; width:20px; text-align:right; color:var(--encre); }
@@ -208,7 +241,7 @@
   body.dark{ background:#161A20; color:#DCE0E6; }
   body.dark .hero{ background:#1D2229; border-color:#2A2F38; }
   body.dark .hero h1{ color:#EDEFF2; }
-  body.dark .card, body.dark .stat, body.dark .quota-panel, body.dark .field-section-body, body.dark .entry-wrap .entry{ background:#1D2229; border-color:#2A2F38; }
+  body.dark .card, body.dark .stat, body.dark .quota-panel, body.dark .field-section-body, body.dark .entry{ background:#1D2229; border-color:#2A2F38; }
   body.dark .card-title, body.dark .entry-title, body.dark .next-info .t, body.dark .habil-name, body.dark .screen-title, body.dark .quota-value, body.dark .cal-head .month-label{ color:#EDEFF2; }
   body.dark .cal-day{ background:#252B34; color:#DCE0E6; }
   body.dark input, body.dark textarea{ background:#252B34; border-color:#333A45; color:#EDEFF2; }
@@ -225,6 +258,9 @@
   body.dark .dark-toggle{ background:#252B34; border-color:#333A45; }
   body.dark .entry-notes{ background:#252B34; }
   body.dark .bilan-type-bar-outer{ background:#252B34; border-color:#333A45; }
+  body.dark .money-box{ background:#161A20; }
+  body.dark .money-row{ border-color:#2A2F38; }
+  body.dark .money-label{ color:#EDEFF2; }
 </style>
 </head>
 <body>
@@ -240,32 +276,33 @@
         </div>
         <button class="dark-toggle" onclick="toggleDark()" id="dark-toggle-btn">Sombre</button>
       </div>
+      <div class="hero-quota">
+        <div class="hero-quota-top">
+          <span class="hero-quota-label">Plafond annuel</span>
+          <span class="hero-quota-value"><b id="quota-count">0</b> / 70</span>
+        </div>
+        <div class="hero-quota-bar-outer"><div id="quota-bar" class="hero-quota-bar-inner" style="width:0%;"></div></div>
+        <div class="hero-quota-remaining" id="quota-remaining"></div>
+      </div>
+      <div class="hero-next" id="hero-next" style="display:none;"></div>
     </div>
     <div class="tricolor"></div>
-    <div class="quota-panel">
-      <div class="quota-top-row">
-        <span class="quota-label">Plafond annuel</span>
-        <span class="quota-value"><b id="quota-count">0</b> <span>/ 70</span></span>
-      </div>
-      <div class="quota-bar-outer"><div id="quota-bar" class="quota-bar-inner" style="width:0%;"></div></div>
-      <div class="quota-remaining" id="quota-remaining"></div>
-    </div>
+    <div class="week-strip" id="week-strip"></div>
     <div class="banner banner-info" id="install-tip" style="display:none;">
       <button onclick="document.getElementById('install-tip').style.display='none'">✕</button>
       Pour l'avoir comme une vraie application, consultez l'onglet <b>« Aide »</b> ci-dessous.
     </div>
     <div class="content">
+      <div id="today-card"></div>
       <div class="stats-row" id="stats-row"></div>
-      <button class="btn btn-primary btn-block" onclick="openSheet(null)" style="margin-bottom:14px;">+ Nouvelle vacation</button>
-      <div class="card">
-        <div class="card-title">Activité des 6 derniers mois</div>
-        <div class="trend-chart" id="trend-chart"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Prochaines vacations</div>
-        <div id="next-list"></div>
-      </div>
+      <button class="btn btn-primary btn-block" onclick="openSheet(null)" style="margin-bottom:16px;">+ Nouvelle vacation</button>
     </div>
+    <div class="toolbar" style="align-items:center;">
+      <div class="screen-title" style="padding:0;">Mes vacations</div>
+      <input type="text" id="search-input" placeholder="Rechercher..." oninput="setSearchQuery(this.value)" style="max-width:150px; padding:7px 10px; font-size:13px;">
+    </div>
+    <div class="filters" id="filters"></div>
+    <div id="list"></div>
   </div>
 
   <!-- ===== CALENDRIER ===== -->
@@ -288,16 +325,6 @@
         <div id="cal-day-detail"></div>
       </div>
     </div>
-  </div>
-
-  <!-- ===== VACATIONS ===== -->
-  <div class="screen" id="screen-vacations">
-    <div class="toolbar" style="padding-top:14px;">
-      <div class="screen-title" style="padding:0;">Mes vacations</div>
-      <button class="btn btn-primary btn-sm" onclick="openSheet(null)">+ Nouvelle vacation</button>
-    </div>
-    <div class="filters" id="filters"></div>
-    <div id="list"></div>
   </div>
 
   <!-- ===== PROFIL ===== -->
@@ -323,9 +350,16 @@
 
       <div class="card">
         <div class="card-title">Bilan de l'année</div>
+        <div class="trend-chart" id="trend-chart" style="margin-bottom:14px;"></div>
         <div id="bilan-summary" style="margin-bottom:10px;"></div>
         <div id="bilan-types"></div>
         <button class="btn btn-outline" style="width:100%; margin-top:12px;" onclick="copyBilan()">Copier le bilan (pour un mail)</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Rapport mois par mois</div>
+        <p style="font-size:11.5px; color:var(--slate); margin:0 0 10px;">Utile pour repérer un mois où l'administration n'a pas encore réglé une vacation effectuée.</p>
+        <div id="bilan-monthly"></div>
       </div>
     </div>
   </div>
@@ -369,13 +403,10 @@
 
   <div class="tabbar">
     <button class="tab active" data-screen="accueil" onclick="setScreen('accueil', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Accueil
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Vacations
     </button>
     <button class="tab" data-screen="calendrier" onclick="setScreen('calendrier', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendrier
-    </button>
-    <button class="tab" data-screen="vacations" onclick="setScreen('vacations', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Vacations
     </button>
     <button class="tab" data-screen="profil" onclick="setScreen('profil', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil
@@ -444,6 +475,10 @@
           <textarea id="f-notes" placeholder="Ex : mail du 20/07, objet Appel à volontaires Mirabelle..."></textarea>
         </div>
       </div>
+      <div id="edit-extra-actions" style="display:none; gap:8px; margin-bottom:6px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="duplicateFromSheet()">Dupliquer</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="downloadICSFromSheet()">Ajouter au calendrier</button>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeSheet()">Annuler</button>
@@ -460,6 +495,7 @@ let habilitations = [];
 let profile = { nom:'', matricule:'', brigade:'' };
 let editingId = null;
 let currentFilter = 'toutes';
+let searchQuery = '';
 let currentStatut = 'prevue';
 let currentPaiement = 'non_paye';
 let viewYear = new Date().getFullYear();
@@ -519,6 +555,12 @@ function setScreen(name, el){
   vibrate();
 }
 
+function toLocalISO(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 function computeHours(debut, fin){
   if(!debut || !fin) return 0;
   const [h1,m1] = debut.split(':').map(Number);
@@ -548,6 +590,7 @@ function openSheet(dateStr){
   document.getElementById('sheet-title').textContent = 'Nouvelle vacation';
   document.getElementById('save-btn').textContent = 'Enregistrer';
   document.getElementById('save-next-btn').style.display = 'inline-block';
+  document.getElementById('edit-extra-actions').style.display = 'none';
   document.getElementById('sheet-overlay').classList.add('show');
   requestAnimationFrame(() => document.getElementById('sheet').classList.add('show'));
 }
@@ -577,9 +620,9 @@ function saveEntry(keepOpen){
 
   if(editingId){
     const idx = entries.findIndex(e => e.id === editingId);
-    if(idx !== -1) entries[idx] = { ...entries[idx], ...payload };
+    if(idx !== -1) entries[idx] = Object.assign({}, entries[idx], payload);
   } else {
-    entries.push({ id: 'v_' + Date.now() + Math.random().toString(36).slice(2,6), ...payload, createdAt: Date.now() });
+    entries.push(Object.assign({ id: 'v_' + Date.now() + Math.random().toString(36).slice(2,6), createdAt: Date.now() }, payload));
   }
   persist();
   renderAll();
@@ -613,8 +656,18 @@ function editEntry(id){
   document.getElementById('sheet-title').textContent = 'Modifier';
   document.getElementById('save-btn').textContent = 'Mettre à jour';
   document.getElementById('save-next-btn').style.display = 'none';
+  document.getElementById('edit-extra-actions').style.display = 'flex';
   document.getElementById('sheet-overlay').classList.add('show');
   requestAnimationFrame(() => document.getElementById('sheet').classList.add('show'));
+}
+
+function duplicateFromSheet(){
+  if(!editingId) return;
+  duplicateEntry(editingId);
+}
+function downloadICSFromSheet(){
+  if(!editingId) return;
+  downloadICS(editingId);
 }
 
 function duplicateEntry(id){
@@ -632,9 +685,36 @@ function duplicateEntry(id){
   document.getElementById('sheet-title').textContent = 'Dupliquer — nouvelle date';
   document.getElementById('save-btn').textContent = 'Enregistrer';
   document.getElementById('save-next-btn').style.display = 'inline-block';
+  document.getElementById('edit-extra-actions').style.display = 'none';
   document.getElementById('sheet-overlay').classList.add('show');
   requestAnimationFrame(() => document.getElementById('sheet').classList.add('show'));
   vibrate();
+}
+
+function markDone(id){
+  const e = entries.find(x => x.id === id);
+  if(!e) return;
+  e.statut = 'effectuee';
+  if(!e.paiement) e.paiement = 'non_paye';
+  persist();
+  renderAll();
+  vibrate();
+  showToast('Marquée effectuée — vous pourrez indiquer le paiement plus tard');
+}
+
+function markPaid(id){
+  const e = entries.find(x => x.id === id);
+  if(!e) return;
+  const montantStr = prompt('Montant reçu pour cette vacation (en €) :', e.montant != null ? e.montant : '');
+  if(montantStr === null) return;
+  const val = parseFloat(montantStr.replace(',', '.'));
+  if(isNaN(val)){ showToast('Montant invalide'); return; }
+  e.montant = val;
+  e.paiement = 'paye';
+  persist();
+  renderAll();
+  vibrate();
+  showToast('Paiement enregistré');
 }
 
 function deleteEntry(id){
@@ -661,7 +741,107 @@ function isoWeekKey(d){
   return date.getUTCFullYear() + '-W' + week;
 }
 
-function renderAll(){ renderQuota(); renderStats(); renderTrend(); renderNextList(); renderCalendar(); renderList(); }
+function renderAll(){
+  try{ renderQuota(); }catch(e){ console.error('renderQuota', e); }
+  try{ renderWeekStrip(); }catch(e){ console.error('renderWeekStrip', e); }
+  try{ renderTodayCard(); }catch(e){ console.error('renderTodayCard', e); }
+  try{ renderStats(); }catch(e){ console.error('renderStats', e); }
+  try{ renderCalendar(); }catch(e){ console.error('renderCalendar', e); }
+  try{ renderList(); }catch(e){ console.error('renderList', e); }
+}
+
+function renderWeekStrip(){
+  const el = document.getElementById('week-strip');
+  if(!el) return;
+  const now = new Date();
+  const dayNum = (now.getDay() + 6) % 7;
+  const monday = new Date(now); monday.setDate(now.getDate() - dayNum);
+  const todayStr = toLocalISO(now);
+  const cellsByDate = {};
+  entries.forEach(e => { if(e.date && e.statut !== 'annulee'){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
+  let html = '';
+  for(let i=0; i<7; i++){
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const iso = toLocalISO(d);
+    const has = cellsByDate[iso];
+    const dotColor = has ? (has.some(e=>e.statut==='effectuee') ? 'var(--vert)' : 'var(--bleu)') : 'transparent';
+    html += `<div class="week-day ${iso===todayStr?'today':''} ${has?'has-entry':''}" onclick="goToCalendarDay('${iso}')">
+      <div class="wd-label">${DOWS[i]}</div>
+      <div class="wd-num">${d.getDate()}</div>
+      <div class="wd-dot" style="background:${dotColor};"></div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function goToCalendarDay(iso){
+  const d = new Date(iso+'T00:00:00');
+  viewYear = d.getFullYear(); viewMonth = d.getMonth(); selectedDate = iso;
+  setScreen('calendrier', document.querySelector('[data-screen=calendrier]'));
+  renderCalendar();
+  vibrate();
+}
+
+function renderTodayCard(){
+  const el = document.getElementById('today-card');
+  if(!el) return;
+  const todayStr = toLocalISO(new Date());
+  const todays = entries.filter(e => e.date === todayStr && e.statut !== 'annulee');
+  if(todays.length === 0){ el.innerHTML = ''; return; }
+  el.innerHTML = todays.map(e => `
+    <div class="today-card">
+      <div class="tc-label">Aujourd'hui</div>
+      <div class="tc-title">${escapeHtml(e.type)}</div>
+      <div class="tc-meta">${e.debut&&e.fin ? e.debut+'–'+e.fin : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}</div>
+      ${e.statut === 'prevue'
+        ? `<button onclick="markDone('${e.id}')">Marquer effectuée</button>`
+        : (e.paiement !== 'paye'
+          ? `<button onclick="markPaid('${e.id}')">Marquer payée</button>`
+          : `<span style="font-size:12px; color:rgba(255,255,255,0.9);">✓ Effectuée et payée</span>`)}
+    </div>`).join('');
+}
+
+function setSearchQuery(q){
+  searchQuery = q.toLowerCase();
+  renderList();
+}
+
+function downloadICS(id){
+  const e = entries.find(x => x.id === id);
+  if(!e || !e.date) return;
+  const dateDigits = e.date.replace(/-/g,'');
+  let startStr, endStr;
+  if(e.debut && e.fin){
+    startStr = dateDigits + 'T' + e.debut.replace(':','') + '00';
+    let endDate = e.date;
+    if(e.fin <= e.debut){
+      const d2 = new Date(e.date+'T00:00:00'); d2.setDate(d2.getDate()+1);
+      endDate = toLocalISO(d2);
+    }
+    endStr = endDate.replace(/-/g,'') + 'T' + e.fin.replace(':','') + '00';
+  } else {
+    startStr = dateDigits;
+    endStr = dateDigits;
+  }
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Planning RO//FR',
+    'BEGIN:VEVENT',
+    'UID:' + e.id + '@planning-ro',
+    (e.debut && e.fin) ? ('DTSTART:'+startStr) : ('DTSTART;VALUE=DATE:'+startStr),
+    (e.debut && e.fin) ? ('DTEND:'+endStr) : ('DTEND;VALUE=DATE:'+endStr),
+    'SUMMARY:' + e.type.replace(/\n/g,' '),
+    e.lieu ? ('LOCATION:' + e.lieu.replace(/\n/g,' ')) : '',
+    e.notes ? ('DESCRIPTION:' + e.notes.replace(/\n/g,' ')) : '',
+    'END:VEVENT','END:VCALENDAR'
+  ].filter(Boolean).join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'vacation-' + e.date + '.ics';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Fichier calendrier téléchargé — ouvrez-le pour l\'ajouter à Google Calendar');
+}
 
 function renderQuota(){
   const thisYear = new Date().getFullYear();
@@ -677,6 +857,19 @@ function renderQuota(){
   bar.style.background = color;
   const remaining = ANNUAL_CAP - count;
   document.getElementById('quota-remaining').textContent = remaining > 0 ? remaining + ' vacations restantes cette année' : 'Plafond atteint';
+
+  const todayStr = toLocalISO(new Date());
+  const upcoming = entries.filter(e => e.date >= todayStr && e.statut === 'prevue').sort((a,b) => a.date.localeCompare(b.date))[0];
+  const heroNext = document.getElementById('hero-next');
+  if(upcoming){
+    const d = new Date(upcoming.date+'T00:00:00');
+    const diffDays = Math.round((d - new Date(todayStr+'T00:00:00')) / 86400000);
+    const when = diffDays === 0 ? "aujourd'hui" : diffDays === 1 ? 'demain' : 'le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+    heroNext.innerHTML = `Prochaine vacation : <b>${escapeHtml(upcoming.type)}</b> — ${when}`;
+    heroNext.style.display = 'flex';
+  } else {
+    heroNext.style.display = 'none';
+  }
 }
 
 function renderStats(){
@@ -691,7 +884,7 @@ function renderStats(){
   const sumMontant = arr => arr.reduce((s,e) => s + (e.montant || 0), 0);
   const block = (label, arr) => `<div class="stat"><div class="n">${arr.length}</div><div class="h">${sumH(arr).toFixed(1)} h</div><div class="l">${label}</div></div>`;
   const paiementBlock = aPercevoir.length > 0
-    ? `<div class="stat"><div class="n" style="color:var(--jaune-texte);">${aPercevoir.length}</div><div class="h" style="color:var(--jaune-texte);">${sumMontant(aPercevoir).toFixed(0)} €</div><div class="l">À percevoir</div></div>`
+    ? `<div class="stat"><div class="n" style="color:var(--jaune-texte);">${aPercevoir.length}</div><div class="h" style="color:var(--jaune-texte);">${sumMontant(aPercevoir).toFixed(0)} €</div><div class="l">Non encore payé</div></div>`
     : '';
   document.getElementById('stats-row').innerHTML = block('Cette semaine', weekDone) + block('Ce mois', monthDone) + paiementBlock;
 }
@@ -699,37 +892,23 @@ function renderStats(){
 function renderTrend(){
   const now = new Date();
   const cols = [];
-  for(let i=5; i>=0; i--){
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+  for(let m=0; m<12; m++){
     const count = entries.filter(e => {
       if(e.statut !== 'effectuee' || !e.date) return false;
       const ed = new Date(e.date+'T00:00:00');
-      return ed.getFullYear() === d.getFullYear() && ed.getMonth() === d.getMonth();
+      return ed.getFullYear() === now.getFullYear() && ed.getMonth() === m;
     }).length;
-    cols.push({ label: MONTHS_SHORT[d.getMonth()], count, isCurrent: i===0 });
+    cols.push({ label: MONTHS_SHORT[m], count, isCurrent: m===now.getMonth() });
   }
   const max = Math.max(1, ...cols.map(c => c.count));
   document.getElementById('trend-chart').innerHTML = cols.map(c => `
     <div class="trend-bar-col">
-      <div style="font-size:10px; font-weight:700; color:var(--slate);">${c.count}</div>
+      <div style="font-size:9px; font-weight:700; color:var(--slate);">${c.count}</div>
       <div class="trend-bar ${c.isCurrent?'current':''}" style="height:${Math.max(6, (c.count/max)*46)}px;"></div>
       <div class="trend-lbl">${c.label}</div>
     </div>`).join('');
 }
 
-function renderNextList(){
-  const todayStr = new Date().toISOString().slice(0,10);
-  const upcoming = entries.filter(e => e.date >= todayStr && e.statut !== 'annulee').sort((a,b) => a.date.localeCompare(b.date)).slice(0,4);
-  const el = document.getElementById('next-list');
-  if(upcoming.length === 0){ el.innerHTML = `<div class="empty" style="padding:14px 0;">Rien de prévu pour l'instant.</div>`; return; }
-  el.innerHTML = upcoming.map(e => {
-    const d = new Date(e.date+'T00:00:00');
-    return `<div class="next-item">
-      <div class="next-date"><div class="d">${d.getDate()}</div><div class="m">${MONTHS_SHORT[d.getMonth()]}</div></div>
-      <div class="next-info"><div class="t">${escapeHtml(e.type)}</div><div class="s">${e.debut&&e.fin ? e.debut+'–'+e.fin : ''}${e.lieu ? ' · '+escapeHtml(e.lieu):''}</div></div>
-    </div>`;
-  }).join('');
-}
 
 function renderCalendar(){
   document.getElementById('month-label').textContent = MONTHS[viewMonth] + ' ' + viewYear;
@@ -739,7 +918,7 @@ function renderCalendar(){
   let startOffset = (firstOfMonth.getDay() + 6) % 7;
   const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
   const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = toLocalISO(new Date());
   const cellsByDate = {};
   entries.forEach(e => { if(e.date){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
@@ -749,7 +928,7 @@ function renderCalendar(){
     if(dayNum < 1){ cellDate = new Date(viewYear, viewMonth-1, daysInPrevMonth + dayNum); muted = true; }
     else if(dayNum > daysInMonth){ cellDate = new Date(viewYear, viewMonth+1, dayNum - daysInMonth); muted = true; }
     else { cellDate = new Date(viewYear, viewMonth, dayNum); }
-    const iso = cellDate.toISOString().slice(0,10);
+    const iso = toLocalISO(cellDate);
     const dayEntries = cellsByDate[iso] || [];
     const dots = [...new Set(dayEntries.map(e=>e.statut))].slice(0,3).map(s => `<span class="cal-dot dot-${s}"></span>`).join('');
     html += `<div class="cal-day ${muted?'muted':''} ${iso===todayStr?'today':''} ${iso===selectedDate?'selected':''}" onclick="selectDay('${iso}')">${cellDate.getDate()}<div class="cal-dots">${dots}</div></div>`;
@@ -768,12 +947,17 @@ function renderDayDetail(){
   }
   el.innerHTML = `<div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">` +
     dayEntries.map(e => `
-      <div class="entry" style="margin:0; background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:13px 15px;">
+      <div class="entry" style="margin:0; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px;">
         <div class="entry-top">
           <div><div class="entry-title">${escapeHtml(e.type)}</div><div class="entry-meta">${e.debut&&e.fin?e.debut+'–'+e.fin:''}${e.lieu?' · '+escapeHtml(e.lieu):''}</div></div>
           <span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>
         </div>
-        <div class="entry-actions"><button class="btn btn-ghost" onclick="editEntry('${e.id}')">Modifier</button><button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Supprimer</button></div>
+        <div class="entry-actions">
+          ${e.statut === 'prevue' ? `<button class="btn btn-outline" onclick="markDone('${e.id}')">✓ Marquer effectuée</button>` : ''}
+          ${e.statut === 'effectuee' && e.paiement !== 'paye' ? `<button class="btn btn-outline" onclick="markPaid('${e.id}')">Marquer payée</button>` : ''}
+          <button class="btn btn-ghost" onclick="editEntry('${e.id}')">Modifier</button>
+          <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Supprimer</button>
+        </div>
       </div>`).join('') + `</div>`;
 }
 
@@ -791,50 +975,44 @@ function changeMonth(delta){
 function setListFilter(key){ currentFilter = key; renderList(); }
 
 function renderList(){
-  const filterDefs = [['toutes','Toutes'],['prevue','À venir'],['effectuee','Effectuées'],['annulee','Annulées']];
+  const filterDefs = [['toutes','Toutes'],['prevue','À venir'],['effectuee','Effectuées'],['a_percevoir','Non payées'],['annulee','Annulées']];
   document.getElementById('filters').innerHTML = filterDefs.map(([key,label]) =>
     `<div class="filter-chip ${currentFilter===key?'active':''}" onclick="setListFilter('${key}')">${label}</div>`).join('');
 
   let shown = entries.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
-  if(currentFilter !== 'toutes') shown = shown.filter(e => e.statut === currentFilter);
+  if(currentFilter === 'a_percevoir') shown = shown.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye');
+  else if(currentFilter !== 'toutes') shown = shown.filter(e => e.statut === currentFilter);
+  if(searchQuery) shown = shown.filter(e =>
+    (e.type||'').toLowerCase().includes(searchQuery) ||
+    (e.lieu||'').toLowerCase().includes(searchQuery) ||
+    (e.notes||'').toLowerCase().includes(searchQuery)
+  );
 
   const list = document.getElementById('list');
-  if(shown.length === 0){ list.innerHTML = `<div class="empty">Aucune vacation ici.<br>Touchez le bouton + pour en ajouter une.</div>`; return; }
+  if(shown.length === 0){ list.innerHTML = `<div class="empty">Aucune vacation ici.<br>Touchez "+ Nouvelle vacation" pour en ajouter une.</div>`; return; }
   list.innerHTML = shown.map(e => {
     const h = computeHours(e.debut, e.fin);
     const montantTxt = (e.montant != null && e.montant !== '') ? ' · ' + e.montant + ' €' : '';
-    const paiementBadge = e.statut === 'effectuee' ? `<span class="badge" style="${e.paiement==='paye' ? 'background:var(--success-bg);color:var(--success);' : 'background:var(--warn-bg);color:var(--warn);'}">${e.paiement==='paye' ? 'Payée' : 'À percevoir'}</span>` : '';
-    return `<div class="entry-wrap" data-id="${e.id}">
-      <div class="entry-swipe-bg" onclick="deleteEntry('${e.id}')">Supprimer</div>
-      <div class="entry" ontouchstart="swipeStart(event,'${e.id}')" ontouchmove="swipeMove(event,'${e.id}')" ontouchend="swipeEnd(event,'${e.id}')">
+    const paiementBadge = e.statut === 'effectuee' ? `<span class="badge" style="${e.paiement==='paye' ? 'background:var(--vert-bg);color:var(--vert);border-color:var(--vert-bd);' : 'background:var(--jaune-bg);color:var(--jaune-texte);border-color:var(--jaune-bd);'}">${e.paiement==='paye' ? 'Payée' : 'Non payée'}</span>` : '';
+    const checkbox = e.statut === 'prevue'
+      ? `<button class="entry-check" onclick="markDone('${e.id}')" title="Marquer comme effectuée"></button>`
+      : (e.statut === 'effectuee' ? `<div class="entry-check done">✓</div>` : `<div class="entry-check cancelled">✕</div>`);
+    const payAction = (e.statut === 'effectuee' && e.paiement !== 'paye')
+      ? `<button class="btn btn-outline" onclick="markPaid('${e.id}')">Marquer payée</button>` : '';
+    return `<div class="entry" data-id="${e.id}">
         <div class="entry-top">
-          <div><div class="entry-title">${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}</div></div>
+          ${checkbox}
+          <div style="flex:1; min-width:0;"><div class="entry-title">${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}</div></div>
           <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>${paiementBadge}</div>
         </div>
         ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ''}
         <div class="entry-actions">
+          ${payAction}
           <button class="btn btn-ghost" onclick="editEntry('${e.id}')">Modifier</button>
-          <button class="dup-btn" onclick="duplicateEntry('${e.id}')">Dupliquer</button>
           <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Supprimer</button>
         </div>
-      </div>
-    </div>`;
+      </div>`;
   }).join('');
-}
-
-let swipeStartX = 0, swipeCurrentX = 0, swipeActive = false;
-function swipeStart(ev){ swipeStartX = ev.touches[0].clientX; swipeActive = true; }
-function swipeMove(ev){
-  if(!swipeActive) return;
-  swipeCurrentX = ev.touches[0].clientX - swipeStartX;
-  if(swipeCurrentX < 0) ev.currentTarget.style.transform = `translateX(${Math.max(swipeCurrentX, -90)}px)`;
-}
-function swipeEnd(ev){
-  swipeActive = false;
-  const el = ev.currentTarget;
-  if(swipeCurrentX < -55){ el.style.transform = 'translateX(-90px)'; vibrate(); }
-  else{ el.style.transform = 'translateX(0)'; }
-  swipeCurrentX = 0;
 }
 
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
@@ -864,7 +1042,7 @@ function renderHabilitations(){
       const expMs = new Date(h.expiration+'T00:00:00').getTime();
       const daysLeft = Math.round((expMs - todayMs) / 86400000);
       expTxt = daysLeft >= 0 ? ('Expire dans ' + daysLeft + ' j') : ('Expirée depuis ' + Math.abs(daysLeft) + ' j');
-      dotColor = daysLeft < 0 ? 'var(--alert)' : (daysLeft <= 90 ? 'var(--warn)' : 'var(--success)');
+      dotColor = daysLeft < 0 ? 'var(--rouge)' : (daysLeft <= 90 ? 'var(--jaune-texte)' : 'var(--vert)');
     }
     return `<div class="habil-row">
       <div style="display:flex; align-items:center; gap:10px;">
@@ -878,6 +1056,7 @@ function renderHabilitations(){
 
 /* ---------- PROFIL : Bilan annuel ---------- */
 function renderProfilScreen(){
+  renderTrend();
   renderHabilitations();
   const thisYear = new Date().getFullYear();
   const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
@@ -885,12 +1064,21 @@ function renderProfilScreen(){
   const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+(e.montant||0),0);
   const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+(e.montant||0),0);
 
+  const nonPayeCount = done.filter(e=>e.paiement!=='paye').length;
   document.getElementById('bilan-summary').innerHTML = `
-    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
       <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${done.length}</div><div class="l">Vacations ${thisYear}</div></div>
       <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${totalH.toFixed(0)} h</div><div class="l">Heures effectuées</div></div>
-      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n" style="color:var(--success);">${percu.toFixed(0)} €</div><div class="l">Perçu</div></div>
-      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n" style="color:var(--jaune-texte);">${aPercevoir.toFixed(0)} €</div><div class="l">À percevoir</div></div>
+    </div>
+    <div class="money-box">
+      <div class="money-row">
+        <div><div class="money-label">Argent déjà reçu cette année</div></div>
+        <div class="money-amount ok">${percu.toFixed(0)} €</div>
+      </div>
+      <div class="money-row">
+        <div><div class="money-label">Argent toujours dû par l'administration</div><div class="money-sub">${nonPayeCount > 0 ? nonPayeCount + ' vacation(s) non réglée(s)' : 'Tout est réglé'}</div></div>
+        <div class="money-amount ${aPercevoir>0?'due':'ok'}">${aPercevoir.toFixed(0)} €</div>
+      </div>
     </div>`;
 
   const byType = {};
@@ -905,6 +1093,30 @@ function renderProfilScreen(){
   document.getElementById('bilan-types').innerHTML = Object.keys(byType).length
     ? `<div style="font-size:11px; font-weight:800; color:var(--slate-light); text-transform:uppercase; margin-bottom:6px;">Par type de mission</div>` + typesHtml
     : '';
+
+  const monthRows = [];
+  for(let m=0; m<12; m++){
+    const monthDone = done.filter(e => new Date(e.date+'T00:00:00').getMonth() === m);
+    if(monthDone.length === 0) continue;
+    const h = monthDone.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
+    const montant = monthDone.reduce((s,e)=>s+(e.montant||0),0);
+    const nonPaye = monthDone.filter(e=>e.paiement!=='paye').length;
+    monthRows.push({ m, count: monthDone.length, h, montant, nonPaye });
+  }
+  const monthEl = document.getElementById('bilan-monthly');
+  if(monthRows.length === 0){
+    monthEl.innerHTML = `<div class="empty" style="padding:16px 0;">Aucune vacation effectuée cette année pour l'instant.</div>`;
+  } else {
+    monthEl.innerHTML =
+      `<div class="month-row head"><div>Mois</div><div>Vacations</div><div>Heures</div><div>Montant</div></div>` +
+      monthRows.map(r => `
+        <div class="month-row">
+          <div class="m-name">${MONTHS_SHORT[r.m]}</div>
+          <div>${r.count}</div>
+          <div>${r.h.toFixed(0)} h</div>
+          <div>${r.montant.toFixed(0)} € ${r.nonPaye > 0 ? `<span class="m-flag" title="${r.nonPaye} non payée(s)">⚠</span>` : ''}</div>
+        </div>`).join('');
+  }
 }
 
 function copyBilan(){
@@ -961,11 +1173,11 @@ function importData(file){
       document.getElementById('p-brigade').value = profile.brigade || '';
       renderAll();
       status.textContent = '✓ Sauvegarde restaurée.';
-      status.style.color = 'var(--success)';
+      status.style.color = 'var(--vert)';
       showToast('Sauvegarde restaurée');
     } catch(err){
       status.textContent = "Ce fichier n'est pas une sauvegarde valide.";
-      status.style.color = 'var(--alert)';
+      status.style.color = 'var(--rouge)';
     }
   };
   reader.readAsText(file);
