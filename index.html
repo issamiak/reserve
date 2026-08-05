@@ -56,8 +56,8 @@
   .hero-quota-bar-outer{ height:7px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
   .hero-quota-bar-inner{ height:100%; background:var(--bleu); transition:width .3s ease; }
   .hero-quota-remaining{ font-size:10.5px; color:var(--slate); margin-top:6px; }
-  .hero-next{ margin-top:10px; padding:9px 11px; background:var(--bleu-clair-bg); border:1px solid var(--bleu-clair-bd); border-radius:5px; font-size:11.5px; color:#1B3A63; display:flex; align-items:center; gap:6px; }
-  .hero-next b{ color:#1B3A63; }
+  .hero-quota-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--gris-fond); }
+  .hero-quota{ margin-top:0; padding-top:0; border-top:none; }
 
   .week-strip{ display:flex; gap:6px; padding:12px 16px; background:var(--paper); border-bottom:1px solid var(--gris-bord2); }
   .week-day{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 2px; border-radius:6px; cursor:pointer; background:var(--gris-fond); border:1px solid transparent; transition:transform .1s ease; }
@@ -202,6 +202,11 @@
   .status-toggle button.sel-effectuee.on{ background:var(--vert); color:#fff; }
   .status-toggle button.sel-annulee.on{ background:var(--rouge); color:#fff; }
   .status-toggle button.sel-non_paye.on{ background:var(--jaune-texte); color:#fff; }
+  .status-toggle button.sel-police.on{ background:#1B3A63; color:#fff; }
+  .status-toggle button.sel-gendarmerie.on{ background:#4FA8D8; color:#fff; }
+  .corps-tag{ font-size:9px; font-weight:800; padding:2px 7px; border-radius:3px; text-transform:uppercase; letter-spacing:0.02em; }
+  .corps-tag.police{ background:#1B3A63; color:#fff; }
+  .corps-tag.gendarmerie{ background:#4FA8D8; color:#fff; }
   .status-toggle button.sel-paye.on{ background:var(--vert); color:#fff; }
   .form-actions{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 16px 4px; }
   .form-actions .btn{ flex:1 1 auto; }
@@ -276,15 +281,24 @@
         </div>
         <button class="dark-toggle" onclick="toggleDark()" id="dark-toggle-btn">Sombre</button>
       </div>
-      <div class="hero-quota">
-        <div class="hero-quota-top">
-          <span class="hero-quota-label">Plafond annuel</span>
-          <span class="hero-quota-value"><b id="quota-count">0</b> / 70</span>
+      <div class="hero-quota-grid">
+        <div class="hero-quota">
+          <div class="hero-quota-top">
+            <span class="hero-quota-label">Police Nationale</span>
+            <span class="hero-quota-value"><b id="quota-count-police">0</b>/90</span>
+          </div>
+          <div class="hero-quota-bar-outer"><div id="quota-bar-police" class="hero-quota-bar-inner" style="width:0%;"></div></div>
+          <div class="hero-quota-remaining" id="quota-remaining-police"></div>
         </div>
-        <div class="hero-quota-bar-outer"><div id="quota-bar" class="hero-quota-bar-inner" style="width:0%;"></div></div>
-        <div class="hero-quota-remaining" id="quota-remaining"></div>
+        <div class="hero-quota">
+          <div class="hero-quota-top">
+            <span class="hero-quota-label">Gendarmerie</span>
+            <span class="hero-quota-value"><b id="quota-count-gendarmerie">0</b>/60</span>
+          </div>
+          <div class="hero-quota-bar-outer"><div id="quota-bar-gendarmerie" class="hero-quota-bar-inner" style="width:0%;"></div></div>
+          <div class="hero-quota-remaining" id="quota-remaining-gendarmerie"></div>
+        </div>
       </div>
-      <div class="hero-next" id="hero-next" style="display:none;"></div>
     </div>
     <div class="tricolor"></div>
     <div class="week-strip" id="week-strip"></div>
@@ -297,9 +311,16 @@
       <div class="stats-row" id="stats-row"></div>
       <button class="btn btn-primary btn-block" onclick="openSheet(null)" style="margin-bottom:16px;">+ Nouvelle vacation</button>
     </div>
-    <div class="toolbar" style="align-items:center;">
+    <div class="toolbar" style="align-items:center; flex-wrap:wrap;">
       <div class="screen-title" style="padding:0;">Mes vacations</div>
-      <input type="text" id="search-input" placeholder="Rechercher..." oninput="setSearchQuery(this.value)" style="max-width:150px; padding:7px 10px; font-size:13px;">
+      <div style="display:flex; gap:6px;">
+        <select id="corps-select" onchange="setCorpsFilter(this.value)" style="padding:7px 8px; font-size:12px; width:auto;">
+          <option value="toutes">Tous corps</option>
+          <option value="police">Police</option>
+          <option value="gendarmerie">Gendarmerie</option>
+        </select>
+        <input type="text" id="search-input" placeholder="Rechercher..." oninput="setSearchQuery(this.value)" style="max-width:120px; padding:7px 10px; font-size:13px;">
+      </div>
     </div>
     <div class="filters" id="filters"></div>
     <div id="list"></div>
@@ -433,6 +454,13 @@
       <div class="field-section">
         <div class="field-section-label">Quoi</div>
         <div class="field-section-body">
+          <div class="profile-field">
+            <label>Corps</label>
+            <div class="status-toggle">
+              <button type="button" class="sel-police" onclick="setCorps('police')">Police Nationale</button>
+              <button type="button" class="sel-gendarmerie" onclick="setCorps('gendarmerie')">Gendarmerie</button>
+            </div>
+          </div>
           <div class="profile-field"><label>Type de mission</label><input id="f-type" placeholder="Ex : Police Secours — Nuit"></div>
           <div class="profile-field" style="margin-bottom:0;"><label>Lieu</label><input id="f-lieu" placeholder="Ex : Secteur Centre-ville"></div>
         </div>
@@ -495,13 +523,16 @@ let habilitations = [];
 let profile = { nom:'', matricule:'', brigade:'' };
 let editingId = null;
 let currentFilter = 'toutes';
+let currentCorpsFilter = 'toutes';
 let searchQuery = '';
 let currentStatut = 'prevue';
 let currentPaiement = 'non_paye';
+let currentCorps = 'police';
 let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let selectedDate = null;
-const ANNUAL_CAP = 70;
+const CORPS_CAPS = { police: 90, gendarmerie: 60 };
+const CORPS_LABELS = { police: 'Police Nationale', gendarmerie: 'Gendarmerie' };
 const STORAGE_KEY = 'reserve_vacations_v1';
 const HABIL_KEY = 'reserve_habilitations_v1';
 const PROFILE_KEY = 'reserve_profile_v1';
@@ -582,6 +613,12 @@ function setPaiement(p){
   document.querySelector('.sel-paye').classList.remove('on');
   document.querySelector('.sel-' + p).classList.add('on');
 }
+function setCorps(c){
+  currentCorps = c;
+  document.querySelector('.sel-police').classList.remove('on');
+  document.querySelector('.sel-gendarmerie').classList.remove('on');
+  document.querySelector('.sel-' + c).classList.add('on');
+}
 
 function openSheet(dateStr){
   editingId = null;
@@ -603,7 +640,7 @@ function closeSheetIfOverlay(ev){ if(ev.target.id === 'sheet-overlay') closeShee
 
 function clearForm(){
   ['f-type','f-lieu','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
-  setStatut('prevue'); setPaiement('non_paye');
+  setStatut('prevue'); setPaiement('non_paye'); setCorps('police');
 }
 
 function saveEntry(keepOpen){
@@ -616,7 +653,7 @@ function saveEntry(keepOpen){
   const montant = document.getElementById('f-montant').value;
 
   if(!type || !date){ showToast('Indiquez le type et la date'); return; }
-  const payload = { type, date, lieu, debut, fin, statut: currentStatut, paiement: currentPaiement, montant: montant ? parseFloat(montant) : null, notes };
+  const payload = { type, date, lieu, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
 
   if(editingId){
     const idx = entries.findIndex(e => e.id === editingId);
@@ -652,7 +689,7 @@ function editEntry(id){
   document.getElementById('f-fin').value = e.fin || '';
   document.getElementById('f-notes').value = e.notes || '';
   document.getElementById('f-montant').value = e.montant != null ? e.montant : '';
-  setStatut(e.statut || 'prevue'); setPaiement(e.paiement || 'non_paye');
+  setStatut(e.statut || 'prevue'); setPaiement(e.paiement || 'non_paye'); setCorps(e.corps || 'police');
   document.getElementById('sheet-title').textContent = 'Modifier';
   document.getElementById('save-btn').textContent = 'Mettre à jour';
   document.getElementById('save-next-btn').style.display = 'none';
@@ -681,7 +718,7 @@ function duplicateEntry(id){
   document.getElementById('f-fin').value = e.fin || '';
   document.getElementById('f-notes').value = '';
   document.getElementById('f-montant').value = e.montant != null ? e.montant : '';
-  setStatut('prevue'); setPaiement('non_paye');
+  setStatut('prevue'); setPaiement('non_paye'); setCorps(e.corps || 'police');
   document.getElementById('sheet-title').textContent = 'Dupliquer — nouvelle date';
   document.getElementById('save-btn').textContent = 'Enregistrer';
   document.getElementById('save-next-btn').style.display = 'inline-block';
@@ -788,17 +825,22 @@ function renderTodayCard(){
   const todayStr = toLocalISO(new Date());
   const todays = entries.filter(e => e.date === todayStr && e.statut !== 'annulee');
   if(todays.length === 0){ el.innerHTML = ''; return; }
-  el.innerHTML = todays.map(e => `
-    <div class="today-card">
-      <div class="tc-label">Aujourd'hui</div>
+  el.innerHTML = todays.map(e => {
+    const corps = e.corps || 'police';
+    const grad = corps === 'police' ? 'linear-gradient(135deg, #1B3A63 0%, #12233F 100%)' : 'linear-gradient(135deg, #4FA8D8 0%, #2E7FAE 100%)';
+    const btnColor = corps === 'police' ? '#1B3A63' : '#2E7FAE';
+    return `
+    <div class="today-card" style="background:${grad};">
+      <div class="tc-label">Aujourd'hui — ${CORPS_LABELS[corps]}</div>
       <div class="tc-title">${escapeHtml(e.type)}</div>
       <div class="tc-meta">${e.debut&&e.fin ? e.debut+'–'+e.fin : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}</div>
       ${e.statut === 'prevue'
-        ? `<button onclick="markDone('${e.id}')">Marquer effectuée</button>`
+        ? `<button style="color:${btnColor};" onclick="markDone('${e.id}')">Marquer effectuée</button>`
         : (e.paiement !== 'paye'
-          ? `<button onclick="markPaid('${e.id}')">Marquer payée</button>`
+          ? `<button style="color:${btnColor};" onclick="markPaid('${e.id}')">Marquer payée</button>`
           : `<span style="font-size:12px; color:rgba(255,255,255,0.9);">✓ Effectuée et payée</span>`)}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function setSearchQuery(q){
@@ -845,31 +887,21 @@ function downloadICS(id){
 
 function renderQuota(){
   const thisYear = new Date().getFullYear();
-  const engaged = entries.filter(e => e.date && (e.statut === 'prevue' || e.statut === 'effectuee') && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
-  const count = engaged.length;
-  const pct = Math.min(100, (count / ANNUAL_CAP) * 100);
-  let color = 'var(--bleu)';
-  if(pct >= 70) color = 'var(--jaune-texte)';
-  if(pct >= 95) color = 'var(--rouge)';
-  document.getElementById('quota-count').textContent = count;
-  const bar = document.getElementById('quota-bar');
-  bar.style.width = pct + '%';
-  bar.style.background = color;
-  const remaining = ANNUAL_CAP - count;
-  document.getElementById('quota-remaining').textContent = remaining > 0 ? remaining + ' vacations restantes cette année' : 'Plafond atteint';
-
-  const todayStr = toLocalISO(new Date());
-  const upcoming = entries.filter(e => e.date >= todayStr && e.statut === 'prevue').sort((a,b) => a.date.localeCompare(b.date))[0];
-  const heroNext = document.getElementById('hero-next');
-  if(upcoming){
-    const d = new Date(upcoming.date+'T00:00:00');
-    const diffDays = Math.round((d - new Date(todayStr+'T00:00:00')) / 86400000);
-    const when = diffDays === 0 ? "aujourd'hui" : diffDays === 1 ? 'demain' : 'le ' + d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
-    heroNext.innerHTML = `Prochaine vacation : <b>${escapeHtml(upcoming.type)}</b> — ${when}`;
-    heroNext.style.display = 'flex';
-  } else {
-    heroNext.style.display = 'none';
-  }
+  ['police','gendarmerie'].forEach(corps => {
+    const cap = CORPS_CAPS[corps];
+    const engaged = entries.filter(e => e.date && (e.statut === 'prevue' || e.statut === 'effectuee') && (e.corps || 'police') === corps && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+    const count = engaged.length;
+    const pct = Math.min(100, (count / cap) * 100);
+    let color = corps === 'police' ? '#1B3A63' : '#4FA8D8';
+    if(pct >= 70) color = 'var(--jaune-texte)';
+    if(pct >= 95) color = 'var(--rouge)';
+    document.getElementById('quota-count-' + corps).textContent = count;
+    const bar = document.getElementById('quota-bar-' + corps);
+    bar.style.width = pct + '%';
+    bar.style.background = color;
+    const remaining = cap - count;
+    document.getElementById('quota-remaining-' + corps).textContent = remaining > 0 ? remaining + ' restantes cette année' : 'Plafond atteint';
+  });
 }
 
 function renderStats(){
@@ -973,15 +1005,18 @@ function changeMonth(delta){
   renderCalendar();
 }
 function setListFilter(key){ currentFilter = key; renderList(); }
+function setCorpsFilter(key){ currentCorpsFilter = key; renderList(); }
 
 function renderList(){
   const filterDefs = [['toutes','Toutes'],['prevue','À venir'],['effectuee','Effectuées'],['a_percevoir','Non payées'],['annulee','Annulées']];
   document.getElementById('filters').innerHTML = filterDefs.map(([key,label]) =>
     `<div class="filter-chip ${currentFilter===key?'active':''}" onclick="setListFilter('${key}')">${label}</div>`).join('');
 
+
   let shown = entries.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
   if(currentFilter === 'a_percevoir') shown = shown.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye');
   else if(currentFilter !== 'toutes') shown = shown.filter(e => e.statut === currentFilter);
+  if(currentCorpsFilter !== 'toutes') shown = shown.filter(e => (e.corps || 'police') === currentCorpsFilter);
   if(searchQuery) shown = shown.filter(e =>
     (e.type||'').toLowerCase().includes(searchQuery) ||
     (e.lieu||'').toLowerCase().includes(searchQuery) ||
@@ -999,10 +1034,12 @@ function renderList(){
       : (e.statut === 'effectuee' ? `<div class="entry-check done">✓</div>` : `<div class="entry-check cancelled">✕</div>`);
     const payAction = (e.statut === 'effectuee' && e.paiement !== 'paye')
       ? `<button class="btn btn-outline" onclick="markPaid('${e.id}')">Marquer payée</button>` : '';
+    const corps = e.corps || 'police';
+    const corpsTag = `<span class="corps-tag ${corps}">${corps === 'police' ? 'Police' : 'Gendarmerie'}</span>`;
     return `<div class="entry" data-id="${e.id}">
         <div class="entry-top">
           ${checkbox}
-          <div style="flex:1; min-width:0;"><div class="entry-title">${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}</div></div>
+          <div style="flex:1; min-width:0;"><div class="entry-title">${corpsTag} ${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}</div></div>
           <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>${paiementBadge}</div>
         </div>
         ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ''}
