@@ -1,6 +1,6 @@
 {
-  "name": "Mon suivi de réserve",
-  "short_name": "Ma Réserve",
+  "name": "Planning RO",
+  "short_name": "Planning RO",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
