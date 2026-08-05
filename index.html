@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ma Réserve">
+<meta name="theme-color" content="#0F1B30">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Mon suivi de réserve</title>
+<style>
+  :root{
+    --gris-fond:#EEF0F3; --gris-bord:#D5DAE1; --gris-bord2:#C7CDD7;
+    --paper:#FFFFFF;
+    --encre:#1E2530; --texte:#333A45; --slate:#5B6478; --slate-light:#8890A0;
+    --bleu:#25467D; --bleu-fonce:#173157; --bleu-clair-bg:#E7F0F8; --bleu-clair-bd:#C6DAEE;
+    --vert:#2F6B45; --vert-bg:#E8F3EB; --vert-bd:#BFE0C9;
+    --jaune-bg:#FCF3D6; --jaune-bd:#EEDD9E; --jaune-texte:#7A5D12;
+    --rouge:#A6332C; --rouge-bg:#FBEAE9; --rouge-bd:#EFC6C3;
+    --bleu-fr:#3B5FA8; --rouge-fr:#A6332C;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{ height:100%; overflow-x:hidden; max-width:100%; }
+  body{
+    margin:0; background:var(--gris-fond); color:var(--texte);
+    font-family:Arial, Helvetica, -apple-system, sans-serif;
+    overscroll-behavior-y:none; overflow:hidden;
+    width:100%;
+  }
+  #app{ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow-x:hidden; max-width:100vw; }
+  .screen{ flex:1; overflow-y:auto; overflow-x:hidden; display:none; -webkit-overflow-scrolling:touch; padding-bottom:24px; }
+  .screen.active{ display:block; }
+
+  /* ---------- EN-TÊTE ---------- */
+  .hero{ background:var(--paper); border-bottom:1px solid var(--gris-bord2); padding:14px 16px; }
+  .hero-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+  .hero-brand{ display:flex; align-items:center; gap:10px; min-width:0; flex:1 1 auto; overflow:hidden; }
+  .hero-logo{ width:42px; height:42px; border-radius:6px; background:#fff; border:1px solid var(--gris-bord); display:flex; align-items:center; justify-content:center; padding:4px; flex-shrink:0; }
+  .hero-logo img{ width:100%; height:100%; object-fit:contain; }
+  .hero-text{ min-width:0; overflow:hidden; }
+  .hero h1{ font-size:15.5px; margin:0; font-weight:700; color:var(--encre); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hero .sub{ font-size:10px; color:var(--slate); margin-top:1px; text-transform:uppercase; letter-spacing:0.03em; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dark-toggle{ flex-shrink:0; width:auto; padding:0 10px; height:32px; border-radius:6px; background:var(--gris-fond); border:1px solid var(--gris-bord); font-size:11.5px; font-weight:700; color:var(--slate); cursor:pointer; white-space:nowrap; }
+  .dark-toggle:active{ opacity:0.7; }
+  .tricolor{ height:4px; background:linear-gradient(90deg, var(--bleu-fr) 0 33%, #fff 33% 66%, var(--rouge-fr) 66% 100%); }
+
+  /* ---------- QUOTA (panneau sobre) ---------- */
+  .quota-panel{ margin:14px 16px 0; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:13px 14px; }
+  .quota-top-row{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+  .quota-label{ font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; }
+  .quota-value{ font-size:15px; font-weight:800; color:var(--encre); }
+  .quota-value span{ font-size:11px; font-weight:600; color:var(--slate); }
+  .quota-bar-outer{ height:8px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
+  .quota-bar-inner{ height:100%; background:var(--bleu); transition:width .3s ease; }
+  .quota-remaining{ font-size:11px; color:var(--slate); margin-top:7px; }
+
+  /* ---------- BANNIÈRES ---------- */
+  .banner{ margin:14px 16px 0; padding:10px 13px; border-radius:5px; font-size:12.5px; line-height:1.5; border:1px solid; }
+  .banner b{ font-weight:700; }
+  .banner-info{ background:var(--bleu-clair-bg); border-color:var(--bleu-clair-bd); color:#1B3A63; }
+  .banner-warning{ background:var(--jaune-bg); border-color:var(--jaune-bd); color:var(--jaune-texte); }
+  .banner-success{ background:var(--vert-bg); border-color:var(--vert-bd); color:var(--vert); }
+  .banner button{ background:none; border:none; float:right; color:inherit; font-size:14px; cursor:pointer; opacity:0.7; }
+
+  /* ---------- CONTENU ---------- */
+  .content{ padding:14px 16px 0; }
+  .stats-row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .stat{ flex:1 1 calc(50% - 10px); min-width:120px; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:11px 12px; }
+  .stat .n{ font-size:19px; font-weight:800; color:var(--encre); }
+  .stat .h{ font-size:11px; color:var(--bleu); font-weight:700; margin-top:1px;}
+  .stat .l{ font-size:9.5px; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; margin-top:3px;}
+
+  .card{ background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:14px; margin-bottom:14px; }
+  .card-title{ font-weight:700; font-size:13px; margin-bottom:10px; padding-bottom:9px; border-bottom:1px solid var(--gris-bord); display:flex; align-items:center; justify-content:space-between; color:var(--encre); text-transform:uppercase; letter-spacing:0.02em; }
+  .screen-title{ font-size:16px; font-weight:800; padding:14px 16px 2px; color:var(--encre); }
+  .screen-sub{ font-size:11.5px; color:var(--slate); padding:0 16px 10px; }
+
+  .next-item{ display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--gris-fond); }
+  .next-item:last-child{ border-bottom:none; }
+  .next-date{ width:42px; text-align:center; flex-shrink:0; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:5px; padding:5px 0; }
+  .next-date .d{ font-size:15px; font-weight:800; line-height:1; color:var(--encre); }
+  .next-date .m{ font-size:8.5px; color:var(--slate); text-transform:uppercase; }
+  .next-info .t{ font-weight:700; font-size:13px; color:var(--encre); }
+  .next-info .s{ font-size:11px; color:var(--slate); margin-top:1px; }
+
+  .trend-chart{ display:flex; align-items:flex-end; gap:6px; height:62px; margin-top:4px; }
+  .trend-bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
+  .trend-bar{ width:100%; border-radius:2px; background:var(--bleu); min-height:3px; }
+  .trend-bar.current{ background:var(--bleu-fonce); }
+  .trend-lbl{ font-size:8.5px; color:var(--slate-light); text-transform:uppercase; font-weight:700; }
+
+  /* ---------- CALENDRIER ---------- */
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-head .month-label{ font-weight:700; font-size:13.5px; text-transform:capitalize; color:var(--encre); }
+  .cal-nav-btn{ width:28px; height:28px; border-radius:5px; border:1px solid var(--gris-bord); background:var(--gris-fond); font-size:14px; cursor:pointer; color:var(--encre); }
+  .cal-nav-btn:active{ opacity:0.7; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-dow{ font-size:9.5px; text-align:center; color:var(--slate-light); font-weight:700; text-transform:uppercase; padding-bottom:3px; }
+  .cal-day{ aspect-ratio:1; border-radius:5px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:12px; cursor:pointer; position:relative; background:var(--gris-fond); border:1px solid transparent; }
+  .cal-day.muted{ opacity:0.35; }
+  .cal-day.today{ border-color:var(--bleu); font-weight:800; }
+  .cal-day.selected{ background:var(--bleu); color:#fff; }
+  .cal-dots{ display:flex; gap:2px; margin-top:2px; }
+  .cal-dot{ width:4px; height:4px; border-radius:50%; }
+  .dot-prevue{ background:var(--bleu); }
+  .dot-effectuee{ background:var(--vert); }
+  .dot-annulee{ background:var(--rouge); }
+  .cal-day.selected .cal-dot{ background:#fff; }
+  #cal-day-detail{ margin-top:12px; }
+
+  /* ---------- FORMULAIRES ---------- */
+  label{ font-size:11px; font-weight:700; color:var(--slate); display:block; margin-bottom:5px; }
+  input, select, textarea{ width:100%; padding:9px 10px; border:1px solid var(--gris-bord2); border-radius:5px; font-size:15px; font-family:inherit; background:var(--paper); color:var(--encre); }
+  input:focus, textarea:focus{ outline:none; border-color:var(--bleu); }
+  textarea{ resize:vertical; min-height:44px; font-size:13.5px; }
+
+  .btn{ border-radius:5px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid transparent; }
+  .btn:active{ opacity:0.85; }
+  .btn-primary{ background:var(--vert); color:#fff; border-color:#245536; }
+  .btn-ghost{ background:var(--gris-fond); color:var(--slate); border-color:var(--gris-bord); }
+  .btn-outline{ background:#fff; border:1px solid var(--bleu); color:var(--bleu); }
+  .btn-danger{ background:#fff; border:1px solid var(--rouge-bd); color:var(--rouge); }
+  .btn-sm{ padding:6px 11px; font-size:11.5px; }
+  .btn-block{ width:100%; }
+
+  .filters{ display:flex; gap:6px; flex-wrap:wrap; padding:0 16px 12px; }
+  .filter-chip{ padding:5px 11px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid var(--gris-bord2); background:var(--paper); color:var(--slate); }
+  .filter-chip.active{ background:var(--bleu); color:#fff; border-color:var(--bleu); }
+
+  .toolbar{ display:flex; align-items:center; justify-content:space-between; padding:0 16px 12px; gap:10px; }
+
+  /* ---------- LISTE DES VACATIONS ---------- */
+  .entry-wrap{ position:relative; margin:0 16px 9px; overflow:hidden; border-radius:6px; }
+  .entry-swipe-bg{ position:absolute; inset:0; background:var(--rouge); display:flex; align-items:center; justify-content:flex-end; padding-right:18px; color:#fff; font-weight:700; font-size:12px; }
+  .entry-wrap .entry{ margin:0; position:relative; touch-action:pan-y; transition:transform .25s ease; z-index:1; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px; }
+  .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .entry-title{ font-weight:700; font-size:13.5px; color:var(--encre); }
+  .entry-meta{ font-size:11px; color:var(--slate); margin-top:3px; }
+  .badge{ font-size:9.5px; font-weight:800; padding:3px 8px; border-radius:4px; white-space:nowrap; border:1px solid; }
+  .b-prevue{ background:var(--bleu-clair-bg); color:var(--bleu); border-color:var(--bleu-clair-bd); }
+  .b-effectuee{ background:var(--vert-bg); color:var(--vert); border-color:var(--vert-bd); }
+  .b-annulee{ background:var(--rouge-bg); color:var(--rouge); border-color:var(--rouge-bd); }
+  .entry-notes{ font-size:11.5px; color:var(--slate); margin-top:8px; white-space:pre-wrap; line-height:1.4; background:var(--gris-fond); border-radius:4px; padding:7px 9px; }
+  .entry-actions{ display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
+  .entry-actions button{ font-size:11px; padding:5px 10px; }
+  .dup-btn{ background:#fff; border:1px solid var(--gris-bord2); color:var(--slate); font-size:11px; font-weight:700; cursor:pointer; padding:5px 10px; border-radius:5px; }
+
+  .empty{ text-align:center; padding:30px 16px; color:var(--slate-light); font-size:12.5px; }
+  .empty .big{ font-size:28px; margin-bottom:8px; }
+
+  /* ---------- NAVIGATION BASSE ---------- */
+  .tabbar{ display:flex; background:var(--paper); border-top:1px solid var(--gris-bord2); padding:6px 0 max(6px, env(safe-area-inset-bottom)); flex-shrink:0; }
+  .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:var(--slate-light); font-size:9px; font-weight:700; padding:3px 0; }
+  .tab svg{ width:19px; height:19px; }
+  .tab.active{ color:var(--bleu); }
+
+  /* ---------- FICHE (panneau, pas de bulle flottante) ---------- */
+  #sheet-overlay{ position:fixed; inset:0; background:rgba(20,25,35,0.4); display:none; z-index:40; }
+  #sheet-overlay.show{ display:block; }
+  #sheet{ position:fixed; left:0; right:0; bottom:0; background:var(--gris-fond); border-radius:8px 8px 0 0; max-height:92vh; overflow-y:auto; z-index:41; padding:0 0 calc(16px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .25s ease; border-top:1px solid var(--gris-bord2); }
+  #sheet.show{ transform:translateY(0); }
+  .sheet-header{ position:sticky; top:0; background:var(--paper); z-index:2; padding:12px 16px; border-bottom:1px solid var(--gris-bord2); }
+  .sheet-title-row{ display:flex; align-items:center; justify-content:space-between; }
+  .sheet-title{ font-size:14.5px; font-weight:800; color:var(--encre); text-transform:uppercase; letter-spacing:0.02em; }
+  .sheet-close{ width:26px; height:26px; border-radius:4px; background:var(--gris-fond); border:1px solid var(--gris-bord); font-size:13px; color:var(--slate); cursor:pointer; }
+  .sheet-body{ padding:14px 16px 4px; }
+
+  .field-section{ margin-bottom:14px; }
+  .field-section-label{ font-size:10.5px; font-weight:800; color:var(--slate); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:7px; }
+  .field-section-body{ background:#fff; border-radius:6px; padding:12px; border:1px solid var(--gris-bord); }
+  .form-tip{ font-size:11px; color:#1B3A63; background:var(--bleu-clair-bg); border:1px solid var(--bleu-clair-bd); border-radius:5px; padding:8px 10px; margin-bottom:12px; line-height:1.45; }
+  .form-row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .status-toggle{ display:flex; gap:0; border:1px solid var(--gris-bord2); border-radius:5px; overflow:hidden; }
+  .status-toggle button{ flex:1; padding:9px 4px; border:none; border-right:1px solid var(--gris-bord2); background:var(--paper); font-size:11.5px; font-weight:700; color:var(--slate); cursor:pointer; }
+  .status-toggle button:last-child{ border-right:none; }
+  .status-toggle button.sel-prevue.on{ background:var(--bleu); color:#fff; }
+  .status-toggle button.sel-effectuee.on{ background:var(--vert); color:#fff; }
+  .status-toggle button.sel-annulee.on{ background:var(--rouge); color:#fff; }
+  .status-toggle button.sel-non_paye.on{ background:var(--jaune-texte); color:#fff; }
+  .status-toggle button.sel-paye.on{ background:var(--vert); color:#fff; }
+  .form-actions{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 16px 4px; }
+  .form-actions .btn{ flex:1 1 auto; }
+  .conditional-block{ margin-top:12px; }
+
+  /* ---------- PROFIL ---------- */
+  .habil-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--gris-fond); gap:10px; }
+  .habil-row:last-child{ border-bottom:none; }
+  .habil-name{ font-weight:700; font-size:13px; color:var(--encre); }
+  .habil-exp{ font-size:10.5px; color:var(--slate); margin-top:1px; }
+  .habil-dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+  .habil-del{ background:none; border:none; color:var(--slate-light); font-size:14px; cursor:pointer; padding:4px 6px; }
+  .profile-field{ margin-bottom:11px; }
+  .bilan-type-row{ display:flex; align-items:center; gap:10px; padding:6px 0; }
+  .bilan-type-label{ font-size:12px; width:105px; flex-shrink:0; color:var(--slate); }
+  .bilan-type-bar-outer{ flex:1; height:7px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
+  .bilan-type-bar-inner{ height:100%; background:var(--bleu); }
+  .bilan-type-count{ font-size:11px; font-weight:700; width:20px; text-align:right; color:var(--encre); }
+
+  #toast{ position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--encre); color:#fff; padding:10px 20px; border-radius:5px; font-size:12.5px; font-weight:600; opacity:0; transition:all .25s ease; pointer-events:none; z-index:60; }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .legal-footer{ margin:14px 16px 20px; background:var(--bleu-clair-bg); border:1px solid var(--bleu-clair-bd); border-radius:5px; padding:11px 13px; font-size:10.5px; line-height:1.55; color:#1B3A63; }
+
+  body.dark{ background:#161A20; color:#DCE0E6; }
+  body.dark .hero{ background:#1D2229; border-color:#2A2F38; }
+  body.dark .hero h1{ color:#EDEFF2; }
+  body.dark .card, body.dark .stat, body.dark .quota-panel, body.dark .field-section-body, body.dark .entry-wrap .entry{ background:#1D2229; border-color:#2A2F38; }
+  body.dark .card-title, body.dark .entry-title, body.dark .next-info .t, body.dark .habil-name, body.dark .screen-title, body.dark .quota-value, body.dark .cal-head .month-label{ color:#EDEFF2; }
+  body.dark .cal-day{ background:#252B34; color:#DCE0E6; }
+  body.dark input, body.dark textarea{ background:#252B34; border-color:#333A45; color:#EDEFF2; }
+  body.dark .tabbar{ background:#1D2229; border-color:#2A2F38; }
+  body.dark .filter-chip{ background:#1D2229; border-color:#333A45; color:#9AA3B5; }
+  body.dark .btn-ghost{ background:#252B34; color:#9AA3B5; border-color:#333A45; }
+  body.dark .status-toggle{ border-color:#333A45; }
+  body.dark .status-toggle button{ background:#1D2229; border-color:#333A45; color:#9AA3B5; }
+  body.dark #sheet{ background:#161A20; border-color:#2A2F38; }
+  body.dark .sheet-header{ background:#1D2229; border-color:#2A2F38; }
+  body.dark .sheet-close{ background:#252B34; border-color:#333A45; color:#9AA3B5; }
+  body.dark .next-date{ background:#252B34; border-color:#333A45; }
+  body.dark .cal-nav-btn{ background:#252B34; border-color:#333A45; color:#DCE0E6; }
+  body.dark .dark-toggle{ background:#252B34; border-color:#333A45; }
+  body.dark .entry-notes{ background:#252B34; }
+  body.dark .bilan-type-bar-outer{ background:#252B34; border-color:#333A45; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== ACCUEIL ===== -->
+  <div class="screen active" id="screen-accueil">
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <div class="hero-logo"><img src="data:image/png;base64,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" alt="Police Nationale"></div>
+          <div class="hero-text"><h1>Mon suivi de réserve</h1><div class="sub">Réserve opérationnelle</div></div>
+        </div>
+        <button class="dark-toggle" onclick="toggleDark()" id="dark-toggle-btn">Sombre</button>
+      </div>
+    </div>
+    <div class="tricolor"></div>
+    <div class="quota-panel">
+      <div class="quota-top-row">
+        <span class="quota-label">Plafond annuel</span>
+        <span class="quota-value"><b id="quota-count">0</b> <span>/ 70</span></span>
+      </div>
+      <div class="quota-bar-outer"><div id="quota-bar" class="quota-bar-inner" style="width:0%;"></div></div>
+      <div class="quota-remaining" id="quota-remaining"></div>
+    </div>
+    <div class="banner banner-info" id="install-tip" style="display:none;">
+      <button onclick="document.getElementById('install-tip').style.display='none'">✕</button>
+      Pour l'avoir comme une vraie application, consultez l'onglet <b>« Aide »</b> ci-dessous.
+    </div>
+    <div class="content">
+      <div class="stats-row" id="stats-row"></div>
+      <button class="btn btn-primary btn-block" onclick="openSheet(null)" style="margin-bottom:14px;">+ Nouvelle vacation</button>
+      <div class="card">
+        <div class="card-title">Activité des 6 derniers mois</div>
+        <div class="trend-chart" id="trend-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Prochaines vacations</div>
+        <div id="next-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CALENDRIER ===== -->
+  <div class="screen" id="screen-calendrier">
+    <div class="screen-title">Calendrier</div>
+    <div class="screen-sub">Touchez un jour pour voir le détail</div>
+    <div class="content">
+      <div class="card">
+        <div class="cal-head">
+          <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+          <div class="month-label" id="month-label"></div>
+          <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div id="cal-day-detail"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VACATIONS ===== -->
+  <div class="screen" id="screen-vacations">
+    <div class="toolbar" style="padding-top:14px;">
+      <div class="screen-title" style="padding:0;">Mes vacations</div>
+      <button class="btn btn-primary btn-sm" onclick="openSheet(null)">+ Nouvelle vacation</button>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div id="list"></div>
+  </div>
+
+  <!-- ===== PROFIL ===== -->
+  <div class="screen" id="screen-profil">
+    <div class="screen-title">Mon profil</div>
+    <div class="content">
+      <div class="card">
+        <div class="card-title">Identité</div>
+        <div class="profile-field"><label>Nom</label><input id="p-nom" placeholder="Votre nom" onchange="saveProfile()"></div>
+        <div class="form-row2">
+          <div class="profile-field"><label>Matricule</label><input id="p-matricule" placeholder="RO-XXXX" onchange="saveProfile()"></div>
+          <div class="profile-field"><label>Brigade / unité</label><input id="p-brigade" placeholder="Brigade Centre" onchange="saveProfile()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;">
+          <span>Habilitations</span>
+          <button class="btn btn-outline btn-sm" onclick="addHabilitationPrompt()">+ Ajouter</button>
+        </div>
+        <div id="habil-list" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bilan de l'année</div>
+        <div id="bilan-summary" style="margin-bottom:10px;"></div>
+        <div id="bilan-types"></div>
+        <button class="btn btn-outline" style="width:100%; margin-top:12px;" onclick="copyBilan()">Copier le bilan (pour un mail)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AIDE ===== -->
+  <div class="screen" id="screen-aide">
+    <div class="screen-title">Installer &amp; sauvegarder</div>
+    <div class="content">
+      <div class="card">
+        <div class="card-title">Sauvegarde de vos données</div>
+        <p style="font-size:12.5px; line-height:1.5; color:var(--slate); margin:0 0 12px;">Vos données restent sur ce téléphone. Faites une sauvegarde de temps en temps, et surtout avant de changer de téléphone.</p>
+        <button class="btn btn-primary" onclick="exportData()" style="width:100%;">Exporter une sauvegarde</button>
+        <div style="margin-top:10px;">
+          <label style="margin-bottom:6px;">Restaurer une sauvegarde</label>
+          <input type="file" id="import-file" accept="application/json" onchange="importData(this.files[0])" style="font-size:12.5px; padding:8px;">
+        </div>
+        <div id="import-status" style="font-size:11.5px; color:var(--slate); margin-top:6px;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Sur iPhone</div>
+        <ol style="padding-left:18px; font-size:13.5px; line-height:1.9; margin:0;">
+          <li>Ouvrez ce fichier dans <b>Safari</b>.</li>
+          <li>Touchez <b>Partager</b> (le carré avec la flèche).</li>
+          <li>Touchez <b>« Sur l'écran d'accueil »</b>.</li>
+          <li>Touchez <b>« Ajouter »</b>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="card-title">Sur Android</div>
+        <ol style="padding-left:18px; font-size:13.5px; line-height:1.9; margin:0;">
+          <li>Ouvrez ce fichier dans <b>Chrome</b>.</li>
+          <li>Touchez les <b>3 points</b> en haut à droite.</li>
+          <li>Touchez <b>« Ajouter à l'écran d'accueil »</b>.</li>
+        </ol>
+      </div>
+      <div class="legal-footer">
+        Les informations saisies dans cet outil (vacations, habilitations, montants) sont stockées uniquement sur cet appareil, dans la mémoire de ce navigateur. Aucune donnée n'est transmise à un serveur ni partagée avec un tiers.
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab active" data-screen="accueil" onclick="setScreen('accueil', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Accueil
+    </button>
+    <button class="tab" data-screen="calendrier" onclick="setScreen('calendrier', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendrier
+    </button>
+    <button class="tab" data-screen="vacations" onclick="setScreen('vacations', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Vacations
+    </button>
+    <button class="tab" data-screen="profil" onclick="setScreen('profil', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil
+    </button>
+    <button class="tab" data-screen="aide" onclick="setScreen('aide', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 2-3 4M12 17h.01"/></svg>Aide
+    </button>
+  </div>
+</div>
+
+
+<div id="sheet-overlay" onclick="closeSheetIfOverlay(event)">
+  <div id="sheet">
+    <div class="sheet-header">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <div class="sheet-title" id="sheet-title">Nouvelle vacation</div>
+        <button class="sheet-close" onclick="closeSheet()">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body">
+      <div class="form-tip">💡 Un mail liste plusieurs vacations du même type ? Remplissez une fois, puis <b>« + suivante »</b>.</div>
+
+      <div class="field-section">
+        <div class="field-section-label">Quoi</div>
+        <div class="field-section-body">
+          <div class="profile-field"><label>Type de mission</label><input id="f-type" placeholder="Ex : Police Secours — Nuit"></div>
+          <div class="profile-field" style="margin-bottom:0;"><label>Lieu</label><input id="f-lieu" placeholder="Ex : Secteur Centre-ville"></div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <div class="field-section-label">Quand</div>
+        <div class="field-section-body">
+          <div class="profile-field"><label>Date</label><input id="f-date" type="date"></div>
+          <div class="form-row2" style="margin-bottom:0;">
+            <div><label>Début</label><input id="f-debut" type="time"></div>
+            <div><label>Fin</label><input id="f-fin" type="time"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <div class="field-section-label">Statut</div>
+        <div class="field-section-body">
+          <div class="status-toggle">
+            <button type="button" class="sel-prevue" onclick="setStatut('prevue')">Prévue</button>
+            <button type="button" class="sel-effectuee" onclick="setStatut('effectuee')">Effectuée</button>
+            <button type="button" class="sel-annulee" onclick="setStatut('annulee')">Annulée</button>
+          </div>
+          <div class="conditional-block" id="paiement-block" style="display:none;">
+            <label>Montant (€)</label>
+            <input id="f-montant" type="number" step="0.01" placeholder="Ex : 120" style="margin-bottom:10px;">
+            <label>Paiement</label>
+            <div class="status-toggle">
+              <button type="button" class="sel-non_paye" onclick="setPaiement('non_paye')">Non payée</button>
+              <button type="button" class="sel-paye" onclick="setPaiement('paye')">Payée</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <div class="field-section-label">Notes</div>
+        <div class="field-section-body">
+          <textarea id="f-notes" placeholder="Ex : mail du 20/07, objet Appel à volontaires Mirabelle..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeSheet()">Annuler</button>
+      <button class="btn btn-outline" id="save-next-btn" onclick="saveEntry(true)">+ suivante</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveEntry(false)">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+let entries = [];
+let habilitations = [];
+let profile = { nom:'', matricule:'', brigade:'' };
+let editingId = null;
+let currentFilter = 'toutes';
+let currentStatut = 'prevue';
+let currentPaiement = 'non_paye';
+let viewYear = new Date().getFullYear();
+let viewMonth = new Date().getMonth();
+let selectedDate = null;
+const ANNUAL_CAP = 70;
+const STORAGE_KEY = 'reserve_vacations_v1';
+const HABIL_KEY = 'reserve_habilitations_v1';
+const PROFILE_KEY = 'reserve_profile_v1';
+
+const STATUT_LABELS = { prevue:'Prévue', effectuee:'Effectuée', annulee:'Annulée' };
+const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const MONTHS_SHORT = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+const DOWS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+function loadData(){
+  try{ entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ entries = []; }
+  try{ habilitations = JSON.parse(localStorage.getItem(HABIL_KEY) || '[]'); }catch(e){ habilitations = []; }
+  try{ profile = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}'); if(!profile) profile = {}; }catch(e){ profile = {}; }
+
+  document.getElementById('p-nom').value = profile.nom || '';
+  document.getElementById('p-matricule').value = profile.matricule || '';
+  document.getElementById('p-brigade').value = profile.brigade || '';
+
+  if(localStorage.getItem('reserve_dark') === '1'){
+    document.body.classList.add('dark');
+    document.getElementById('dark-toggle-btn').textContent = 'Clair';
+  }
+  if(entries.length === 0 && !localStorage.getItem('reserve_tip_seen')){
+    document.getElementById('install-tip').style.display = 'block';
+    localStorage.setItem('reserve_tip_seen', '1');
+  }
+  renderAll();
+}
+function persist(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){ showToast('Erreur de sauvegarde'); } }
+function persistHabil(){ try{ localStorage.setItem(HABIL_KEY, JSON.stringify(habilitations)); }catch(e){} }
+function saveProfile(){
+  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim() };
+  try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }catch(e){}
+  showToast('Profil enregistré');
+}
+
+function toggleDark(){
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('dark-toggle-btn').textContent = isDark ? 'Clair' : 'Sombre';
+  localStorage.setItem('reserve_dark', isDark ? '1' : '0');
+  vibrate();
+}
+function vibrate(){ try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){} }
+
+function setScreen(name, el){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if(name === 'profil') renderProfilScreen();
+  vibrate();
+}
+
+function computeHours(debut, fin){
+  if(!debut || !fin) return 0;
+  const [h1,m1] = debut.split(':').map(Number);
+  const [h2,m2] = fin.split(':').map(Number);
+  let mins = (h2*60+m2) - (h1*60+m1);
+  if(mins <= 0) mins += 24*60;
+  return mins/60;
+}
+
+function setStatut(s){
+  currentStatut = s;
+  document.querySelectorAll('.sel-prevue,.sel-effectuee,.sel-annulee').forEach(b => b.classList.remove('on'));
+  document.querySelector('.sel-' + s).classList.add('on');
+  document.getElementById('paiement-block').style.display = (s === 'effectuee') ? 'block' : 'none';
+}
+function setPaiement(p){
+  currentPaiement = p;
+  document.querySelector('.sel-non_paye').classList.remove('on');
+  document.querySelector('.sel-paye').classList.remove('on');
+  document.querySelector('.sel-' + p).classList.add('on');
+}
+
+function openSheet(dateStr){
+  editingId = null;
+  clearForm();
+  if(dateStr) document.getElementById('f-date').value = dateStr;
+  document.getElementById('sheet-title').textContent = 'Nouvelle vacation';
+  document.getElementById('save-btn').textContent = 'Enregistrer';
+  document.getElementById('save-next-btn').style.display = 'inline-block';
+  document.getElementById('sheet-overlay').classList.add('show');
+  requestAnimationFrame(() => document.getElementById('sheet').classList.add('show'));
+}
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('show');
+  setTimeout(() => document.getElementById('sheet-overlay').classList.remove('show'), 250);
+  clearForm();
+}
+function closeSheetIfOverlay(ev){ if(ev.target.id === 'sheet-overlay') closeSheet(); }
+
+function clearForm(){
+  ['f-type','f-lieu','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
+  setStatut('prevue'); setPaiement('non_paye');
+}
+
+function saveEntry(keepOpen){
+  const type = document.getElementById('f-type').value.trim();
+  const date = document.getElementById('f-date').value;
+  const lieu = document.getElementById('f-lieu').value.trim();
+  const debut = document.getElementById('f-debut').value;
+  const fin = document.getElementById('f-fin').value;
+  const notes = document.getElementById('f-notes').value.trim();
+  const montant = document.getElementById('f-montant').value;
+
+  if(!type || !date){ showToast('Indiquez le type et la date'); return; }
+  const payload = { type, date, lieu, debut, fin, statut: currentStatut, paiement: currentPaiement, montant: montant ? parseFloat(montant) : null, notes };
+
+  if(editingId){
+    const idx = entries.findIndex(e => e.id === editingId);
+    if(idx !== -1) entries[idx] = { ...entries[idx], ...payload };
+  } else {
+    entries.push({ id: 'v_' + Date.now() + Math.random().toString(36).slice(2,6), ...payload, createdAt: Date.now() });
+  }
+  persist();
+  renderAll();
+  vibrate();
+
+  if(keepOpen && !editingId){
+    document.getElementById('f-date').value = '';
+    document.getElementById('f-debut').value = '';
+    document.getElementById('f-fin').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('f-type').focus();
+    showToast('Ajoutée — au suivant');
+  } else {
+    closeSheet();
+    showToast(editingId ? 'Mise à jour' : 'Ajoutée');
+  }
+}
+
+function editEntry(id){
+  const e = entries.find(x => x.id === id);
+  if(!e) return;
+  editingId = id;
+  document.getElementById('f-type').value = e.type;
+  document.getElementById('f-lieu').value = e.lieu || '';
+  document.getElementById('f-date').value = e.date;
+  document.getElementById('f-debut').value = e.debut || '';
+  document.getElementById('f-fin').value = e.fin || '';
+  document.getElementById('f-notes').value = e.notes || '';
+  document.getElementById('f-montant').value = e.montant != null ? e.montant : '';
+  setStatut(e.statut || 'prevue'); setPaiement(e.paiement || 'non_paye');
+  document.getElementById('sheet-title').textContent = 'Modifier';
+  document.getElementById('save-btn').textContent = 'Mettre à jour';
+  document.getElementById('save-next-btn').style.display = 'none';
+  document.getElementById('sheet-overlay').classList.add('show');
+  requestAnimationFrame(() => document.getElementById('sheet').classList.add('show'));
+}
+
+function duplicateEntry(id){
+  const e = entries.find(x => x.id === id);
+  if(!e) return;
+  editingId = null;
+  document.getElementById('f-type').value = e.type;
+  document.getElementById('f-lieu').value = e.lieu || '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-debut').value = e.debut || '';
+  document.getElementById('f-fin').value = e.fin || '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-montant').value = e.montant != null ? e.montant : '';
+  setStatut('prevue'); setPaiement('non_paye');
+  document.getElementById('sheet-title').textContent = 'Dupliquer — nouvelle date';
+  document.getElementById('save-btn').textContent = 'Enregistrer';
+  document.getElementById('save-next-btn').style.display = 'inline-block';
+  document.getElementById('sheet-overlay').classList.add('show');
+  requestAnimationFrame(() => document.getElementById('sheet').classList.add('show'));
+  vibrate();
+}
+
+function deleteEntry(id){
+  entries = entries.filter(e => e.id !== id);
+  persist(); renderAll();
+  showToast('Supprimée');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+function formatDateShort(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+}
+function isoWeekKey(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return date.getUTCFullYear() + '-W' + week;
+}
+
+function renderAll(){ renderQuota(); renderStats(); renderTrend(); renderNextList(); renderCalendar(); renderList(); }
+
+function renderQuota(){
+  const thisYear = new Date().getFullYear();
+  const engaged = entries.filter(e => e.date && (e.statut === 'prevue' || e.statut === 'effectuee') && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+  const count = engaged.length;
+  const pct = Math.min(100, (count / ANNUAL_CAP) * 100);
+  let color = 'var(--bleu)';
+  if(pct >= 70) color = 'var(--jaune-texte)';
+  if(pct >= 95) color = 'var(--rouge)';
+  document.getElementById('quota-count').textContent = count;
+  const bar = document.getElementById('quota-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = color;
+  const remaining = ANNUAL_CAP - count;
+  document.getElementById('quota-remaining').textContent = remaining > 0 ? remaining + ' vacations restantes cette année' : 'Plafond atteint';
+}
+
+function renderStats(){
+  const now = new Date();
+  const thisWeekKey = isoWeekKey(now);
+  const thisMonth = now.getMonth(), thisYear = now.getFullYear();
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date);
+  const weekDone = done.filter(e => isoWeekKey(new Date(e.date+'T00:00:00')) === thisWeekKey);
+  const monthDone = done.filter(e => { const d=new Date(e.date+'T00:00:00'); return d.getMonth()===thisMonth && d.getFullYear()===thisYear; });
+  const aPercevoir = done.filter(e => e.paiement !== 'paye');
+  const sumH = arr => arr.reduce((s,e) => s + computeHours(e.debut,e.fin), 0);
+  const sumMontant = arr => arr.reduce((s,e) => s + (e.montant || 0), 0);
+  const block = (label, arr) => `<div class="stat"><div class="n">${arr.length}</div><div class="h">${sumH(arr).toFixed(1)} h</div><div class="l">${label}</div></div>`;
+  const paiementBlock = `<div class="stat"><div class="n" style="color:var(--amber-dark);">${aPercevoir.length}</div><div class="h" style="color:var(--amber-dark);">${sumMontant(aPercevoir).toFixed(0)} €</div><div class="l">À percevoir</div></div>`;
+  document.getElementById('stats-row').innerHTML = block('Cette semaine', weekDone) + block('Ce mois', monthDone) + paiementBlock;
+}
+
+function renderTrend(){
+  const now = new Date();
+  const cols = [];
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const count = entries.filter(e => {
+      if(e.statut !== 'effectuee' || !e.date) return false;
+      const ed = new Date(e.date+'T00:00:00');
+      return ed.getFullYear() === d.getFullYear() && ed.getMonth() === d.getMonth();
+    }).length;
+    cols.push({ label: MONTHS_SHORT[d.getMonth()], count, isCurrent: i===0 });
+  }
+  const max = Math.max(1, ...cols.map(c => c.count));
+  document.getElementById('trend-chart').innerHTML = cols.map(c => `
+    <div class="trend-bar-col">
+      <div style="font-size:10px; font-weight:700; color:var(--slate);">${c.count}</div>
+      <div class="trend-bar ${c.isCurrent?'current':''}" style="height:${Math.max(6, (c.count/max)*46)}px;"></div>
+      <div class="trend-lbl">${c.label}</div>
+    </div>`).join('');
+}
+
+function renderNextList(){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const upcoming = entries.filter(e => e.date >= todayStr && e.statut !== 'annulee').sort((a,b) => a.date.localeCompare(b.date)).slice(0,4);
+  const el = document.getElementById('next-list');
+  if(upcoming.length === 0){ el.innerHTML = `<div class="empty" style="padding:14px 0;">Rien de prévu pour l'instant.</div>`; return; }
+  el.innerHTML = upcoming.map(e => {
+    const d = new Date(e.date+'T00:00:00');
+    return `<div class="next-item">
+      <div class="next-date"><div class="d">${d.getDate()}</div><div class="m">${MONTHS_SHORT[d.getMonth()]}</div></div>
+      <div class="next-info"><div class="t">${escapeHtml(e.type)}</div><div class="s">${e.debut&&e.fin ? e.debut+'–'+e.fin : ''}${e.lieu ? ' · '+escapeHtml(e.lieu):''}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderCalendar(){
+  document.getElementById('month-label').textContent = MONTHS[viewMonth] + ' ' + viewYear;
+  const grid = document.getElementById('cal-grid');
+  let html = DOWS.map(d => `<div class="cal-dow">${d}</div>`).join('');
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  let startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+  const cellsByDate = {};
+  entries.forEach(e => { if(e.date){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
+  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+  for(let i=0; i<totalCells; i++){
+    const dayNum = i - startOffset + 1;
+    let cellDate, muted = false;
+    if(dayNum < 1){ cellDate = new Date(viewYear, viewMonth-1, daysInPrevMonth + dayNum); muted = true; }
+    else if(dayNum > daysInMonth){ cellDate = new Date(viewYear, viewMonth+1, dayNum - daysInMonth); muted = true; }
+    else { cellDate = new Date(viewYear, viewMonth, dayNum); }
+    const iso = cellDate.toISOString().slice(0,10);
+    const dayEntries = cellsByDate[iso] || [];
+    const dots = [...new Set(dayEntries.map(e=>e.statut))].slice(0,3).map(s => `<span class="cal-dot dot-${s}"></span>`).join('');
+    html += `<div class="cal-day ${muted?'muted':''} ${iso===todayStr?'today':''} ${iso===selectedDate?'selected':''}" onclick="selectDay('${iso}')">${cellDate.getDate()}<div class="cal-dots">${dots}</div></div>`;
+  }
+  grid.innerHTML = html;
+  renderDayDetail();
+}
+
+function renderDayDetail(){
+  const el = document.getElementById('cal-day-detail');
+  if(!selectedDate){ el.innerHTML = ''; return; }
+  const dayEntries = entries.filter(e => e.date === selectedDate);
+  if(dayEntries.length === 0){
+    el.innerHTML = `<div style="margin-top:14px; text-align:center;"><div class="empty" style="padding:16px 0;">Rien ce jour-là.</div><button class="btn btn-primary" onclick="openSheet('${selectedDate}')" style="width:100%;">+ Ajouter pour ce jour</button></div>`;
+    return;
+  }
+  el.innerHTML = `<div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">` +
+    dayEntries.map(e => `
+      <div class="entry" style="margin:0; background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:13px 15px;">
+        <div class="entry-top">
+          <div><div class="entry-title">${escapeHtml(e.type)}</div><div class="entry-meta">${e.debut&&e.fin?e.debut+'–'+e.fin:''}${e.lieu?' · '+escapeHtml(e.lieu):''}</div></div>
+          <span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>
+        </div>
+        <div class="entry-actions"><button class="btn btn-ghost" onclick="editEntry('${e.id}')">Modifier</button><button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Supprimer</button></div>
+      </div>`).join('') + `</div>`;
+}
+
+function selectDay(iso){
+  selectedDate = (selectedDate === iso) ? null : iso;
+  renderCalendar();
+}
+function changeMonth(delta){
+  viewMonth += delta;
+  if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+  if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+  selectedDate = null;
+  renderCalendar();
+}
+function setListFilter(key){ currentFilter = key; renderList(); }
+
+function renderList(){
+  const filterDefs = [['toutes','Toutes'],['prevue','À venir'],['effectuee','Effectuées'],['annulee','Annulées']];
+  document.getElementById('filters').innerHTML = filterDefs.map(([key,label]) =>
+    `<div class="filter-chip ${currentFilter===key?'active':''}" onclick="setListFilter('${key}')">${label}</div>`).join('');
+
+  let shown = entries.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  if(currentFilter !== 'toutes') shown = shown.filter(e => e.statut === currentFilter);
+
+  const list = document.getElementById('list');
+  if(shown.length === 0){ list.innerHTML = `<div class="empty">Aucune vacation ici.<br>Touchez le bouton + pour en ajouter une.</div>`; return; }
+  list.innerHTML = shown.map(e => {
+    const h = computeHours(e.debut, e.fin);
+    const montantTxt = (e.montant != null && e.montant !== '') ? ' · ' + e.montant + ' €' : '';
+    const paiementBadge = e.statut === 'effectuee' ? `<span class="badge" style="${e.paiement==='paye' ? 'background:var(--success-bg);color:var(--success);' : 'background:var(--warn-bg);color:var(--warn);'}">${e.paiement==='paye' ? 'Payée' : 'À percevoir'}</span>` : '';
+    return `<div class="entry-wrap" data-id="${e.id}">
+      <div class="entry-swipe-bg" onclick="deleteEntry('${e.id}')">Supprimer</div>
+      <div class="entry" ontouchstart="swipeStart(event,'${e.id}')" ontouchmove="swipeMove(event,'${e.id}')" ontouchend="swipeEnd(event,'${e.id}')">
+        <div class="entry-top">
+          <div><div class="entry-title">${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}</div></div>
+          <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>${paiementBadge}</div>
+        </div>
+        ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ''}
+        <div class="entry-actions">
+          <button class="btn btn-ghost" onclick="editEntry('${e.id}')">Modifier</button>
+          <button class="dup-btn" onclick="duplicateEntry('${e.id}')">Dupliquer</button>
+          <button class="btn btn-danger" onclick="deleteEntry('${e.id}')">Supprimer</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let swipeStartX = 0, swipeCurrentX = 0, swipeActive = false;
+function swipeStart(ev){ swipeStartX = ev.touches[0].clientX; swipeActive = true; }
+function swipeMove(ev){
+  if(!swipeActive) return;
+  swipeCurrentX = ev.touches[0].clientX - swipeStartX;
+  if(swipeCurrentX < 0) ev.currentTarget.style.transform = `translateX(${Math.max(swipeCurrentX, -90)}px)`;
+}
+function swipeEnd(ev){
+  swipeActive = false;
+  const el = ev.currentTarget;
+  if(swipeCurrentX < -55){ el.style.transform = 'translateX(-90px)'; vibrate(); }
+  else{ el.style.transform = 'translateX(0)'; }
+  swipeCurrentX = 0;
+}
+
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+/* ---------- PROFIL : Habilitations ---------- */
+function addHabilitationPrompt(){
+  const nom = prompt('Nom de l\'habilitation (ex : BAAJ, BSTC, Port d\'arme)');
+  if(!nom) return;
+  const exp = prompt('Date d\'expiration (AAAA-MM-JJ), laissez vide si aucune');
+  habilitations.push({ id:'h_'+Date.now(), nom: nom.trim(), expiration: exp ? exp.trim() : '' });
+  persistHabil();
+  renderHabilitations();
+  showToast('Habilitation ajoutée');
+}
+function deleteHabilitation(id){
+  habilitations = habilitations.filter(h => h.id !== id);
+  persistHabil();
+  renderHabilitations();
+}
+function renderHabilitations(){
+  const el = document.getElementById('habil-list');
+  if(habilitations.length === 0){ el.innerHTML = `<div class="empty" style="padding:16px 0;">Aucune habilitation enregistrée.</div>`; return; }
+  const todayMs = Date.now();
+  el.innerHTML = habilitations.map(h => {
+    let dotColor = 'var(--slate-light)', expTxt = 'Sans échéance';
+    if(h.expiration){
+      const expMs = new Date(h.expiration+'T00:00:00').getTime();
+      const daysLeft = Math.round((expMs - todayMs) / 86400000);
+      expTxt = daysLeft >= 0 ? ('Expire dans ' + daysLeft + ' j') : ('Expirée depuis ' + Math.abs(daysLeft) + ' j');
+      dotColor = daysLeft < 0 ? 'var(--alert)' : (daysLeft <= 90 ? 'var(--warn)' : 'var(--success)');
+    }
+    return `<div class="habil-row">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="habil-dot" style="background:${dotColor};"></span>
+        <div><div class="habil-name">${escapeHtml(h.nom)}</div><div class="habil-exp">${expTxt}</div></div>
+      </div>
+      <button class="habil-del" onclick="deleteHabilitation('${h.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- PROFIL : Bilan annuel ---------- */
+function renderProfilScreen(){
+  renderHabilitations();
+  const thisYear = new Date().getFullYear();
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+  const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
+  const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+(e.montant||0),0);
+  const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+(e.montant||0),0);
+
+  document.getElementById('bilan-summary').innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${done.length}</div><div class="l">Vacations ${thisYear}</div></div>
+      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${totalH.toFixed(0)} h</div><div class="l">Heures effectuées</div></div>
+      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n" style="color:var(--success);">${percu.toFixed(0)} €</div><div class="l">Perçu</div></div>
+      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n" style="color:var(--amber-dark);">${aPercevoir.toFixed(0)} €</div><div class="l">À percevoir</div></div>
+    </div>`;
+
+  const byType = {};
+  done.forEach(e => { byType[e.type] = (byType[e.type]||0) + 1; });
+  const maxType = Math.max(1, ...Object.values(byType));
+  const typesHtml = Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([type,count]) => `
+    <div class="bilan-type-row">
+      <div class="bilan-type-label">${escapeHtml(type)}</div>
+      <div class="bilan-type-bar-outer"><div class="bilan-type-bar-inner" style="width:${(count/maxType)*100}%;"></div></div>
+      <div class="bilan-type-count">${count}</div>
+    </div>`).join('');
+  document.getElementById('bilan-types').innerHTML = Object.keys(byType).length
+    ? `<div style="font-size:11px; font-weight:800; color:var(--slate-light); text-transform:uppercase; margin-bottom:6px;">Par type de mission</div>` + typesHtml
+    : '';
+}
+
+function copyBilan(){
+  const thisYear = new Date().getFullYear();
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+  const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
+  const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+(e.montant||0),0);
+  const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+(e.montant||0),0);
+  const text = `Bilan réserve opérationnelle — ${thisYear}
+${profile.nom ? 'Nom : '+profile.nom : ''}${profile.matricule ? ' · Matricule : '+profile.matricule : ''}${profile.brigade ? ' · '+profile.brigade : ''}
+
+Vacations effectuées : ${done.length} / 70
+Heures totales : ${totalH.toFixed(1)} h
+Montant perçu : ${percu.toFixed(2)} €
+Montant à percevoir : ${aPercevoir.toFixed(2)} €`;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => showToast('Bilan copié — collez-le dans un mail')).catch(() => fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); showToast('Bilan copié'); }catch(e){ showToast('Copie impossible sur ce navigateur'); }
+  document.body.removeChild(ta);
+}
+
+/* ---------- Export / Import ---------- */
+function exportData(){
+  const blob = new Blob([JSON.stringify({ entries, habilitations, profile }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'sauvegarde-reserve-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Sauvegarde téléchargée');
+}
+function importData(file){
+  if(!file) return;
+  const status = document.getElementById('import-status');
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const parsed = JSON.parse(ev.target.result);
+      const newEntries = Array.isArray(parsed) ? parsed : (parsed.entries || []);
+      const newHabil = Array.isArray(parsed) ? [] : (parsed.habilitations || []);
+      const newProfile = Array.isArray(parsed) ? {} : (parsed.profile || {});
+      const ok = confirm('Restaurer ' + newEntries.length + ' vacation(s) ? Cela remplacera les données actuelles.');
+      if(!ok) return;
+      entries = newEntries; habilitations = newHabil; profile = newProfile;
+      persist(); persistHabil();
+      try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }catch(e){}
+      document.getElementById('p-nom').value = profile.nom || '';
+      document.getElementById('p-matricule').value = profile.matricule || '';
+      document.getElementById('p-brigade').value = profile.brigade || '';
+      renderAll();
+      status.textContent = '✓ Sauvegarde restaurée.';
+      status.style.color = 'var(--success)';
+      showToast('Sauvegarde restaurée');
+    } catch(err){
+      status.textContent = "Ce fichier n'est pas une sauvegarde valide.";
+      status.style.color = 'var(--alert)';
+    }
+  };
+  reader.readAsText(file);
+}
+
+loadData();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+
+</script>
+</body>
+</html>
