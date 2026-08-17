@@ -130,7 +130,8 @@
   .cal-head .month-label{ font-weight:700; font-size:13.5px; text-transform:capitalize; color:var(--encre); }
   .cal-nav-btn{ width:28px; height:28px; border-radius:5px; border:1px solid var(--gris-bord); background:var(--gris-fond); font-size:14px; cursor:pointer; color:var(--encre); }
   .cal-nav-btn:active{ opacity:0.7; }
-  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+  .cal-grid{ display:flex; flex-wrap:wrap; gap:5px; }
+  .cal-grid > *{ flex:0 0 calc(14.285% - 4.3px); }
   .year-grid{ display:flex; flex-wrap:wrap; gap:10px; }
   .mini-month{ border:1px solid var(--gris-bord); border-radius:8px; padding:10px; flex:1 1 calc(50% - 5px); min-width:150px; }
   .mini-month.current{ border-color:var(--bleu); border-width:1.5px; background:var(--bleu-clair-bg); }
@@ -141,13 +142,16 @@
   .mini-day.has-p{ background:var(--bleu); color:#fff; font-weight:700; }
   .mini-day.has-e{ background:var(--vert); color:#fff; font-weight:700; }
   .cal-dow{ font-size:10.5px; text-align:center; color:var(--slate); font-weight:800; text-transform:uppercase; padding-bottom:5px; }
-  .cal-day{ aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; position:relative; background:var(--gris-fond); border:1px solid transparent; color:var(--encre); gap:2px; transition:transform .1s ease, background .15s ease; }
+  .cal-day{ aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; position:relative; background:var(--gris-fond); border:1.5px solid transparent; color:var(--encre); gap:2px; transition:transform .1s ease, background .15s ease; }
   .cal-day:active{ transform:scale(0.92); }
   .cal-day.muted{ opacity:0.35; }
-  .cal-day.today{ border-color:var(--bleu); font-weight:800; }
-  .cal-day.selected{ background:var(--bleu); color:#fff; }
-  .cal-dots{ display:flex; gap:2px; margin-top:2px; }
-  .cal-dot{ width:5px; height:5px; border-radius:50%; }
+  .cal-day.today{ border-color:var(--encre); font-weight:800; }
+  .cal-day.has-prevue{ background:var(--bleu-clair-bg); border-color:var(--bleu); color:var(--bleu); font-weight:800; }
+  .cal-day.has-effectuee{ background:var(--vert-bg); border-color:var(--vert); color:var(--vert); font-weight:800; }
+  .cal-day.has-annulee{ background:var(--rouge-bg); border-color:var(--rouge-bd); color:var(--rouge); text-decoration:line-through; }
+  .cal-day.selected{ background:var(--bleu) !important; color:#fff !important; border-color:var(--bleu) !important; }
+  .cal-dots{ display:flex; gap:2px; margin-top:1px; }
+  .cal-dot{ width:4px; height:4px; border-radius:50%; }
   .dot-prevue{ background:var(--bleu); }
   .dot-effectuee{ background:var(--vert); }
   .dot-annulee{ background:var(--rouge); }
@@ -407,6 +411,15 @@
           <button class="btn btn-outline btn-sm" onclick="addHabilitationPrompt()">+ Ajouter</button>
         </div>
         <div id="habil-list" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="toolbar" style="padding:0 0 10px;">
+        <div class="screen-title" style="padding:0; font-size:14px;">Bilan</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="cal-nav-btn" onclick="changeBilanYear(-1)">‹</button>
+          <span id="bilan-year-label" style="font-weight:800; font-size:13px; min-width:34px; text-align:center;"></span>
+          <button class="cal-nav-btn" onclick="changeBilanYear(1)">›</button>
+        </div>
       </div>
 
       <div class="card">
@@ -1221,16 +1234,27 @@ function renderStats(){
   document.getElementById('stats-row').innerHTML = block('Cette semaine', weekDone) + block('Ce mois', monthDone) + paiementBlock;
 }
 
+function changeBilanYear(delta){
+  bilanYear += delta;
+  const lbl = document.getElementById('bilan-year-label');
+  if(lbl) lbl.textContent = bilanYear;
+  renderTrend();
+  renderCorpsCompare();
+  renderProfilScreen();
+}
+
 function renderTrend(){
+  const lbl = document.getElementById('bilan-year-label');
+  if(lbl) lbl.textContent = bilanYear;
   const now = new Date();
   const cols = [];
   for(let m=0; m<12; m++){
     const count = entries.filter(e => {
       if(e.statut !== 'effectuee' || !e.date) return false;
       const ed = new Date(e.date+'T00:00:00');
-      return ed.getFullYear() === now.getFullYear() && ed.getMonth() === m;
+      return ed.getFullYear() === bilanYear && ed.getMonth() === m;
     }).length;
-    cols.push({ label: MONTHS_SHORT[m], count, isCurrent: m===now.getMonth() });
+    cols.push({ label: MONTHS_SHORT[m], count, isCurrent: bilanYear === now.getFullYear() && m===now.getMonth() });
   }
   const max = Math.max(1, ...cols.map(c => c.count));
   document.getElementById('trend-chart').innerHTML = cols.map(c => `
@@ -1252,7 +1276,7 @@ function renderCalendar(){
   const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
   const todayStr = toLocalISO(new Date());
   const cellsByDate = {};
-  entries.forEach(e => { if(e.date){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
+  entries.forEach(e => { if(e.date && inView(e)){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
   for(let i=0; i<totalCells; i++){
     const dayNum = i - startOffset + 1;
@@ -1262,8 +1286,13 @@ function renderCalendar(){
     else { cellDate = new Date(viewYear, viewMonth, dayNum); }
     const iso = toLocalISO(cellDate);
     const dayEntries = cellsByDate[iso] || [];
-    const dots = [...new Set(dayEntries.map(e=>e.statut))].slice(0,3).map(s => `<span class="cal-dot dot-${s}"></span>`).join('');
-    html += `<div class="cal-day ${muted?'muted':''} ${iso===todayStr?'today':''} ${iso===selectedDate?'selected':''}" onclick="selectDay('${iso}')">${cellDate.getDate()}<div class="cal-dots">${dots}</div></div>`;
+    const statuses = new Set(dayEntries.map(e=>e.statut));
+    let statusClass = '';
+    if(statuses.has('effectuee')) statusClass = 'has-effectuee';
+    else if(statuses.has('prevue')) statusClass = 'has-prevue';
+    else if(statuses.has('annulee')) statusClass = 'has-annulee';
+    const dots = statuses.size > 1 ? [...statuses].slice(0,3).map(s => `<span class="cal-dot dot-${s}"></span>`).join('') : '';
+    html += `<div class="cal-day ${muted?'muted':''} ${statusClass} ${iso===todayStr?'today':''} ${iso===selectedDate?'selected':''}" onclick="selectDay('${iso}')">${cellDate.getDate()}<div class="cal-dots">${dots}</div></div>`;
   }
   grid.innerHTML = html;
   renderDayDetail();
@@ -1306,6 +1335,7 @@ function changeMonth(delta){
 }
 
 let yearViewYear = new Date().getFullYear();
+let bilanYear = new Date().getFullYear();
 
 function setCalView(v){
   document.querySelectorAll('.status-toggle .cv-month, .status-toggle .cv-year').forEach(b => b.classList.remove('on'));
@@ -1450,8 +1480,7 @@ function renderHabilitations(){
 function renderCorpsCompare(){
   const el = document.getElementById('corps-compare');
   if(!el) return;
-  const thisYear = new Date().getFullYear();
-  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === bilanYear);
   const countPolice = done.filter(e => (e.corps || 'police') === 'police').length;
   const countGend = done.filter(e => e.corps === 'gendarmerie').length;
   const max = Math.max(1, countPolice, countGend);
@@ -1463,12 +1492,13 @@ function renderCorpsCompare(){
 }
 
 function renderProfilScreen(){
+  const lbl = document.getElementById('bilan-year-label');
+  if(lbl) lbl.textContent = bilanYear;
   renderTrend();
   renderHabilitations();
   renderReportPreview();
   renderCorpsCompare();
-  const thisYear = new Date().getFullYear();
-  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === bilanYear);
   const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
   const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+(e.montant||0),0);
   const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+(e.montant||0),0);
@@ -1476,7 +1506,7 @@ function renderProfilScreen(){
   const nonPayeCount = done.filter(e=>e.paiement!=='paye').length;
   document.getElementById('bilan-summary').innerHTML = `
     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${done.length}</div><div class="l">Vacations ${thisYear}</div></div>
+      <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${done.length}</div><div class="l">Vacations ${bilanYear}</div></div>
       <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${totalH.toFixed(0)} h</div><div class="l">Heures effectuées</div></div>
     </div>
     <div class="money-box">
