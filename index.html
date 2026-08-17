@@ -102,12 +102,12 @@
   .content{ padding:14px 16px 0; }
   .stats-row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
   .stat{ flex:1 1 calc(50% - 10px); min-width:120px; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:11px 12px; animation:entrySlide .3s ease; }
-  .stat .n{ font-size:19px; font-weight:800; color:var(--encre); }
+  .stat .n{ font-size:23px; font-weight:800; color:var(--encre); letter-spacing:-0.01em; }
   .stat .h{ font-size:11px; color:var(--bleu); font-weight:700; margin-top:1px;}
   .stat .l{ font-size:9.5px; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; margin-top:3px;}
 
-  .card{ background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:14px; margin-bottom:14px; }
-  .card-title{ font-weight:700; font-size:13px; margin-bottom:10px; padding-bottom:9px; border-bottom:1px solid var(--gris-bord); display:flex; align-items:center; justify-content:space-between; color:var(--encre); text-transform:uppercase; letter-spacing:0.02em; }
+  .card{ background:var(--paper); border:1px solid var(--gris-bord); border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 1px 2px rgba(20,25,35,0.04), 0 2px 8px rgba(20,25,35,0.04); }
+  .card-title{ font-weight:800; font-size:12.5px; margin-bottom:14px; padding-bottom:11px; border-bottom:1px solid var(--gris-fond); display:flex; align-items:center; gap:8px; justify-content:space-between; color:var(--encre); text-transform:uppercase; letter-spacing:0.04em; }
   .screen-title{ font-size:16px; font-weight:800; padding:14px 16px 2px; color:var(--encre); }
   .screen-sub{ font-size:11.5px; color:var(--slate); padding:0 16px 10px; }
 
@@ -131,8 +131,18 @@
   .cal-nav-btn{ width:28px; height:28px; border-radius:5px; border:1px solid var(--gris-bord); background:var(--gris-fond); font-size:14px; cursor:pointer; color:var(--encre); }
   .cal-nav-btn:active{ opacity:0.7; }
   .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+  .year-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+  .mini-month{ border:1px solid var(--gris-bord); border-radius:8px; padding:10px; flex:1 1 calc(50% - 5px); min-width:150px; }
+  .mini-month.current{ border-color:var(--bleu); border-width:1.5px; background:var(--bleu-clair-bg); }
+  .mini-month.current .mini-month-title{ color:var(--bleu); }
+  .mini-month-title{ font-size:11px; font-weight:800; text-align:center; margin-bottom:6px; text-transform:capitalize; color:var(--encre); }
+  .mini-days{ display:flex; flex-wrap:wrap; gap:1.5px; }
+  .mini-day{ aspect-ratio:1; flex:0 0 13.5%; border-radius:2px; font-size:8.5px; display:flex; align-items:center; justify-content:center; color:var(--slate-light); }
+  .mini-day.has-p{ background:var(--bleu); color:#fff; font-weight:700; }
+  .mini-day.has-e{ background:var(--vert); color:#fff; font-weight:700; }
   .cal-dow{ font-size:10.5px; text-align:center; color:var(--slate); font-weight:800; text-transform:uppercase; padding-bottom:5px; }
-  .cal-day{ aspect-ratio:1; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; position:relative; background:var(--gris-fond); border:1px solid transparent; color:var(--encre); gap:2px; }
+  .cal-day{ aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; position:relative; background:var(--gris-fond); border:1px solid transparent; color:var(--encre); gap:2px; transition:transform .1s ease, background .15s ease; }
+  .cal-day:active{ transform:scale(0.92); }
   .cal-day.muted{ opacity:0.35; }
   .cal-day.today{ border-color:var(--bleu); font-weight:800; }
   .cal-day.selected{ background:var(--bleu); color:#fff; }
@@ -245,7 +255,7 @@
   .money-row:last-child{ border-bottom:none; }
   .money-label{ font-size:12.5px; font-weight:700; color:var(--encre); }
   .money-sub{ font-size:10.5px; color:var(--slate); margin-top:2px; }
-  .money-amount{ font-size:19px; font-weight:800; white-space:nowrap; }
+  .money-amount{ font-size:23px; font-weight:800; white-space:nowrap; letter-spacing:-0.01em; }
   .money-amount.ok{ color:var(--vert); }
   .money-amount.due{ color:var(--rouge); }
   .bilan-type-row{ display:flex; align-items:center; gap:10px; padding:6px 0; }
@@ -348,7 +358,11 @@
     <div class="screen-title">Calendrier</div>
     <div class="screen-sub">Touchez un jour pour voir le détail</div>
     <div class="content">
-      <div class="card">
+      <div class="status-toggle" style="margin-bottom:14px;">
+        <button type="button" class="cv-month on" onclick="setCalView('month')">Mois</button>
+        <button type="button" class="cv-year" onclick="setCalView('year')">Année entière</button>
+      </div>
+      <div class="card" id="cal-month-view">
         <div class="cal-head">
           <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
           <div class="month-label" id="month-label"></div>
@@ -361,6 +375,14 @@
           <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--slate);"><span style="width:8px;height:8px;border-radius:50%;background:var(--rouge);display:inline-block;"></span>Annulée</span>
         </div>
         <div id="cal-day-detail"></div>
+      </div>
+      <div class="card" id="cal-year-view" style="display:none;">
+        <div class="cal-head">
+          <button class="cal-nav-btn" onclick="changeYear(-1)">‹</button>
+          <div class="month-label" id="year-label"></div>
+          <button class="cal-nav-btn" onclick="changeYear(1)">›</button>
+        </div>
+        <div id="year-grid"></div>
       </div>
     </div>
   </div>
@@ -388,9 +410,18 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Bilan de l'année</div>
-        <div class="trend-chart" id="trend-chart" style="margin-bottom:14px;"></div>
-        <div id="bilan-summary" style="margin-bottom:10px;"></div>
+        <div class="card-title">Activité de l'année</div>
+        <div class="trend-chart" id="trend-chart"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bilan financier</div>
+        <div id="bilan-summary"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Répartition</div>
+        <div id="corps-compare" style="margin-bottom:14px;"></div>
         <div id="bilan-types"></div>
       </div>
 
@@ -728,6 +759,41 @@ function findConflict(date, debut, fin, excludeId){
   }) || null;
 }
 
+const MIN_REST_HOURS = 11;
+
+function findInsufficientRest(date, debut, fin, excludeId){
+  if(!debut || !fin) return null;
+  const dayMs = 86400000;
+  const dateObj = new Date(date + 'T00:00:00');
+  const toDateTime = (d, t) => { const [h,m] = t.split(':').map(Number); return new Date(d).getTime() + h*3600000 + m*60000; };
+
+  let myStart = toDateTime(dateObj, debut);
+  let myEnd = toDateTime(dateObj, fin);
+  if(myEnd <= myStart) myEnd += dayMs;
+
+  const candidates = entries.filter(e =>
+    e.id !== excludeId && e.statut !== 'annulee' && e.debut && e.fin &&
+    Math.abs(new Date(e.date+'T00:00:00').getTime() - dateObj.getTime()) <= dayMs
+  );
+
+  for(const e of candidates){
+    const eDateObj = new Date(e.date+'T00:00:00');
+    let eStart = toDateTime(eDateObj, e.debut);
+    let eEnd = toDateTime(eDateObj, e.fin);
+    if(eEnd <= eStart) eEnd += dayMs;
+
+    let gapHours;
+    if(eEnd <= myStart) gapHours = (myStart - eEnd) / 3600000;
+    else if(myEnd <= eStart) gapHours = (eStart - myEnd) / 3600000;
+    else continue; // se chevauchent déjà détecté par findConflict
+
+    if(gapHours >= 0 && gapHours < MIN_REST_HOURS){
+      return { entry: e, gapHours };
+    }
+  }
+  return null;
+}
+
 function saveEntry(keepOpen){
   const type = document.getElementById('f-type').value.trim();
   const date = document.getElementById('f-date').value;
@@ -744,6 +810,13 @@ function saveEntry(keepOpen){
   if(conflict){
     const ok = confirm('Attention : cette vacation chevauche "' + conflict.type + '" déjà prévue le même jour (' + (conflict.debut||'?') + '–' + (conflict.fin||'?') + '). Enregistrer quand même ?');
     if(!ok) return;
+  } else {
+    const rest = findInsufficientRest(date, debut, fin, editingId);
+    if(rest){
+      const h = Math.max(0, rest.gapHours).toFixed(1);
+      const ok = confirm('Attention : seulement ' + h + ' h de repos entre cette vacation et "' + rest.entry.type + '" du ' + new Date(rest.entry.date+'T00:00:00').toLocaleDateString('fr-FR') + ' (' + (rest.entry.debut||'?') + '–' + (rest.entry.fin||'?') + '). Le minimum recommandé est ' + MIN_REST_HOURS + ' h. Enregistrer quand même ?');
+      if(!ok) return;
+    }
   }
 
   const payload = { type, date, lieu, ville, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
@@ -1231,6 +1304,51 @@ function changeMonth(delta){
   selectedDate = null;
   renderCalendar();
 }
+
+let yearViewYear = new Date().getFullYear();
+
+function setCalView(v){
+  document.querySelectorAll('.status-toggle .cv-month, .status-toggle .cv-year').forEach(b => b.classList.remove('on'));
+  document.querySelector('.cv-' + v).classList.add('on');
+  document.getElementById('cal-month-view').style.display = v === 'month' ? 'block' : 'none';
+  document.getElementById('cal-year-view').style.display = v === 'year' ? 'block' : 'none';
+  if(v === 'year') renderYearView();
+  vibrate();
+}
+
+function changeYear(delta){
+  yearViewYear += delta;
+  renderYearView();
+}
+
+function renderYearView(){
+  document.getElementById('year-label').textContent = yearViewYear;
+  const now = new Date();
+  const cellsByDate = {};
+  entries.forEach(e => {
+    if(e.date && e.statut !== 'annulee' && inView(e)){
+      cellsByDate[e.date] = e.statut === 'effectuee' ? 'has-e' : 'has-p';
+    }
+  });
+  let html = '<div class="year-grid">';
+  for(let m=0; m<12; m++){
+    const daysInMonth = new Date(yearViewYear, m+1, 0).getDate();
+    const firstOfMonth = new Date(yearViewYear, m, 1);
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
+    const isCurrent = yearViewYear === now.getFullYear() && m === now.getMonth();
+    html += `<div class="mini-month ${isCurrent?'current':''}"><div class="mini-month-title">${MONTHS_SHORT[m]}</div><div class="mini-days">`;
+    for(let i=0; i<startOffset; i++) html += '<div class="mini-day"></div>';
+    for(let d=1; d<=daysInMonth; d++){
+      const iso = yearViewYear + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const cls = cellsByDate[iso] || '';
+      html += `<div class="mini-day ${cls}">${d}</div>`;
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+  document.getElementById('year-grid').innerHTML = html;
+}
+
 function setListFilter(key){ currentFilter = key; renderList(); }
 function setCorpsFilter(key){ currentCorpsFilter = key; renderList(); }
 
@@ -1329,10 +1447,26 @@ function renderHabilitations(){
 }
 
 /* ---------- PROFIL : Bilan annuel ---------- */
+function renderCorpsCompare(){
+  const el = document.getElementById('corps-compare');
+  if(!el) return;
+  const thisYear = new Date().getFullYear();
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
+  const countPolice = done.filter(e => (e.corps || 'police') === 'police').length;
+  const countGend = done.filter(e => e.corps === 'gendarmerie').length;
+  const max = Math.max(1, countPolice, countGend);
+  el.innerHTML = `
+    <div style="font-size:11px; font-weight:800; color:var(--slate-light); text-transform:uppercase; margin-bottom:8px;">Police / Gendarmerie</div>
+    <div class="bilan-type-row"><div class="bilan-type-label">Police Nationale</div><div class="bilan-type-bar-outer"><div class="bilan-type-bar-inner" style="width:${(countPolice/max)*100}%; background:#1B3A63;"></div></div><div class="bilan-type-count">${countPolice}</div></div>
+    <div class="bilan-type-row"><div class="bilan-type-label">Gendarmerie</div><div class="bilan-type-bar-outer"><div class="bilan-type-bar-inner" style="width:${(countGend/max)*100}%; background:#4FA8D8;"></div></div><div class="bilan-type-count">${countGend}</div></div>
+  `;
+}
+
 function renderProfilScreen(){
   renderTrend();
   renderHabilitations();
   renderReportPreview();
+  renderCorpsCompare();
   const thisYear = new Date().getFullYear();
   const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
   const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
