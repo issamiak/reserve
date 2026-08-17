@@ -56,7 +56,15 @@
   .hero-quota-bar-outer{ height:7px; background:var(--gris-fond); border:1px solid var(--gris-bord); border-radius:3px; overflow:hidden; }
   .hero-quota-bar-inner{ height:100%; background:var(--bleu); transition:width .3s ease; }
   .hero-quota-remaining{ font-size:10.5px; color:var(--slate); margin-top:6px; }
-  .hero-quota-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--gris-fond); }
+  .hero-quota-grid{ display:grid; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--gris-fond); }
+  .hero-quota-grid.cols-2{ grid-template-columns:1fr 1fr; }
+  .hero-quota-grid.cols-1{ grid-template-columns:1fr; }
+  .view-toggle{ display:flex; gap:0; border:1px solid var(--gris-bord2); border-radius:5px; overflow:hidden; margin-top:12px; }
+  .view-toggle button{ flex:1; padding:8px 4px; border:none; border-right:1px solid var(--gris-bord2); background:var(--paper); font-size:11.5px; font-weight:700; color:var(--slate); cursor:pointer; }
+  .view-toggle button:last-child{ border-right:none; }
+  .view-toggle button.on{ background:var(--encre); color:#fff; }
+  .view-toggle button.vt-police.on{ background:#1B3A63; }
+  .view-toggle button.vt-gendarmerie.on{ background:#4FA8D8; }
   .hero-quota{ margin-top:0; padding-top:0; border-top:none; }
 
   .week-strip{ display:flex; gap:6px; padding:12px 16px; background:var(--paper); border-bottom:1px solid var(--gris-bord2); }
@@ -68,7 +76,15 @@
   .week-day .wd-num{ font-size:14px; font-weight:800; color:var(--encre); }
   .week-day .wd-dot{ width:5px; height:5px; border-radius:50%; margin-top:1px; }
 
-  .today-card{ background:linear-gradient(135deg, var(--bleu) 0%, var(--bleu-fonce) 100%); color:#fff; border-radius:8px; padding:14px 16px; margin-bottom:14px; }
+  .today-card{ background:linear-gradient(135deg, var(--bleu) 0%, var(--bleu-fonce) 100%); color:#fff; border-radius:8px; padding:14px 16px; margin-bottom:14px; animation:entrySlide .3s ease; }
+  .weather-card{ background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px; margin-bottom:14px; animation:entrySlide .3s ease; }
+  .weather-card-title{ font-size:11px; font-weight:800; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:9px; }
+  .weather-row{ display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--gris-fond); }
+  .weather-row:last-child{ border-bottom:none; }
+  .weather-icon{ font-size:20px; width:26px; text-align:center; }
+  .weather-date{ font-size:12px; font-weight:700; color:var(--encre); width:70px; flex-shrink:0; }
+  .weather-desc{ font-size:11px; color:var(--slate); flex:1; }
+  .weather-temp{ font-size:12px; font-weight:700; color:var(--encre); white-space:nowrap; }
   .today-card .tc-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; color:rgba(255,255,255,0.7); margin-bottom:4px; }
   .today-card .tc-title{ font-size:15px; font-weight:800; margin-bottom:2px; }
   .today-card .tc-meta{ font-size:12px; color:rgba(255,255,255,0.8); margin-bottom:10px; }
@@ -85,7 +101,7 @@
   /* ---------- CONTENU ---------- */
   .content{ padding:14px 16px 0; }
   .stats-row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
-  .stat{ flex:1 1 calc(50% - 10px); min-width:120px; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:11px 12px; }
+  .stat{ flex:1 1 calc(50% - 10px); min-width:120px; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:11px 12px; animation:entrySlide .3s ease; }
   .stat .n{ font-size:19px; font-weight:800; color:var(--encre); }
   .stat .h{ font-size:11px; color:var(--bleu); font-weight:700; margin-top:1px;}
   .stat .l{ font-size:9.5px; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; margin-top:3px;}
@@ -150,7 +166,11 @@
   .toolbar{ display:flex; align-items:center; justify-content:space-between; padding:0 16px 12px; gap:10px; }
 
   /* ---------- LISTE DES VACATIONS ---------- */
-  .entry{ margin:0 16px 9px; background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px; }
+  .entry{ margin:0 16px 9px; background:var(--paper); border:1px solid var(--gris-bord); border-left:3px solid var(--gris-bord); border-radius:6px; padding:12px 14px; animation:entrySlide .25s ease; transition:transform .15s ease, box-shadow .15s ease; }
+  .entry.corps-police{ border-left-color:#1B3A63; }
+  .entry.corps-gendarmerie{ border-left-color:#4FA8D8; }
+  .entry:active{ transform:scale(0.985); }
+  @keyframes entrySlide{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .entry-check{
     width:26px; height:26px; border-radius:50%; border:2px solid var(--bleu); background:#fff;
@@ -279,26 +299,18 @@
           <div class="hero-logo"><img src="data:image/png;base64,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" alt="Police Nationale"></div>
           <div class="hero-text"><h1>Planning RO</h1><div class="sub">Réserve opérationnelle</div></div>
         </div>
-        <button class="dark-toggle" onclick="toggleDark()" id="dark-toggle-btn">Sombre</button>
-      </div>
-      <div class="hero-quota-grid">
-        <div class="hero-quota">
-          <div class="hero-quota-top">
-            <span class="hero-quota-label">Police Nationale</span>
-            <span class="hero-quota-value"><b id="quota-count-police">0</b>/90</span>
-          </div>
-          <div class="hero-quota-bar-outer"><div id="quota-bar-police" class="hero-quota-bar-inner" style="width:0%;"></div></div>
-          <div class="hero-quota-remaining" id="quota-remaining-police"></div>
-        </div>
-        <div class="hero-quota">
-          <div class="hero-quota-top">
-            <span class="hero-quota-label">Gendarmerie</span>
-            <span class="hero-quota-value"><b id="quota-count-gendarmerie">0</b>/60</span>
-          </div>
-          <div class="hero-quota-bar-outer"><div id="quota-bar-gendarmerie" class="hero-quota-bar-inner" style="width:0%;"></div></div>
-          <div class="hero-quota-remaining" id="quota-remaining-gendarmerie"></div>
+        <div style="display:flex; gap:6px;">
+          <button class="dark-toggle" onclick="openNews()" id="news-btn" title="Actualités de votre ville">📰</button>
+          <button class="dark-toggle" onclick="toggleDark()" id="dark-toggle-btn">Sombre</button>
         </div>
       </div>
+      <div class="view-toggle">
+        <button type="button" class="vt-both on" onclick="setViewCorps('both')">Les deux</button>
+        <button type="button" class="vt-police" onclick="setViewCorps('police')">Police</button>
+        <button type="button" class="vt-gendarmerie" onclick="setViewCorps('gendarmerie')">Gendarmerie</button>
+      </div>
+      <div class="hero-quota-grid" id="hero-quota-grid"></div>
+      <div id="reset-countdown" style="font-size:10px; color:var(--slate); text-align:center; margin-top:10px;"></div>
     </div>
     <div class="tricolor"></div>
     <div class="week-strip" id="week-strip"></div>
@@ -306,8 +318,13 @@
       <button onclick="document.getElementById('install-tip').style.display='none'">✕</button>
       Pour l'avoir comme une vraie application, consultez l'onglet <b>« Aide »</b> ci-dessous.
     </div>
+    <div class="banner banner-warning" id="backup-reminder" style="display:none;">
+      <button onclick="document.getElementById('backup-reminder').style.display='none'">✕</button>
+      <span id="backup-reminder-text"></span> Faites-en une dans l'onglet <b>« Aide »</b>.
+    </div>
     <div class="content">
       <div id="today-card"></div>
+      <div id="weather-card"></div>
       <div class="stats-row" id="stats-row"></div>
       <button class="btn btn-primary btn-block" onclick="openSheet(null)" style="margin-bottom:16px;">+ Nouvelle vacation</button>
     </div>
@@ -359,6 +376,7 @@
           <div class="profile-field"><label>Matricule</label><input id="p-matricule" placeholder="RO-XXXX" onchange="saveProfile()"></div>
           <div class="profile-field"><label>Brigade / unité</label><input id="p-brigade" placeholder="Brigade Centre" onchange="saveProfile()"></div>
         </div>
+        <div class="profile-field" style="margin-bottom:0;"><label>Ville (pour les actualités)</label><input id="p-ville" placeholder="Ex : Metz" onchange="saveProfile()"></div>
       </div>
 
       <div class="card">
@@ -374,7 +392,17 @@
         <div class="trend-chart" id="trend-chart" style="margin-bottom:14px;"></div>
         <div id="bilan-summary" style="margin-bottom:10px;"></div>
         <div id="bilan-types"></div>
-        <button class="btn btn-outline" style="width:100%; margin-top:12px;" onclick="copyBilan()">Copier le bilan (pour un mail)</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Rapport pour la RH</div>
+        <p style="font-size:11.5px; color:var(--slate); margin:0 0 12px;">Liste détaillée des vacations effectuées non encore réglées, prête à envoyer pour réclamer le paiement.</p>
+        <div id="report-preview" style="font-size:11px; color:var(--slate); background:var(--gris-fond); border-radius:6px; padding:10px 12px; margin-bottom:12px; white-space:pre-wrap; max-height:160px; overflow-y:auto;"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="copyReport()">Copier</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="emailReport()">Envoyer par mail</button>
+        </div>
+        <div id="report-last-sent" style="font-size:10.5px; color:var(--slate); margin-top:9px; text-align:center;"></div>
       </div>
 
       <div class="card">
@@ -461,8 +489,9 @@
               <button type="button" class="sel-gendarmerie" onclick="setCorps('gendarmerie')">Gendarmerie</button>
             </div>
           </div>
-          <div class="profile-field"><label>Type de mission</label><input id="f-type" placeholder="Ex : Police Secours — Nuit"></div>
+          <div class="profile-field"><label>Type de mission</label><input id="f-type" list="type-suggestions" placeholder="Ex : Police Secours — Nuit"><datalist id="type-suggestions"></datalist></div>
           <div class="profile-field" style="margin-bottom:0;"><label>Lieu</label><input id="f-lieu" placeholder="Ex : Secteur Centre-ville"></div>
+          <div class="profile-field" style="margin-bottom:0; margin-top:10px;"><label>Ville (pour la météo)</label><input id="f-ville" list="ville-suggestions" placeholder="Ex : Metz, Nancy, Lyon..."><datalist id="ville-suggestions"></datalist></div>
         </div>
       </div>
 
@@ -524,6 +553,8 @@ let profile = { nom:'', matricule:'', brigade:'' };
 let editingId = null;
 let currentFilter = 'toutes';
 let currentCorpsFilter = 'toutes';
+let viewCorps = 'both';
+try{ viewCorps = localStorage.getItem('reserve_view_corps') || 'both'; }catch(e){}
 let searchQuery = '';
 let currentStatut = 'prevue';
 let currentPaiement = 'non_paye';
@@ -542,6 +573,20 @@ const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','aoû
 const MONTHS_SHORT = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
 const DOWS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
+function renderBackupReminder(){
+  const el = document.getElementById('backup-reminder');
+  const txt = document.getElementById('backup-reminder-text');
+  if(!el || entries.length < 3) { if(el) el.style.display = 'none'; return; }
+  const last = localStorage.getItem('reserve_last_backup');
+  const daysSince = last ? Math.round((Date.now() - new Date(last).getTime()) / 86400000) : Infinity;
+  if(daysSince >= 30){
+    txt.textContent = last ? ('Dernière sauvegarde il y a ' + daysSince + ' jours — pensez à en refaire une.') : "Vous n'avez jamais fait de sauvegarde de vos données.";
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 function loadData(){
   try{ entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ entries = []; }
   try{ habilitations = JSON.parse(localStorage.getItem(HABIL_KEY) || '[]'); }catch(e){ habilitations = []; }
@@ -550,6 +595,7 @@ function loadData(){
   document.getElementById('p-nom').value = profile.nom || '';
   document.getElementById('p-matricule').value = profile.matricule || '';
   document.getElementById('p-brigade').value = profile.brigade || '';
+  document.getElementById('p-ville').value = profile.ville || '';
 
   if(localStorage.getItem('reserve_dark') === '1'){
     document.body.classList.add('dark');
@@ -559,14 +605,24 @@ function loadData(){
     document.getElementById('install-tip').style.display = 'block';
     localStorage.setItem('reserve_tip_seen', '1');
   }
+  renderBackupReminder();
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('on'));
+  const vtBtn = document.querySelector('.vt-' + viewCorps);
+  if(vtBtn) vtBtn.classList.add('on');
   renderAll();
 }
 function persist(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){ showToast('Erreur de sauvegarde'); } }
 function persistHabil(){ try{ localStorage.setItem(HABIL_KEY, JSON.stringify(habilitations)); }catch(e){} }
 function saveProfile(){
-  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim() };
+  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim(), ville:document.getElementById('p-ville').value.trim() };
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }catch(e){}
   showToast('Profil enregistré');
+}
+
+function openNews(){
+  const ville = (profile.ville || '').trim();
+  const query = ville ? ville + ' actualités' : 'France actualités';
+  window.open('https://news.google.com/search?q=' + encodeURIComponent(query) + '&hl=fr&gl=FR', '_blank');
 }
 
 function toggleDark(){
@@ -620,7 +676,22 @@ function setCorps(c){
   document.querySelector('.sel-' + c).classList.add('on');
 }
 
+function updateTypeSuggestions(){
+  const dl = document.getElementById('type-suggestions');
+  if(!dl) return;
+  const types = [...new Set(entries.map(e => e.type).filter(Boolean))];
+  dl.innerHTML = types.map(t => `<option value="${escapeHtml(t)}">`).join('');
+}
+function updateVilleSuggestions(){
+  const dl = document.getElementById('ville-suggestions');
+  if(!dl) return;
+  const villes = [...new Set(entries.map(e => e.ville).filter(Boolean))];
+  dl.innerHTML = villes.map(v => `<option value="${escapeHtml(v)}">`).join('');
+}
+
 function openSheet(dateStr){
+  updateTypeSuggestions();
+  updateVilleSuggestions();
   editingId = null;
   clearForm();
   if(dateStr) document.getElementById('f-date').value = dateStr;
@@ -639,21 +710,43 @@ function closeSheet(){
 function closeSheetIfOverlay(ev){ if(ev.target.id === 'sheet-overlay') closeSheet(); }
 
 function clearForm(){
-  ['f-type','f-lieu','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
+  ['f-type','f-lieu','f-ville','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
   setStatut('prevue'); setPaiement('non_paye'); setCorps('police');
+}
+
+function findConflict(date, debut, fin, excludeId){
+  if(!debut || !fin) return null;
+  const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  let start1 = toMin(debut), end1 = toMin(fin);
+  if(end1 <= start1) end1 += 24*60;
+  return entries.find(e => {
+    if(e.id === excludeId || e.date !== date || e.statut === 'annulee') return false;
+    if(!e.debut || !e.fin) return false;
+    let start2 = toMin(e.debut), end2 = toMin(e.fin);
+    if(end2 <= start2) end2 += 24*60;
+    return start1 < end2 && start2 < end1;
+  }) || null;
 }
 
 function saveEntry(keepOpen){
   const type = document.getElementById('f-type').value.trim();
   const date = document.getElementById('f-date').value;
   const lieu = document.getElementById('f-lieu').value.trim();
+  const ville = document.getElementById('f-ville').value.trim();
   const debut = document.getElementById('f-debut').value;
   const fin = document.getElementById('f-fin').value;
   const notes = document.getElementById('f-notes').value.trim();
   const montant = document.getElementById('f-montant').value;
 
   if(!type || !date){ showToast('Indiquez le type et la date'); return; }
-  const payload = { type, date, lieu, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
+
+  const conflict = findConflict(date, debut, fin, editingId);
+  if(conflict){
+    const ok = confirm('Attention : cette vacation chevauche "' + conflict.type + '" déjà prévue le même jour (' + (conflict.debut||'?') + '–' + (conflict.fin||'?') + '). Enregistrer quand même ?');
+    if(!ok) return;
+  }
+
+  const payload = { type, date, lieu, ville, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
 
   if(editingId){
     const idx = entries.findIndex(e => e.id === editingId);
@@ -679,11 +772,13 @@ function saveEntry(keepOpen){
 }
 
 function editEntry(id){
+  updateTypeSuggestions(); updateVilleSuggestions();
   const e = entries.find(x => x.id === id);
   if(!e) return;
   editingId = id;
   document.getElementById('f-type').value = e.type;
   document.getElementById('f-lieu').value = e.lieu || '';
+  document.getElementById('f-ville').value = e.ville || '';
   document.getElementById('f-date').value = e.date;
   document.getElementById('f-debut').value = e.debut || '';
   document.getElementById('f-fin').value = e.fin || '';
@@ -708,11 +803,13 @@ function downloadICSFromSheet(){
 }
 
 function duplicateEntry(id){
+  updateTypeSuggestions(); updateVilleSuggestions();
   const e = entries.find(x => x.id === id);
   if(!e) return;
   editingId = null;
   document.getElementById('f-type').value = e.type;
   document.getElementById('f-lieu').value = e.lieu || '';
+  document.getElementById('f-ville').value = e.ville || '';
   document.getElementById('f-date').value = '';
   document.getElementById('f-debut').value = e.debut || '';
   document.getElementById('f-fin').value = e.fin || '';
@@ -785,6 +882,7 @@ function renderAll(){
   try{ renderStats(); }catch(e){ console.error('renderStats', e); }
   try{ renderCalendar(); }catch(e){ console.error('renderCalendar', e); }
   try{ renderList(); }catch(e){ console.error('renderList', e); }
+  try{ refreshWeather(); }catch(e){ console.error('refreshWeather', e); }
 }
 
 function renderWeekStrip(){
@@ -795,7 +893,7 @@ function renderWeekStrip(){
   const monday = new Date(now); monday.setDate(now.getDate() - dayNum);
   const todayStr = toLocalISO(now);
   const cellsByDate = {};
-  entries.forEach(e => { if(e.date && e.statut !== 'annulee'){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
+  entries.forEach(e => { if(e.date && e.statut !== 'annulee' && inView(e)){ (cellsByDate[e.date] = cellsByDate[e.date] || []).push(e); } });
   let html = '';
   for(let i=0; i<7; i++){
     const d = new Date(monday); d.setDate(monday.getDate() + i);
@@ -819,11 +917,97 @@ function goToCalendarDay(iso){
   vibrate();
 }
 
+const WMO_ICONS = {
+  0:['☀️','Ciel dégagé'], 1:['🌤️','Peu nuageux'], 2:['⛅','Partiellement nuageux'], 3:['☁️','Couvert'],
+  45:['🌫️','Brouillard'], 48:['🌫️','Brouillard givrant'],
+  51:['🌦️','Bruine légère'], 53:['🌦️','Bruine'], 55:['🌦️','Bruine forte'],
+  61:['🌧️','Pluie légère'], 63:['🌧️','Pluie'], 65:['🌧️','Pluie forte'],
+  71:['🌨️','Neige légère'], 73:['🌨️','Neige'], 75:['❄️','Neige forte'],
+  80:['🌦️','Averses'], 81:['🌦️','Averses'], 82:['⛈️','Averses fortes'],
+  95:['⛈️','Orage'], 96:['⛈️','Orage avec grêle'], 99:['⛈️','Orage violent']
+};
+function wmoInfo(code){ return WMO_ICONS[code] || ['🌡️','—']; }
+
+async function getWeatherForCity(ville){
+  let allCache = {};
+  try{ allCache = JSON.parse(localStorage.getItem('reserve_weather_cache_v2') || '{}'); }catch(e){}
+  const key = ville.toLowerCase().trim();
+  const cached = allCache[key];
+  if(cached && (Date.now() - cached.ts) < 3*3600*1000){
+    return cached.daily;
+  }
+  let geoRes;
+  try{
+    geoRes = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(ville) + '&count=1&language=fr');
+  } catch(networkErr){
+    throw new Error('reseau');
+  }
+  if(!geoRes.ok) throw new Error('reseau');
+  const geo = await geoRes.json();
+  if(!geo.results || geo.results.length === 0) throw new Error('ville_introuvable');
+  const { latitude, longitude } = geo.results[0];
+  const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=16`);
+  if(!wRes.ok) throw new Error('reseau');
+  const w = await wRes.json();
+  allCache[key] = { ts: Date.now(), daily: w.daily };
+  try{ localStorage.setItem('reserve_weather_cache_v2', JSON.stringify(allCache)); }catch(e){}
+  return w.daily;
+}
+
+let weatherByEntry = {};
+
+async function refreshWeather(){
+  const el = document.getElementById('weather-card');
+  const todayStr = toLocalISO(new Date());
+  const maxDate = toLocalISO(new Date(Date.now() + 15*86400000));
+  const upcoming = entries.filter(e => e.statut === 'prevue' && e.ville && e.date >= todayStr && e.date <= maxDate && inView(e))
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  if(upcoming.length === 0){
+    if(el) el.innerHTML = '';
+    weatherByEntry = {};
+    return;
+  }
+
+  const villes = [...new Set(upcoming.map(e => e.ville))];
+  const dailyByVille = {};
+  const errByVille = {};
+  for(const v of villes){
+    try{ dailyByVille[v] = await getWeatherForCity(v); }
+    catch(err){ dailyByVille[v] = null; errByVille[v] = err.message || 'erreur'; }
+  }
+
+  weatherByEntry = {};
+  const rows = upcoming.slice(0,6).map(entry => {
+    const daily = dailyByVille[entry.ville];
+    if(!daily){
+      const reason = errByVille[entry.ville] === 'reseau' ? 'connexion indisponible' : 'ville introuvable';
+      return `<div class="weather-row"><span class="weather-icon">❔</span><span class="weather-date">${new Date(entry.date+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span><span class="weather-desc">${escapeHtml(entry.ville)} — ${reason}</span></div>`;
+    }
+    const idx = daily.time.indexOf(entry.date);
+    if(idx === -1) return '';
+    const [icon, desc] = wmoInfo(daily.weathercode[idx]);
+    const tmax = Math.round(daily.temperature_2m_max[idx]);
+    const tmin = Math.round(daily.temperature_2m_min[idx]);
+    weatherByEntry[entry.id] = { icon, tmin, tmax };
+    const d = new Date(entry.date+'T00:00:00');
+    return `<div class="weather-row">
+      <span class="weather-icon">${icon}</span>
+      <span class="weather-date">${d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span>
+      <span class="weather-desc">${desc} — ${escapeHtml(entry.ville)}</span>
+      <span class="weather-temp">${tmin}° / ${tmax}°</span>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  if(el) el.innerHTML = rows ? `<div class="weather-card"><div class="weather-card-title">Météo de vos prochaines vacations</div>${rows}</div>` : '';
+  renderList();
+}
+
 function renderTodayCard(){
   const el = document.getElementById('today-card');
   if(!el) return;
   const todayStr = toLocalISO(new Date());
-  const todays = entries.filter(e => e.date === todayStr && e.statut !== 'annulee');
+  const todays = entries.filter(e => e.date === todayStr && e.statut !== 'annulee' && inView(e));
   if(todays.length === 0){ el.innerHTML = ''; return; }
   el.innerHTML = todays.map(e => {
     const corps = e.corps || 'police';
@@ -885,9 +1069,45 @@ function downloadICS(id){
   showToast('Fichier calendrier téléchargé — ouvrez-le pour l\'ajouter à Google Calendar');
 }
 
+function setViewCorps(c){
+  viewCorps = c;
+  try{ localStorage.setItem('reserve_view_corps', c); }catch(e){}
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('on'));
+  document.querySelector('.vt-' + c).classList.add('on');
+  vibrate();
+  renderAll();
+}
+
+function animateNumber(el, target){
+  if(!el) return;
+  const start = parseInt(el.textContent, 10) || 0;
+  if(start === target){ el.textContent = target; return; }
+  const steps = 12;
+  let i = 0;
+  const diff = target - start;
+  const timer = setInterval(() => {
+    i++;
+    el.textContent = Math.round(start + (diff * i / steps));
+    if(i >= steps){ el.textContent = target; clearInterval(timer); }
+  }, 16);
+}
+
 function renderQuota(){
   const thisYear = new Date().getFullYear();
-  ['police','gendarmerie'].forEach(corps => {
+  const corpsToShow = viewCorps === 'both' ? ['police','gendarmerie'] : [viewCorps];
+  const grid = document.getElementById('hero-quota-grid');
+  grid.className = 'hero-quota-grid ' + (corpsToShow.length === 2 ? 'cols-2' : 'cols-1');
+  grid.innerHTML = corpsToShow.map(corps => `
+    <div class="hero-quota">
+      <div class="hero-quota-top">
+        <span class="hero-quota-label">${CORPS_LABELS[corps]}</span>
+        <span class="hero-quota-value"><b id="quota-count-${corps}">0</b>/${CORPS_CAPS[corps]}</span>
+      </div>
+      <div class="hero-quota-bar-outer"><div id="quota-bar-${corps}" class="hero-quota-bar-inner" style="width:0%;"></div></div>
+      <div class="hero-quota-remaining" id="quota-remaining-${corps}"></div>
+    </div>`).join('');
+
+  corpsToShow.forEach(corps => {
     const cap = CORPS_CAPS[corps];
     const engaged = entries.filter(e => e.date && (e.statut === 'prevue' || e.statut === 'effectuee') && (e.corps || 'police') === corps && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
     const count = engaged.length;
@@ -895,20 +1115,27 @@ function renderQuota(){
     let color = corps === 'police' ? '#1B3A63' : '#4FA8D8';
     if(pct >= 70) color = 'var(--jaune-texte)';
     if(pct >= 95) color = 'var(--rouge)';
-    document.getElementById('quota-count-' + corps).textContent = count;
+    animateNumber(document.getElementById('quota-count-' + corps), count);
     const bar = document.getElementById('quota-bar-' + corps);
     bar.style.width = pct + '%';
     bar.style.background = color;
     const remaining = cap - count;
     document.getElementById('quota-remaining-' + corps).textContent = remaining > 0 ? remaining + ' restantes cette année' : 'Plafond atteint';
   });
+  const now = new Date();
+  const jan1 = new Date(now.getFullYear()+1, 0, 1);
+  const daysLeft = Math.ceil((jan1 - now) / 86400000);
+  const cdEl = document.getElementById('reset-countdown');
+  if(cdEl) cdEl.textContent = 'Remise à zéro des plafonds dans ' + daysLeft + ' jours (1er janvier)';
 }
+
+function inView(e){ return viewCorps === 'both' || (e.corps || 'police') === viewCorps; }
 
 function renderStats(){
   const now = new Date();
   const thisWeekKey = isoWeekKey(now);
   const thisMonth = now.getMonth(), thisYear = now.getFullYear();
-  const done = entries.filter(e => e.statut === 'effectuee' && e.date);
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && inView(e));
   const weekDone = done.filter(e => isoWeekKey(new Date(e.date+'T00:00:00')) === thisWeekKey);
   const monthDone = done.filter(e => { const d=new Date(e.date+'T00:00:00'); return d.getMonth()===thisMonth && d.getFullYear()===thisYear; });
   const aPercevoir = done.filter(e => e.paiement !== 'paye');
@@ -1016,6 +1243,7 @@ function renderList(){
   let shown = entries.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
   if(currentFilter === 'a_percevoir') shown = shown.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye');
   else if(currentFilter !== 'toutes') shown = shown.filter(e => e.statut === currentFilter);
+  if(!inView({corps:'police'}) || !inView({corps:'gendarmerie'})) shown = shown.filter(inView);
   if(currentCorpsFilter !== 'toutes') shown = shown.filter(e => (e.corps || 'police') === currentCorpsFilter);
   if(searchQuery) shown = shown.filter(e =>
     (e.type||'').toLowerCase().includes(searchQuery) ||
@@ -1029,6 +1257,13 @@ function renderList(){
     const h = computeHours(e.debut, e.fin);
     const montantTxt = (e.montant != null && e.montant !== '') ? ' · ' + e.montant + ' €' : '';
     const paiementBadge = e.statut === 'effectuee' ? `<span class="badge" style="${e.paiement==='paye' ? 'background:var(--vert-bg);color:var(--vert);border-color:var(--vert-bd);' : 'background:var(--jaune-bg);color:var(--jaune-texte);border-color:var(--jaune-bd);'}">${e.paiement==='paye' ? 'Payée' : 'Non payée'}</span>` : '';
+    let reclameBadge = '';
+    if(e.statut === 'effectuee' && e.paiement !== 'paye'){
+      try{
+        const ids = JSON.parse(localStorage.getItem('reserve_last_report_ids') || '[]');
+        if(ids.includes(e.id)) reclameBadge = `<span class="badge" style="background:var(--bleu-clair-bg);color:var(--bleu);border-color:var(--bleu-clair-bd);">Réclamée</span>`;
+      }catch(err){}
+    }
     const checkbox = e.statut === 'prevue'
       ? `<button class="entry-check" onclick="markDone('${e.id}')" title="Marquer comme effectuée"></button>`
       : (e.statut === 'effectuee' ? `<div class="entry-check done">✓</div>` : `<div class="entry-check cancelled">✕</div>`);
@@ -1036,11 +1271,13 @@ function renderList(){
       ? `<button class="btn btn-outline" onclick="markPaid('${e.id}')">Marquer payée</button>` : '';
     const corps = e.corps || 'police';
     const corpsTag = `<span class="corps-tag ${corps}">${corps === 'police' ? 'Police' : 'Gendarmerie'}</span>`;
-    return `<div class="entry" data-id="${e.id}">
+    const wx = weatherByEntry[e.id];
+    const weatherTxt = wx ? ` · ${wx.icon} ${wx.tmin}°/${wx.tmax}°` : (e.ville ? ` · ${escapeHtml(e.ville)}` : '');
+    return `<div class="entry corps-${corps}" data-id="${e.id}">
         <div class="entry-top">
           ${checkbox}
-          <div style="flex:1; min-width:0;"><div class="entry-title">${corpsTag} ${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}</div></div>
-          <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>${paiementBadge}</div>
+          <div style="flex:1; min-width:0;"><div class="entry-title">${corpsTag} ${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}${weatherTxt}</div></div>
+          <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>${paiementBadge}${reclameBadge}</div>
         </div>
         ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ''}
         <div class="entry-actions">
@@ -1095,6 +1332,7 @@ function renderHabilitations(){
 function renderProfilScreen(){
   renderTrend();
   renderHabilitations();
+  renderReportPreview();
   const thisYear = new Date().getFullYear();
   const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
   const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
@@ -1156,27 +1394,109 @@ function renderProfilScreen(){
   }
 }
 
-function copyBilan(){
-  const thisYear = new Date().getFullYear();
-  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
-  const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
-  const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+(e.montant||0),0);
-  const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+(e.montant||0),0);
-  const text = `Bilan réserve opérationnelle — ${thisYear}
-${profile.nom ? 'Nom : '+profile.nom : ''}${profile.matricule ? ' · Matricule : '+profile.matricule : ''}${profile.brigade ? ' · '+profile.brigade : ''}
+function padCol(str, width){
+  str = String(str);
+  return str.length >= width ? str.slice(0, width) : str + ' '.repeat(width - str.length);
+}
 
-Vacations effectuées : ${done.length} / 70
-Heures totales : ${totalH.toFixed(1)} h
-Montant perçu : ${percu.toFixed(2)} €
-Montant à percevoir : ${aPercevoir.toFixed(2)} €`;
+function buildReportText(){
+  const unpaid = entries.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye' && e.date)
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  const identityLine = [
+    profile.nom ? profile.nom : '[Nom Prénom]',
+    profile.matricule ? 'Matricule ' + profile.matricule : null,
+    profile.brigade ? profile.brigade : null
+  ].filter(Boolean).join(' — ');
+
+  if(unpaid.length === 0){
+    return `Madame, Monsieur,\n\nJe n'ai actuellement aucune vacation en attente de règlement. Ce message est transmis à titre purement informatif.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
+  }
+
+  const byCorps = { police: [], gendarmerie: [] };
+  unpaid.forEach(e => { byCorps[e.corps || 'police'].push(e); });
+
+  const rows = unpaid.map(e => ({
+    date: new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR'),
+    type: e.type,
+    duree: computeHours(e.debut, e.fin) ? computeHours(e.debut, e.fin).toFixed(1) + ' h' : '-',
+    lieu: e.lieu || '-',
+    montant: e.montant != null ? e.montant.toFixed(2) + ' EUR' : 'non precise'
+  }));
+  const w = {
+    date: Math.max(10, ...rows.map(r=>r.date.length)),
+    type: Math.max(20, ...rows.map(r=>r.type.length)),
+    duree: Math.max(7, ...rows.map(r=>r.duree.length)),
+    lieu: Math.max(15, ...rows.map(r=>r.lieu.length)),
+    montant: Math.max(12, ...rows.map(r=>r.montant.length))
+  };
+
+  let total = 0;
+  let body = `Madame, Monsieur,\n\nRéserviste opérationnel, je me permets de porter à votre connaissance les vacations suivantes, effectuées mais dont le règlement n'apparaît pas encore avoir été effectué à ce jour :\n`;
+
+  ['police','gendarmerie'].forEach(corps => {
+    if(byCorps[corps].length === 0) return;
+    body += `\n${CORPS_LABELS[corps].toUpperCase()}\n`;
+    body += padCol('Date', w.date) + '  ' + padCol('Mission', w.type) + '  ' + padCol('Duree', w.duree) + '  ' + padCol('Lieu', w.lieu) + '  ' + padCol('Montant', w.montant) + '\n';
+    body += '-'.repeat(w.date + w.type + w.duree + w.lieu + w.montant + 8) + '\n';
+    byCorps[corps].forEach(e => {
+      const d = new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR');
+      const h = computeHours(e.debut, e.fin);
+      const dureeTxt = h ? h.toFixed(1) + ' h' : '-';
+      const montantTxt = e.montant != null ? e.montant.toFixed(2) + ' EUR' : 'non precise';
+      if(e.montant != null) total += e.montant;
+      body += padCol(d, w.date) + '  ' + padCol(e.type, w.type) + '  ' + padCol(dureeTxt, w.duree) + '  ' + padCol(e.lieu || '-', w.lieu) + '  ' + padCol(montantTxt, w.montant) + '\n';
+    });
+  });
+
+  body += `\nTotal du (montants renseignes) : ${total.toFixed(2)} EUR\n\nJe reste à votre disposition pour tout complément d'information, et vous remercie par avance de l'attention portée à ce message.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
+  return body;
+}
+
+function renderReportPreview(){
+  const el = document.getElementById('report-preview');
+  if(el) el.textContent = buildReportText();
+  const lastSent = localStorage.getItem('reserve_last_report_sent');
+  const statusEl = document.getElementById('report-last-sent');
+  if(statusEl){
+    if(lastSent){
+      const d = new Date(lastSent);
+      const daysAgo = Math.round((Date.now() - d.getTime()) / 86400000);
+      statusEl.textContent = 'Dernière relance envoyée le ' + d.toLocaleDateString('fr-FR') + (daysAgo > 0 ? ' (il y a ' + daysAgo + ' j)' : " (aujourd'hui)");
+      statusEl.style.color = daysAgo >= 15 ? 'var(--rouge)' : 'var(--slate)';
+    } else {
+      statusEl.textContent = 'Aucune relance envoyée pour l\'instant';
+    }
+  }
+}
+
+function markReportSent(){
+  const unpaidIds = entries.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye').map(e => e.id);
+  localStorage.setItem('reserve_last_report_sent', new Date().toISOString());
+  localStorage.setItem('reserve_last_report_ids', JSON.stringify(unpaidIds));
+  renderReportPreview();
+  renderList();
+}
+
+function copyReport(){
+  const text = buildReportText();
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(() => showToast('Bilan copié — collez-le dans un mail')).catch(() => fallbackCopy(text));
+    navigator.clipboard.writeText(text).then(() => { showToast('Rapport copié — collez-le dans un mail'); markReportSent(); }).catch(() => fallbackCopy(text));
   } else fallbackCopy(text);
 }
+
+function emailReport(){
+  const text = buildReportText();
+  const subject = 'Demande de règlement — vacations réserve opérationnelle';
+  const url = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text);
+  window.location.href = url;
+  markReportSent();
+}
+
 function fallbackCopy(text){
   const ta = document.createElement('textarea');
   ta.value = text; document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); showToast('Bilan copié'); }catch(e){ showToast('Copie impossible sur ce navigateur'); }
+  try{ document.execCommand('copy'); showToast('Rapport copié'); }catch(e){ showToast('Copie impossible sur ce navigateur'); }
   document.body.removeChild(ta);
 }
 
@@ -1188,7 +1508,9 @@ function exportData(){
   a.href = url; a.download = 'sauvegarde-reserve-' + new Date().toISOString().slice(0,10) + '.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  localStorage.setItem('reserve_last_backup', new Date().toISOString());
   showToast('Sauvegarde téléchargée');
+  renderBackupReminder();
 }
 function importData(file){
   if(!file) return;
