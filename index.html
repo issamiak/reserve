@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  Planning RO Suivi de réserve opérationnelle (Police Nationale / Gendarmerie)
+  Créé par Issam Akezdaw ("Sam") pour aider les REOPNS GEN OU PO
+  Contact : i.akezdaw@gmail.com
+-->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -491,6 +496,10 @@
       <div class="legal-footer">
         Les informations saisies dans cet outil (vacations, habilitations, montants) sont stockées uniquement sur cet appareil, dans la mémoire de ce navigateur. Aucune donnée n'est transmise à un serveur ni partagée avec un tiers.
       </div>
+      <div style="text-align:center; padding:16px 0 8px;">
+        <div style="font-size:12px; font-weight:700; color:var(--encre);">Made by Sam</div>
+        <div style="font-size:10.5px; color:var(--slate); margin-top:2px;">Issam Akezdaw — i.akezdaw@gmail.com</div>
+      </div>
     </div>
   </div>
 
@@ -922,10 +931,19 @@ function markDone(id){
   showToast('Marquée effectuée — vous pourrez indiquer le paiement plus tard');
 }
 
+const IDF_VILLES = ['paris','boulogne-billancourt','saint-denis','argenteuil','montreuil','nanterre','créteil','créteil','versailles','courbevoie','vitry-sur-seine','colombes','asnières-sur-seine','aulnay-sous-bois','rueil-malmaison','champigny-sur-marne','saint-maur-des-fossés','drancy','issy-les-moulineaux','levallois-perret','noisy-le-grand','antony','neuilly-sur-seine','sarcelles','ivry-sur-seine','cergy','bobigny'];
+
+function suggestedMontant(e){
+  if((e.corps || 'police') !== 'police') return e.montant != null ? e.montant : '';
+  if(e.montant != null) return e.montant;
+  const villeNorm = (e.ville || '').toLowerCase().trim();
+  return IDF_VILLES.includes(villeNorm) ? 80 : 74;
+}
+
 function markPaid(id){
   const e = entries.find(x => x.id === id);
   if(!e) return;
-  const montantStr = prompt('Montant reçu pour cette vacation (en €) :', e.montant != null ? e.montant : '');
+  const montantStr = prompt('Montant reçu pour cette vacation (en €) :', suggestedMontant(e));
   if(montantStr === null) return;
   const val = parseFloat(montantStr.replace(',', '.'));
   if(isNaN(val)){ showToast('Montant invalide'); return; }
@@ -1178,6 +1196,17 @@ function animateNumber(el, target){
   }, 16);
 }
 
+function computeJourneesActivite(engagedEntries){
+  const journeesBase = engagedEntries.length;
+  let excessHours = 0;
+  engagedEntries.forEach(e => {
+    const h = computeHours(e.debut, e.fin);
+    if(h > 7) excessHours += (h - 7);
+  });
+  const extraJournees = Math.floor(excessHours / 7);
+  return { total: journeesBase + extraJournees, base: journeesBase, extra: extraJournees, excessHours };
+}
+
 function renderQuota(){
   const thisYear = new Date().getFullYear();
   const corpsToShow = viewCorps === 'both' ? ['police','gendarmerie'] : [viewCorps];
@@ -1187,7 +1216,7 @@ function renderQuota(){
     <div class="hero-quota">
       <div class="hero-quota-top">
         <span class="hero-quota-label">${CORPS_LABELS[corps]}</span>
-        <span class="hero-quota-value"><b id="quota-count-${corps}">0</b>/${CORPS_CAPS[corps]}</span>
+        <span class="hero-quota-value"><b id="quota-count-${corps}">0</b>/${CORPS_CAPS[corps]} j</span>
       </div>
       <div class="hero-quota-bar-outer"><div id="quota-bar-${corps}" class="hero-quota-bar-inner" style="width:0%;"></div></div>
       <div class="hero-quota-remaining" id="quota-remaining-${corps}"></div>
@@ -1196,7 +1225,7 @@ function renderQuota(){
   corpsToShow.forEach(corps => {
     const cap = CORPS_CAPS[corps];
     const engaged = entries.filter(e => e.date && (e.statut === 'prevue' || e.statut === 'effectuee') && (e.corps || 'police') === corps && new Date(e.date+'T00:00:00').getFullYear() === thisYear);
-    const count = engaged.length;
+    const { total: count } = computeJourneesActivite(engaged);
     const pct = Math.min(100, (count / cap) * 100);
     let color = corps === 'police' ? '#1B3A63' : '#4FA8D8';
     if(pct >= 70) color = 'var(--jaune-texte)';
@@ -1206,7 +1235,7 @@ function renderQuota(){
     bar.style.width = pct + '%';
     bar.style.background = color;
     const remaining = cap - count;
-    document.getElementById('quota-remaining-' + corps).textContent = remaining > 0 ? remaining + ' restantes cette année' : 'Plafond atteint';
+    document.getElementById('quota-remaining-' + corps).textContent = remaining > 0 ? remaining + ' journées restantes cette année' : 'Plafond atteint';
   });
   const now = new Date();
   const jan1 = new Date(now.getFullYear()+1, 0, 1);
