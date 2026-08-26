@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
-  Planning RO Suivi de réserve opérationnelle (Police Nationale / Gendarmerie)
-  Créé par Issam Akezdaw ("Sam") pour aider les REOPNS GEN OU PO
+  Planning RO — Suivi de réserve opérationnelle (Police Nationale / Gendarmerie)
+  Créé par Issam Akezdaw ("Sam")
   Contact : i.akezdaw@gmail.com
 -->
 <html lang="fr">
@@ -82,6 +82,11 @@
   .week-day .wd-dot{ width:5px; height:5px; border-radius:50%; margin-top:1px; }
 
   .today-card{ background:linear-gradient(135deg, var(--bleu) 0%, var(--bleu-fonce) 100%); color:#fff; border-radius:8px; padding:14px 16px; margin-bottom:14px; animation:entrySlide .3s ease; }
+  .money-shortcut{ display:flex; align-items:center; justify-content:space-between; background:var(--paper); border:1.5px solid var(--jaune-texte); border-radius:8px; padding:12px 14px; margin-bottom:14px; cursor:pointer; animation:entrySlide .3s ease; }
+  .money-shortcut:active{ transform:scale(0.98); }
+  .money-shortcut .ms-label{ font-size:11px; color:var(--slate); font-weight:700; text-transform:uppercase; letter-spacing:0.02em; }
+  .money-shortcut .ms-amount{ font-size:20px; font-weight:800; color:var(--jaune-texte); margin-top:2px; }
+  .money-shortcut .ms-arrow{ font-size:20px; color:var(--jaune-texte); }
   .weather-card{ background:var(--paper); border:1px solid var(--gris-bord); border-radius:6px; padding:12px 14px; margin-bottom:14px; animation:entrySlide .3s ease; }
   .weather-card-title{ font-size:11px; font-weight:800; color:var(--slate); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:9px; }
   .weather-row{ display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--gris-fond); }
@@ -260,6 +265,15 @@
   .habil-del{ background:none; border:none; color:var(--slate-light); font-size:14px; cursor:pointer; padding:4px 6px; }
   .profile-field{ margin-bottom:11px; }
   .money-box{ background:var(--gris-fond); border-radius:6px; padding:2px 12px; }
+  .bonus-box{ background:var(--jaune-bg); border:1px solid var(--jaune-bd); border-radius:6px; padding:12px 14px; }
+  .bonus-box-title{ font-size:11px; font-weight:800; color:var(--jaune-texte); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:8px; }
+  .bonus-progress-outer{ height:8px; background:#F0DFAF; border-radius:4px; overflow:hidden; margin:6px 0; }
+  .bonus-progress-inner{ height:100%; background:var(--jaune-texte); border-radius:4px; }
+  .bonus-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-top:1px solid #F0DFAF; margin-top:8px; }
+  .bonus-row .bl{ font-size:12px; font-weight:700; color:var(--encre); }
+  .bonus-row .bv{ font-size:16px; font-weight:800; color:var(--jaune-texte); }
+  .bonus-adjust{ display:flex; align-items:center; gap:8px; }
+  .bonus-adjust button{ width:26px; height:26px; border-radius:5px; border:1px solid var(--jaune-texte); background:#fff; color:var(--jaune-texte); font-weight:800; font-size:15px; cursor:pointer; }
   .money-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid var(--gris-bord); }
   .money-row:last-child{ border-bottom:none; }
   .money-label{ font-size:12.5px; font-weight:700; color:var(--encre); }
@@ -268,6 +282,12 @@
   .money-amount.ok{ color:var(--vert); }
   .money-amount.due{ color:var(--rouge); }
   .bilan-type-row{ display:flex; align-items:center; gap:10px; padding:6px 0; }
+  .dept-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--gris-fond); }
+  .dept-row:last-child{ border-bottom:none; }
+  .dept-name{ font-size:12.5px; font-weight:700; color:var(--encre); }
+  .dept-sub{ font-size:10.5px; color:var(--slate); margin-top:1px; }
+  .dept-amount{ font-size:15px; font-weight:800; color:var(--rouge); }
+  .dept-amount.home{ color:var(--vert); }
   .bilan-type-label{ font-size:12px; width:105px; flex-shrink:0; color:var(--slate); }
   .month-row{ display:grid; grid-template-columns:70px 1fr 1fr 1fr; gap:6px; align-items:center; padding:7px 0; border-bottom:1px solid var(--gris-fond); font-size:11.5px; }
   .month-row.head{ font-weight:800; color:var(--slate); text-transform:uppercase; font-size:9.5px; letter-spacing:0.03em; border-bottom:1px solid var(--gris-bord2); }
@@ -343,6 +363,7 @@
     </div>
     <div class="content">
       <div id="today-card"></div>
+      <div id="money-shortcut"></div>
       <div id="weather-card"></div>
       <div class="stats-row" id="stats-row"></div>
       <button class="btn btn-primary btn-block" onclick="openSheet(null)" style="margin-bottom:16px;">+ Nouvelle vacation</button>
@@ -407,7 +428,9 @@
           <div class="profile-field"><label>Matricule</label><input id="p-matricule" placeholder="RO-XXXX" onchange="saveProfile()"></div>
           <div class="profile-field"><label>Brigade / unité</label><input id="p-brigade" placeholder="Brigade Centre" onchange="saveProfile()"></div>
         </div>
-        <div class="profile-field" style="margin-bottom:0;"><label>Ville (pour les actualités)</label><input id="p-ville" placeholder="Ex : Metz" onchange="saveProfile()"></div>
+        <div class="profile-field"><label>Ville (pour les actualités)</label><input id="p-ville" placeholder="Ex : Metz" onchange="saveProfile()"></div>
+        <div class="profile-field"><label>Taux Gendarmerie (€/vacation, si connu)</label><input id="p-taux-gendarmerie" type="number" placeholder="Ex : 74" onchange="saveProfile()"></div>
+        <div class="profile-field" style="margin-bottom:0;"><label>Département officiel de rattachement</label><select id="p-departement" onchange="saveProfile()"></select></div>
       </div>
 
       <div class="card">
@@ -417,7 +440,13 @@
         </div>
         <div id="habil-list" style="margin-top:6px;"></div>
       </div>
+    </div>
+  </div>
 
+  <!-- ===== PAIEMENTS ===== -->
+  <div class="screen" id="screen-paiements">
+    <div class="screen-title">Paiements</div>
+    <div class="content">
       <div class="toolbar" style="padding:0 0 10px;">
         <div class="screen-title" style="padding:0; font-size:14px;">Bilan</div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -435,12 +464,19 @@
       <div class="card">
         <div class="card-title">Bilan financier</div>
         <div id="bilan-summary"></div>
+        <div id="bonus-days-box" style="margin-top:12px;"></div>
       </div>
 
       <div class="card">
         <div class="card-title">Répartition</div>
         <div id="corps-compare" style="margin-bottom:14px;"></div>
         <div id="bilan-types"></div>
+      </div>
+
+      <div class="card" id="dept-card" style="display:none;">
+        <div class="card-title">Argent dû par département</div>
+        <p style="font-size:11.5px; color:var(--slate); margin:0 0 12px;">Chaque département règle uniquement les missions faites sur son territoire.</p>
+        <div id="dept-breakdown"></div>
       </div>
 
       <div class="card">
@@ -456,7 +492,7 @@
 
       <div class="card">
         <div class="card-title">Rapport mois par mois</div>
-        <p style="font-size:11.5px; color:var(--slate); margin:0 0 10px;">Utile pour repérer un mois où l'administration n'a pas encore réglé une vacation effectuée.</p>
+        <p style="font-size:11.5px; color:var(--slate); margin:0 0 10px;">Utile pour repérer un mois où l'administration n'a pas encore réglé une vacation effectuée. Les journées bonus (heures cumulées) sont ajoutées en bas, séparément, car elles ne sont pas liées à un mois précis.</p>
         <div id="bilan-monthly"></div>
       </div>
     </div>
@@ -510,6 +546,9 @@
     <button class="tab" data-screen="calendrier" onclick="setScreen('calendrier', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendrier
     </button>
+    <button class="tab" data-screen="paiements" onclick="setScreen('paiements', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 010 4H9m0 0h4a2 2 0 010 4H9m3-9v10"/></svg>Paiements
+    </button>
     <button class="tab" data-screen="profil" onclick="setScreen('profil', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil
     </button>
@@ -542,9 +581,14 @@
               <button type="button" class="sel-gendarmerie" onclick="setCorps('gendarmerie')">Gendarmerie</button>
             </div>
           </div>
-          <div class="profile-field"><label>Type de mission</label><input id="f-type" list="type-suggestions" placeholder="Ex : Police Secours — Nuit"><datalist id="type-suggestions"></datalist></div>
+          <div class="profile-field">
+            <label>Type de mission</label>
+            <select id="f-type-select" onchange="handleTypeSelect(this.value)"></select>
+            <input id="f-type" list="type-suggestions" placeholder="Précisez le type de mission" style="margin-top:8px; display:none;"><datalist id="type-suggestions"></datalist>
+          </div>
           <div class="profile-field" style="margin-bottom:0;"><label>Lieu</label><input id="f-lieu" placeholder="Ex : Secteur Centre-ville"></div>
           <div class="profile-field" style="margin-bottom:0; margin-top:10px;"><label>Ville (pour la météo)</label><input id="f-ville" list="ville-suggestions" placeholder="Ex : Metz, Nancy, Lyon..."><datalist id="ville-suggestions"></datalist></div>
+          <div class="profile-field" style="margin-bottom:0; margin-top:10px;"><label>Département payeur (si différent du vôtre)</label><select id="f-departement"></select></div>
         </div>
       </div>
 
@@ -649,6 +693,8 @@ function loadData(){
   document.getElementById('p-matricule').value = profile.matricule || '';
   document.getElementById('p-brigade').value = profile.brigade || '';
   document.getElementById('p-ville').value = profile.ville || '';
+  document.getElementById('p-taux-gendarmerie').value = profile.tauxGendarmerie != null ? profile.tauxGendarmerie : '';
+  populateDeptSelect('p-departement', profile.departement);
 
   if(localStorage.getItem('reserve_dark') === '1'){
     document.body.classList.add('dark');
@@ -667,7 +713,8 @@ function loadData(){
 function persist(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){ showToast('Erreur de sauvegarde'); } }
 function persistHabil(){ try{ localStorage.setItem(HABIL_KEY, JSON.stringify(habilitations)); }catch(e){} }
 function saveProfile(){
-  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim(), ville:document.getElementById('p-ville').value.trim() };
+  const tauxGendVal = document.getElementById('p-taux-gendarmerie').value.trim();
+  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim(), ville:document.getElementById('p-ville').value.trim(), tauxGendarmerie: tauxGendVal ? parseFloat(tauxGendVal) : null, departement: document.getElementById('p-departement').value };
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }catch(e){}
   showToast('Profil enregistré');
 }
@@ -692,6 +739,7 @@ function setScreen(name, el){
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   if(name === 'profil') renderProfilScreen();
+  if(name === 'paiements') renderPaiementsScreen();
   vibrate();
 }
 
@@ -729,12 +777,6 @@ function setCorps(c){
   document.querySelector('.sel-' + c).classList.add('on');
 }
 
-function updateTypeSuggestions(){
-  const dl = document.getElementById('type-suggestions');
-  if(!dl) return;
-  const types = [...new Set(entries.map(e => e.type).filter(Boolean))];
-  dl.innerHTML = types.map(t => `<option value="${escapeHtml(t)}">`).join('');
-}
 function updateVilleSuggestions(){
   const dl = document.getElementById('ville-suggestions');
   if(!dl) return;
@@ -743,7 +785,6 @@ function updateVilleSuggestions(){
 }
 
 function openSheet(dateStr){
-  updateTypeSuggestions();
   updateVilleSuggestions();
   editingId = null;
   clearForm();
@@ -763,7 +804,9 @@ function closeSheet(){
 function closeSheetIfOverlay(ev){ if(ev.target.id === 'sheet-overlay') closeSheet(); }
 
 function clearForm(){
-  ['f-type','f-lieu','f-ville','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
+  ['f-lieu','f-ville','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
+  populateTypeSelect(null);
+  populateDeptSelect('f-departement', profile.departement);
   setStatut('prevue'); setPaiement('non_paye'); setCorps('police');
 }
 
@@ -821,6 +864,7 @@ function saveEntry(keepOpen){
   const date = document.getElementById('f-date').value;
   const lieu = document.getElementById('f-lieu').value.trim();
   const ville = document.getElementById('f-ville').value.trim();
+  const departement = document.getElementById('f-departement').value.trim();
   const debut = document.getElementById('f-debut').value;
   const fin = document.getElementById('f-fin').value;
   const notes = document.getElementById('f-notes').value.trim();
@@ -841,7 +885,7 @@ function saveEntry(keepOpen){
     }
   }
 
-  const payload = { type, date, lieu, ville, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
+  const payload = { type, date, lieu, ville, departement, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
 
   if(editingId){
     const idx = entries.findIndex(e => e.id === editingId);
@@ -867,13 +911,14 @@ function saveEntry(keepOpen){
 }
 
 function editEntry(id){
-  updateTypeSuggestions(); updateVilleSuggestions();
+  updateVilleSuggestions();
   const e = entries.find(x => x.id === id);
   if(!e) return;
   editingId = id;
-  document.getElementById('f-type').value = e.type;
+  populateTypeSelect(e.type);
   document.getElementById('f-lieu').value = e.lieu || '';
   document.getElementById('f-ville').value = e.ville || '';
+  populateDeptSelect('f-departement', e.departement || profile.departement);
   document.getElementById('f-date').value = e.date;
   document.getElementById('f-debut').value = e.debut || '';
   document.getElementById('f-fin').value = e.fin || '';
@@ -898,13 +943,14 @@ function downloadICSFromSheet(){
 }
 
 function duplicateEntry(id){
-  updateTypeSuggestions(); updateVilleSuggestions();
+  updateVilleSuggestions();
   const e = entries.find(x => x.id === id);
   if(!e) return;
   editingId = null;
-  document.getElementById('f-type').value = e.type;
+  populateTypeSelect(e.type);
   document.getElementById('f-lieu').value = e.lieu || '';
   document.getElementById('f-ville').value = e.ville || '';
+  populateDeptSelect('f-departement', e.departement || profile.departement);
   document.getElementById('f-date').value = '';
   document.getElementById('f-debut').value = e.debut || '';
   document.getElementById('f-fin').value = e.fin || '';
@@ -920,38 +966,122 @@ function duplicateEntry(id){
   vibrate();
 }
 
+const DEPARTEMENTS_FR = [
+  ['01','Ain'],['02','Aisne'],['03','Allier'],['04','Alpes-de-Haute-Provence'],['05','Hautes-Alpes'],
+  ['06','Alpes-Maritimes'],['07','Ardèche'],['08','Ardennes'],['09','Ariège'],['10','Aube'],
+  ['11','Aude'],['12','Aveyron'],['13','Bouches-du-Rhône'],['14','Calvados'],['15','Cantal'],
+  ['16','Charente'],['17','Charente-Maritime'],['18','Cher'],['19','Corrèze'],['2A','Corse-du-Sud'],
+  ['2B','Haute-Corse'],['21',"Côte-d'Or"],["22","Côtes-d'Armor"],['23','Creuse'],['24','Dordogne'],
+  ['25','Doubs'],['26','Drôme'],['27','Eure'],['28','Eure-et-Loir'],['29','Finistère'],
+  ['30','Gard'],['31','Haute-Garonne'],['32','Gers'],['33','Gironde'],['34','Hérault'],
+  ['35','Ille-et-Vilaine'],['36','Indre'],['37','Indre-et-Loire'],['38','Isère'],['39','Jura'],
+  ['40','Landes'],['41','Loir-et-Cher'],['42','Loire'],['43','Haute-Loire'],['44','Loire-Atlantique'],
+  ['45','Loiret'],['46','Lot'],['47','Lot-et-Garonne'],['48','Lozère'],['49','Maine-et-Loire'],
+  ['50','Manche'],['51','Marne'],['52','Haute-Marne'],['53','Mayenne'],['54','Meurthe-et-Moselle'],
+  ['55','Meuse'],['56','Morbihan'],['57','Moselle'],['58','Nièvre'],['59','Nord'],
+  ['60','Oise'],['61','Orne'],['62','Pas-de-Calais'],['63','Puy-de-Dôme'],['64','Pyrénées-Atlantiques'],
+  ['65','Hautes-Pyrénées'],['66','Pyrénées-Orientales'],['67','Bas-Rhin'],['68','Haut-Rhin'],['69','Rhône'],
+  ['70','Haute-Saône'],['71','Saône-et-Loire'],['72','Sarthe'],['73','Savoie'],['74','Haute-Savoie'],
+  ['75','Paris'],['76','Seine-Maritime'],['77','Seine-et-Marne'],['78','Yvelines'],['79','Deux-Sèvres'],
+  ['80','Somme'],['81','Tarn'],['82','Tarn-et-Garonne'],['83','Var'],['84','Vaucluse'],
+  ['85','Vendée'],['86','Vienne'],['87','Haute-Vienne'],['88','Vosges'],['89','Yonne'],
+  ['90','Territoire de Belfort'],['91','Essonne'],['92','Hauts-de-Seine'],['93','Seine-Saint-Denis'],['94','Val-de-Marne'],
+  ['95',"Val-d'Oise"],['971','Guadeloupe'],['972','Martinique'],['973','Guyane'],['974','La Réunion'],['976','Mayotte']
+];
+
+const MISSION_TYPES = [
+  'Police Secours — Jour','Police Secours — Nuit','Patrouille pédestre','Patrouille véhiculée',
+  'BAAJ','Sécurisation d\'événement','Renfort judiciaire','Transport de détenus','Contrôle routier','Formation'
+];
+
+function populateDeptSelect(selectId, currentValue){
+  const sel = document.getElementById(selectId);
+  if(!sel) return;
+  let html = '<option value="">— Sélectionner —</option>';
+  html += DEPARTEMENTS_FR.map(([code,nom]) => `<option value="${code} - ${nom}">${code} - ${nom}</option>`).join('');
+  sel.innerHTML = html;
+  if(currentValue){
+    const norm = normalizeDept(currentValue);
+    const match = DEPARTEMENTS_FR.find(([code]) => code === norm);
+    sel.value = match ? (match[0] + ' - ' + match[1]) : '';
+  } else {
+    sel.value = '';
+  }
+}
+
+function populateTypeSelect(currentValue){
+  const sel = document.getElementById('f-type-select');
+  if(!sel) return;
+  let html = MISSION_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+  html += '<option value="__autre__">Autre (préciser)</option>';
+  sel.innerHTML = html;
+  const textInput = document.getElementById('f-type');
+  if(currentValue && MISSION_TYPES.includes(currentValue)){
+    sel.value = currentValue;
+    textInput.style.display = 'none';
+    textInput.value = currentValue;
+  } else if(currentValue){
+    sel.value = '__autre__';
+    textInput.style.display = 'block';
+    textInput.value = currentValue;
+  } else {
+    sel.value = MISSION_TYPES[0];
+    textInput.style.display = 'none';
+    textInput.value = MISSION_TYPES[0];
+  }
+}
+
+function handleTypeSelect(val){
+  const textInput = document.getElementById('f-type');
+  if(val === '__autre__'){
+    textInput.style.display = 'block';
+    textInput.value = '';
+    textInput.focus();
+  } else {
+    textInput.style.display = 'none';
+    textInput.value = val;
+  }
+}
+
+const IDF_VILLES = ['paris','boulogne-billancourt','saint-denis','argenteuil','montreuil','nanterre','créteil','versailles','courbevoie','vitry-sur-seine','colombes','asnières-sur-seine','aulnay-sous-bois','rueil-malmaison','champigny-sur-marne','saint-maur-des-fossés','drancy','issy-les-moulineaux','levallois-perret','noisy-le-grand','antony','neuilly-sur-seine','sarcelles','ivry-sur-seine','cergy','bobigny'];
+
+function suggestedMontant(e){
+  if(e.montant != null) return e.montant;
+  if((e.corps || 'police') !== 'police'){
+    return (profile.tauxGendarmerie != null && !isNaN(profile.tauxGendarmerie)) ? profile.tauxGendarmerie : null;
+  }
+  const villeNorm = (e.ville || '').toLowerCase().trim();
+  return IDF_VILLES.includes(villeNorm) ? 80 : 74;
+}
+function effectiveMontant(e){
+  const s = suggestedMontant(e);
+  return s != null ? s : 0;
+}
+
 function markDone(id){
   const e = entries.find(x => x.id === id);
   if(!e) return;
   e.statut = 'effectuee';
   if(!e.paiement) e.paiement = 'non_paye';
+  if(e.montant == null){
+    const s = suggestedMontant(e);
+    if(s != null) e.montant = s;
+  }
   persist();
   renderAll();
   vibrate();
-  showToast('Marquée effectuée — vous pourrez indiquer le paiement plus tard');
-}
-
-const IDF_VILLES = ['paris','boulogne-billancourt','saint-denis','argenteuil','montreuil','nanterre','créteil','créteil','versailles','courbevoie','vitry-sur-seine','colombes','asnières-sur-seine','aulnay-sous-bois','rueil-malmaison','champigny-sur-marne','saint-maur-des-fossés','drancy','issy-les-moulineaux','levallois-perret','noisy-le-grand','antony','neuilly-sur-seine','sarcelles','ivry-sur-seine','cergy','bobigny'];
-
-function suggestedMontant(e){
-  if((e.corps || 'police') !== 'police') return e.montant != null ? e.montant : '';
-  if(e.montant != null) return e.montant;
-  const villeNorm = (e.ville || '').toLowerCase().trim();
-  return IDF_VILLES.includes(villeNorm) ? 80 : 74;
+  showToast(e.montant != null ? 'Marquée effectuée — ' + e.montant + ' € estimés' : 'Marquée effectuée');
 }
 
 function markPaid(id){
   const e = entries.find(x => x.id === id);
   if(!e) return;
-  const montantStr = prompt('Montant reçu pour cette vacation (en €) :', suggestedMontant(e));
-  if(montantStr === null) return;
-  const val = parseFloat(montantStr.replace(',', '.'));
-  if(isNaN(val)){ showToast('Montant invalide'); return; }
-  e.montant = val;
+  if(e.montant == null) e.montant = effectiveMontant(e);
   e.paiement = 'paye';
   persist();
   renderAll();
   vibrate();
+  showToast('Marquée payée — ' + e.montant + ' €');
   showToast('Paiement enregistré');
 }
 
@@ -983,10 +1113,26 @@ function renderAll(){
   try{ renderQuota(); }catch(e){ console.error('renderQuota', e); }
   try{ renderWeekStrip(); }catch(e){ console.error('renderWeekStrip', e); }
   try{ renderTodayCard(); }catch(e){ console.error('renderTodayCard', e); }
+  try{ renderMoneyShortcut(); }catch(e){ console.error('renderMoneyShortcut', e); }
   try{ renderStats(); }catch(e){ console.error('renderStats', e); }
   try{ renderCalendar(); }catch(e){ console.error('renderCalendar', e); }
   try{ renderList(); }catch(e){ console.error('renderList', e); }
   try{ refreshWeather(); }catch(e){ console.error('refreshWeather', e); }
+}
+
+function renderMoneyShortcut(){
+  const el = document.getElementById('money-shortcut');
+  if(!el) return;
+  const year = new Date().getFullYear();
+  const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === year && inView(e));
+  const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+effectiveMontant(e),0) + getBonusUnpaidTotal(year);
+  if(aPercevoir <= 0){ el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div onclick="setScreen('paiements', document.querySelector('[data-screen=paiements]'))" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+      <div><div class="ms-label">Argent dû par l'administration</div><div class="ms-amount">${aPercevoir.toFixed(0)} €</div></div>
+      <div class="ms-arrow">→</div>
+    </div>`;
+  el.className = 'money-shortcut';
 }
 
 function renderWeekStrip(){
@@ -1255,7 +1401,7 @@ function renderStats(){
   const monthDone = done.filter(e => { const d=new Date(e.date+'T00:00:00'); return d.getMonth()===thisMonth && d.getFullYear()===thisYear; });
   const aPercevoir = done.filter(e => e.paiement !== 'paye');
   const sumH = arr => arr.reduce((s,e) => s + computeHours(e.debut,e.fin), 0);
-  const sumMontant = arr => arr.reduce((s,e) => s + (e.montant || 0), 0);
+  const sumMontant = arr => arr.reduce((s,e) => s + effectiveMontant(e), 0);
   const block = (label, arr) => `<div class="stat"><div class="n">${arr.length}</div><div class="h">${sumH(arr).toFixed(1)} h</div><div class="l">${label}</div></div>`;
   const paiementBlock = aPercevoir.length > 0
     ? `<div class="stat"><div class="n" style="color:var(--jaune-texte);">${aPercevoir.length}</div><div class="h" style="color:var(--jaune-texte);">${sumMontant(aPercevoir).toFixed(0)} €</div><div class="l">Non encore payé</div></div>`
@@ -1269,7 +1415,7 @@ function changeBilanYear(delta){
   if(lbl) lbl.textContent = bilanYear;
   renderTrend();
   renderCorpsCompare();
-  renderProfilScreen();
+  renderPaiementsScreen();
 }
 
 function renderTrend(){
@@ -1432,7 +1578,7 @@ function renderList(){
   if(shown.length === 0){ list.innerHTML = `<div class="empty">Aucune vacation ici.<br>Touchez "+ Nouvelle vacation" pour en ajouter une.</div>`; return; }
   list.innerHTML = shown.map(e => {
     const h = computeHours(e.debut, e.fin);
-    const montantTxt = (e.montant != null && e.montant !== '') ? ' · ' + e.montant + ' €' : '';
+    const montantTxt = e.statut==='effectuee' ? (e.montant != null ? ' · ' + e.montant + ' €' : (suggestedMontant(e)!=null ? ' · ~' + suggestedMontant(e) + ' € (estimé)' : '')) : '';
     const paiementBadge = e.statut === 'effectuee' ? `<span class="badge" style="${e.paiement==='paye' ? 'background:var(--vert-bg);color:var(--vert);border-color:var(--vert-bd);' : 'background:var(--jaune-bg);color:var(--jaune-texte);border-color:var(--jaune-bd);'}">${e.paiement==='paye' ? 'Payée' : 'Non payée'}</span>` : '';
     let reclameBadge = '';
     if(e.statut === 'effectuee' && e.paiement !== 'paye'){
@@ -1448,12 +1594,19 @@ function renderList(){
       ? `<button class="btn btn-outline" onclick="markPaid('${e.id}')">Marquer payée</button>` : '';
     const corps = e.corps || 'police';
     const corpsTag = `<span class="corps-tag ${corps}">${corps === 'police' ? 'Police' : 'Gendarmerie'}</span>`;
+    const isOutOfDept = e.departement && profile.departement && !sameDept(e.departement, profile.departement);
+    let deptTag = '';
+    if(e.departement){
+      deptTag = isOutOfDept
+        ? `<span class="corps-tag" style="background:var(--rouge); color:#fff;" title="Payé par un autre département">✈ ${escapeHtml(e.departement)}</span>`
+        : `<span class="corps-tag" style="background:var(--vert); color:#fff;" title="Votre département">🏠 ${escapeHtml(e.departement)}</span>`;
+    }
     const wx = weatherByEntry[e.id];
     const weatherTxt = wx ? ` · ${wx.icon} ${wx.tmin}°/${wx.tmax}°` : (e.ville ? ` · ${escapeHtml(e.ville)}` : '');
     return `<div class="entry corps-${corps}" data-id="${e.id}">
         <div class="entry-top">
           ${checkbox}
-          <div style="flex:1; min-width:0;"><div class="entry-title">${corpsTag} ${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}${weatherTxt}</div></div>
+          <div style="flex:1; min-width:0;"><div class="entry-title">${corpsTag} ${deptTag} ${escapeHtml(e.type)}</div><div class="entry-meta">${formatDateShort(e.date)}${e.debut&&e.fin ? ' · '+e.debut+'–'+e.fin+' ('+h.toFixed(1)+' h)' : ''}${e.lieu ? ' · '+escapeHtml(e.lieu) : ''}${montantTxt}${weatherTxt}</div></div>
           <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><span class="badge b-${e.statut}">${STATUT_LABELS[e.statut]}</span>${paiementBadge}${reclameBadge}</div>
         </div>
         ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ''}
@@ -1467,6 +1620,17 @@ function renderList(){
 }
 
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function normalizeDept(str){
+  if(!str) return '';
+  const match = String(str).match(/(\d{2,3})/);
+  if(match) return match[1];
+  return String(str).toLowerCase().replace(/[\s().-]/g, '');
+}
+function sameDept(a, b){
+  if(!a || !b) return false;
+  return normalizeDept(a) === normalizeDept(b);
+}
 
 /* ---------- PROFIL : Habilitations ---------- */
 function addHabilitationPrompt(){
@@ -1506,6 +1670,41 @@ function renderHabilitations(){
 }
 
 /* ---------- PROFIL : Bilan annuel ---------- */
+function renderDeptBreakdown(unpaidEntries){
+  const card = document.getElementById('dept-card');
+  const el = document.getElementById('dept-breakdown');
+  if(!card || !el) return;
+  const withDept = unpaidEntries.filter(e => e.departement && e.departement.trim());
+  const distinctDepts = [...new Set(withDept.map(e => e.departement.trim()))];
+  const hasOutOfDept = distinctDepts.some(d => !sameDept(d, profile.departement));
+  if(distinctDepts.length === 0 || !hasOutOfDept){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  const byDept = {};
+  unpaidEntries.forEach(e => {
+    const d = (e.departement && e.departement.trim()) || profile.departement || 'Non précisé';
+    if(!byDept[d]) byDept[d] = { count: 0, total: 0, heures: 0, villes: new Set(), bonus: 0 };
+    byDept[d].count++;
+    byDept[d].total += effectiveMontant(e);
+    byDept[d].heures += computeHours(e.debut, e.fin);
+    if(e.ville) byDept[d].villes.add(e.ville);
+  });
+  getBonusByDeptCorps(bilanYear).forEach(it => {
+    if(it.dueMontant && byDept[it.dept]) byDept[it.dept].bonus += it.dueMontant;
+  });
+  el.innerHTML = Object.entries(byDept).sort((a,b) => (b[1].total+b[1].bonus) - (a[1].total+a[1].bonus)).map(([dept, v]) => {
+    const isHome = sameDept(dept, profile.departement);
+    const villesTxt = v.villes.size > 0 ? ' — ' + [...v.villes].map(escapeHtml).join(', ') : '';
+    const bonusTxt = v.bonus > 0 ? ` <span style="font-weight:600; color:var(--jaune-texte);">(dont ${v.bonus.toFixed(0)}€ bonus)</span>` : '';
+    return `<div class="dept-row">
+      <div><div class="dept-name">${isHome ? '🏠 ' : '✈ '}${escapeHtml(dept)}</div><div class="dept-sub">${v.count} vacation(s) · ${v.heures.toFixed(1)} h${isHome ? ' · votre département' : ' · hors département'}${villesTxt}${bonusTxt}</div></div>
+      <div class="dept-amount ${isHome?'home':''}">${(v.total+v.bonus).toFixed(0)} €</div>
+    </div>`;
+  }).join('');
+}
+
 function renderCorpsCompare(){
   const el = document.getElementById('corps-compare');
   if(!el) return;
@@ -1520,19 +1719,90 @@ function renderCorpsCompare(){
   `;
 }
 
+function deptKey(dept){
+  return normalizeDept(dept) || 'sans-dept';
+}
+function getBonusPaid(dept, corps, year){
+  try{ return parseInt(localStorage.getItem('reserve_bonus_paid_' + deptKey(dept) + '_' + corps + '_' + year) || '0', 10); }catch(e){ return 0; }
+}
+function setBonusPaid(dept, corps, year, val){
+  try{ localStorage.setItem('reserve_bonus_paid_' + deptKey(dept) + '_' + corps + '_' + year, String(Math.max(0, val))); }catch(e){}
+}
+function adjustBonusPaid(dept, corps, year, delta){
+  setBonusPaid(dept, corps, year, getBonusPaid(dept, corps, year) + delta);
+  renderPaiementsScreen();
+  vibrate();
+}
+
+function getBonusByDeptCorps(year){
+  // Retourne un tableau { dept, corps, extra, pending, rate, bonusPaid, bonusDue, dueMontant }
+  const results = [];
+  ['police','gendarmerie'].forEach(corps => {
+    const rate = corps === 'police' ? 74 : (profile.tauxGendarmerie != null && !isNaN(profile.tauxGendarmerie) ? profile.tauxGendarmerie : null);
+    const doneCorps = entries.filter(e => e.statut === 'effectuee' && e.date && (e.corps||'police')===corps && new Date(e.date+'T00:00:00').getFullYear() === year);
+    if(doneCorps.length === 0) return;
+    const byDept = {};
+    doneCorps.forEach(e => {
+      const d = (e.departement && e.departement.trim()) || profile.departement || 'Département non précisé';
+      (byDept[d] = byDept[d] || []).push(e);
+    });
+    Object.entries(byDept).forEach(([dept, list]) => {
+      const { extra, excessHours } = computeJourneesActivite(list);
+      const pending = excessHours - (extra * 7);
+      const bonusPaid = Math.min(extra, getBonusPaid(dept, corps, year));
+      const bonusDue = extra - bonusPaid;
+      const dueMontant = rate != null ? bonusDue * rate : null;
+      results.push({ dept, corps, extra, pending, rate, bonusPaid, bonusDue, dueMontant });
+    });
+  });
+  return results;
+}
+
+function renderBonusBox(year){
+  const el = document.getElementById('bonus-days-box');
+  if(!el) return;
+  const items = getBonusByDeptCorps(year);
+  if(items.length === 0){ el.innerHTML = ''; return; }
+
+  el.innerHTML = items.map(it => {
+    const rateTxt = it.rate != null ? it.rate + ' €' : 'taux inconnu';
+    return `<div class="bonus-box" style="margin-bottom:10px;">
+      <div class="bonus-box-title">Journées bonus — ${CORPS_LABELS[it.corps]} — ${escapeHtml(it.dept)}</div>
+      <div style="font-size:12px; color:var(--encre);">${it.pending.toFixed(1)} h cumulées sur 7h avant la prochaine journée bonus (dans ce département)</div>
+      <div class="bonus-progress-outer"><div class="bonus-progress-inner" style="width:${Math.min(100,(it.pending/7)*100)}%;"></div></div>
+      <div class="bonus-row">
+        <div><div class="bl">Journées bonus gagnées ici cette année</div><div style="font-size:11px; color:var(--slate); margin-top:2px;">${it.extra} journée(s) × ${rateTxt}${it.bonusPaid>0 ? ' · '+it.bonusPaid+' déjà réglée(s)' : ''}</div></div>
+        <div class="bonus-adjust">
+          ${it.extra > 0 ? `<button onclick="adjustBonusPaid('${escapeHtml(it.dept)}', '${it.corps}', ${year}, -1)">−</button><span class="bv">${it.dueMontant!=null ? it.dueMontant.toFixed(0)+' €' : it.bonusDue}</span><button onclick="adjustBonusPaid('${escapeHtml(it.dept)}', '${it.corps}', ${year}, 1)">+</button>` : `<span class="bv" style="font-size:13px; color:var(--slate);">0</span>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getBonusUnpaidTotal(year){
+  return getBonusByDeptCorps(year).reduce((s, it) => s + (it.dueMontant || 0), 0);
+}
+
 function renderProfilScreen(){
+  renderHabilitations();
+}
+
+function renderPaiementsScreen(){
   const lbl = document.getElementById('bilan-year-label');
   if(lbl) lbl.textContent = bilanYear;
   renderTrend();
-  renderHabilitations();
   renderReportPreview();
   renderCorpsCompare();
   const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === bilanYear);
   const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
-  const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+(e.montant||0),0);
-  const aPercevoir = done.filter(e=>e.paiement!=='paye').reduce((s,e)=>s+(e.montant||0),0);
+  const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+effectiveMontant(e),0);
+  const bonusUnpaid = getBonusUnpaidTotal(bilanYear);
+  const unpaidEntries = done.filter(e=>e.paiement!=='paye');
+  const aPercevoir = unpaidEntries.reduce((s,e)=>s+effectiveMontant(e),0) + bonusUnpaid;
+  const unknownRateEntries = unpaidEntries.filter(e => suggestedMontant(e) == null);
 
-  const nonPayeCount = done.filter(e=>e.paiement!=='paye').length;
+  const nonPayeCount = unpaidEntries.length;
   document.getElementById('bilan-summary').innerHTML = `
     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
       <div class="stat" style="flex:1 1 calc(50% - 8px);"><div class="n">${done.length}</div><div class="l">Vacations ${bilanYear}</div></div>
@@ -1544,10 +1814,16 @@ function renderProfilScreen(){
         <div class="money-amount ok">${percu.toFixed(0)} €</div>
       </div>
       <div class="money-row">
-        <div><div class="money-label">Argent toujours dû par l'administration</div><div class="money-sub">${nonPayeCount > 0 ? nonPayeCount + ' vacation(s) non réglée(s)' : 'Tout est réglé'}</div></div>
+        <div><div class="money-label">Argent toujours dû par l'administration</div><div class="money-sub">${[nonPayeCount > 0 ? nonPayeCount + ' vacation(s) non réglée(s)' : '', bonusUnpaid > 0 ? 'dont journée(s) bonus' : ''].filter(Boolean).join(' + ') || 'Tout est réglé'}</div></div>
         <div class="money-amount ${aPercevoir>0?'due':'ok'}">${aPercevoir.toFixed(0)} €</div>
       </div>
-    </div>`;
+    </div>
+    ${unknownRateEntries.length > 0 ? `<div class="banner banner-warning" style="margin:12px 0 0;">
+      <b>${unknownRateEntries.length} vacation(s) NON comptée(s) ci-dessus</b> — taux inconnu (${[...new Set(unknownRateEntries.map(e=>CORPS_LABELS[e.corps||'police']))].join(', ')}). Touchez "Modifier" sur ${unknownRateEntries.length>1?'ces vacations':'cette vacation'} pour indiquer le montant réel et qu'il soit compté.
+    </div>` : ''}`;
+
+  renderBonusBox(bilanYear);
+  renderDeptBreakdown(unpaidEntries);
 
   const byType = {};
   done.forEach(e => { byType[e.type] = (byType[e.type]||0) + 1; });
@@ -1563,14 +1839,18 @@ function renderProfilScreen(){
     : '';
 
   const monthRows = [];
+  let yearMontantTotal = 0;
   for(let m=0; m<12; m++){
     const monthDone = done.filter(e => new Date(e.date+'T00:00:00').getMonth() === m);
     if(monthDone.length === 0) continue;
     const h = monthDone.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
-    const montant = monthDone.reduce((s,e)=>s+(e.montant||0),0);
+    const montant = monthDone.reduce((s,e)=>s+effectiveMontant(e),0);
     const nonPaye = monthDone.filter(e=>e.paiement!=='paye').length;
+    yearMontantTotal += montant;
     monthRows.push({ m, count: monthDone.length, h, montant, nonPaye });
   }
+  const bonusItems = getBonusByDeptCorps(bilanYear).filter(it => it.extra > 0 && it.rate != null).map(it => Object.assign({}, it, { montantTotal: it.extra * it.rate }));
+  const yearBonusTotal = bonusItems.reduce((s,it) => s + it.montantTotal, 0);
   const monthEl = document.getElementById('bilan-monthly');
   if(monthRows.length === 0){
     monthEl.innerHTML = `<div class="empty" style="padding:16px 0;">Aucune vacation effectuée cette année pour l'instant.</div>`;
@@ -1582,8 +1862,25 @@ function renderProfilScreen(){
           <div class="m-name">${MONTHS_SHORT[r.m]}</div>
           <div>${r.count}</div>
           <div>${r.h.toFixed(0)} h</div>
-          <div>${r.montant.toFixed(0)} € ${r.nonPaye > 0 ? `<span class="m-flag" title="${r.nonPaye} non payée(s)">⚠</span>` : ''}</div>
-        </div>`).join('');
+          <div>${r.montant.toFixed(0)} € ${r.nonPaye > 0 ? `<span class="m-flag" title="${r.nonPaye} non payée(s)">⚠ non réglé</span>` : ''}</div>
+        </div>`).join('') +
+      (bonusItems.length > 0 ? `
+        <div class="month-row" style="border-top:2px solid var(--jaune-texte); background:var(--jaune-bg); margin-top:2px;">
+          <div class="m-name" style="grid-column:1/5; font-size:10px; text-transform:uppercase; letter-spacing:0.03em; color:var(--jaune-texte); font-weight:800; padding-top:4px;">Journées bonus par département (non liées à un mois précis)</div>
+        </div>` +
+        bonusItems.map(it => `
+        <div class="month-row" style="background:var(--jaune-bg);">
+          <div class="m-name" style="font-weight:600;">${escapeHtml(it.dept)}</div>
+          <div>—</div>
+          <div>—</div>
+          <div>${it.montantTotal.toFixed(0)} € ${it.bonusDue > 0 ? `<span class="m-flag">⚠ non réglé</span>` : ''}</div>
+        </div>`).join('') +
+        `<div class="month-row" style="font-weight:800; color:var(--encre); border-top:1.5px solid var(--gris-bord2);">
+          <div class="m-name">Total ${bilanYear} (gagné)</div>
+          <div>—</div>
+          <div>—</div>
+          <div>${(yearMontantTotal + yearBonusTotal).toFixed(0)} €</div>
+        </div>` : '');
   }
 }
 
@@ -1606,43 +1903,62 @@ function buildReportText(){
     return `Madame, Monsieur,\n\nJe n'ai actuellement aucune vacation en attente de règlement. Ce message est transmis à titre purement informatif.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
   }
 
-  const byCorps = { police: [], gendarmerie: [] };
-  unpaid.forEach(e => { byCorps[e.corps || 'police'].push(e); });
+  const byDept = {};
+  unpaid.forEach(e => {
+    const d = (e.departement && e.departement.trim()) || profile.departement || 'Département non précisé';
+    if(!byDept[d]) byDept[d] = [];
+    byDept[d].push(e);
+  });
 
   const rows = unpaid.map(e => ({
     date: new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR'),
     type: e.type,
     duree: computeHours(e.debut, e.fin) ? computeHours(e.debut, e.fin).toFixed(1) + ' h' : '-',
-    lieu: e.lieu || '-',
-    montant: e.montant != null ? e.montant.toFixed(2) + ' EUR' : 'non precise'
+    ville: e.ville || e.lieu || '-',
+    montant: effectiveMontant(e).toFixed(2) + ' EUR'
   }));
   const w = {
     date: Math.max(10, ...rows.map(r=>r.date.length)),
     type: Math.max(20, ...rows.map(r=>r.type.length)),
     duree: Math.max(7, ...rows.map(r=>r.duree.length)),
-    lieu: Math.max(15, ...rows.map(r=>r.lieu.length)),
+    ville: Math.max(15, ...rows.map(r=>r.ville.length)),
     montant: Math.max(12, ...rows.map(r=>r.montant.length))
   };
 
+  const deptNames = Object.keys(byDept);
   let total = 0;
-  let body = `Madame, Monsieur,\n\nRéserviste opérationnel, je me permets de porter à votre connaissance les vacations suivantes, effectuées mais dont le règlement n'apparaît pas encore avoir été effectué à ce jour :\n`;
+  let body = `Madame, Monsieur,\n\nRéserviste opérationnel, je me permets de porter à votre connaissance les vacations suivantes, effectuées mais dont le règlement n'apparaît pas encore avoir été effectué à ce jour`;
+  body += deptNames.length > 1 ? `.\n\nCe rapport couvre plusieurs départements ; merci de ne considérer que la section concernant votre département de rattachement, ou de le transmettre au service compétent.\n` : ` :\n`;
 
-  ['police','gendarmerie'].forEach(corps => {
-    if(byCorps[corps].length === 0) return;
-    body += `\n${CORPS_LABELS[corps].toUpperCase()}\n`;
-    body += padCol('Date', w.date) + '  ' + padCol('Mission', w.type) + '  ' + padCol('Duree', w.duree) + '  ' + padCol('Lieu', w.lieu) + '  ' + padCol('Montant', w.montant) + '\n';
-    body += '-'.repeat(w.date + w.type + w.duree + w.lieu + w.montant + 8) + '\n';
-    byCorps[corps].forEach(e => {
-      const d = new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR');
-      const h = computeHours(e.debut, e.fin);
-      const dureeTxt = h ? h.toFixed(1) + ' h' : '-';
-      const montantTxt = e.montant != null ? e.montant.toFixed(2) + ' EUR' : 'non precise';
-      if(e.montant != null) total += e.montant;
-      body += padCol(d, w.date) + '  ' + padCol(e.type, w.type) + '  ' + padCol(dureeTxt, w.duree) + '  ' + padCol(e.lieu || '-', w.lieu) + '  ' + padCol(montantTxt, w.montant) + '\n';
+  deptNames.forEach(dept => {
+    body += `\n=== DÉPARTEMENT : ${dept.toUpperCase()} ===\n`;
+    const byCorps = { police: [], gendarmerie: [] };
+    byDept[dept].forEach(e => { byCorps[e.corps || 'police'].push(e); });
+    ['police','gendarmerie'].forEach(corps => {
+      if(byCorps[corps].length === 0) return;
+      body += `\n${CORPS_LABELS[corps].toUpperCase()}\n`;
+      body += padCol('Date', w.date) + '  ' + padCol('Mission', w.type) + '  ' + padCol('Duree', w.duree) + '  ' + padCol('Ville', w.ville) + '  ' + padCol('Montant', w.montant) + '\n';
+      body += '-'.repeat(w.date + w.type + w.duree + w.ville + w.montant + 8) + '\n';
+      byCorps[corps].forEach(e => {
+        const d = new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR');
+        const h = computeHours(e.debut, e.fin);
+        const dureeTxt = h ? h.toFixed(1) + ' h' : '-';
+        const montantTxt = effectiveMontant(e).toFixed(2) + ' EUR';
+        total += effectiveMontant(e);
+        body += padCol(d, w.date) + '  ' + padCol(e.type, w.type) + '  ' + padCol(dureeTxt, w.duree) + '  ' + padCol(e.ville || e.lieu || '-', w.ville) + '  ' + padCol(montantTxt, w.montant) + '\n';
+      });
     });
+    const deptTotal = byDept[dept].reduce((s,e)=>s+effectiveMontant(e),0);
+    const deptHeures = byDept[dept].reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
+    const currentYear = new Date().getFullYear();
+    const deptBonus = getBonusByDeptCorps(currentYear).filter(it => it.dept === dept).reduce((s,it)=>s+(it.dueMontant||0),0);
+    body += `Sous-total missions ${dept} : ${deptHeures.toFixed(1)} h — ${deptTotal.toFixed(2)} EUR\n`;
+    if(deptBonus > 0) body += `+ Journee(s) bonus ${dept} (heures cumulees au-dela de 7h) : ${deptBonus.toFixed(2)} EUR\n`;
+    body += `TOTAL DU PAR ${dept.toUpperCase()} : ${(deptTotal+deptBonus).toFixed(2)} EUR\n`;
+    total += deptBonus;
   });
 
-  body += `\nTotal du (montants renseignes) : ${total.toFixed(2)} EUR\n\nJe reste à votre disposition pour tout complément d'information, et vous remercie par avance de l'attention portée à ce message.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
+  body += `\nTotal general (tous departements, montants renseignes) : ${total.toFixed(2)} EUR\n\nJe reste à votre disposition pour tout complément d'information, et vous remercie par avance de l'attention portée à ce message.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
   return body;
 }
 
