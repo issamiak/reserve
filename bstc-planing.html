@@ -1,0 +1,497 @@
+<title>Planning BSTC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-screen app shell — sticky top bar, scrolling content, bottom tab bar on phones (side rail on desktop). */
+:root{
+  --bg:#f3f4f7; --surface:#ffffff; --surface2:#e9ecf2; --fg:#151a26; --muted:#5d667a; --line:#d6dae3;
+  --accent:#1c3f8f; --accent-fg:#ffffff; --accent-soft:#e3e9f8;
+  --red:#c8202f; --red-soft:#fbe4e6; --green:#1d8a4b; --green-soft:#dff3e6; --amber:#b67a00; --amber-soft:#fff1cc;
+  --blue:#2f6fd6; --blue-soft:#e0ebfb; --orange:#d9600c; --orange-soft:#fde7d5;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --radius:10px; --shadow:0 1px 2px rgba(20,26,38,.06),0 4px 14px rgba(20,26,38,.05);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#12151d; --surface:#1b1f2a; --surface2:#242936; --fg:#eceef3; --muted:#9aa3b5; --line:#323847;
+  --accent:#7ea0ee; --accent-fg:#0f1830; --accent-soft:#232d47;
+  --red:#ff6b76; --red-soft:#3d1c21; --green:#5fcf8a; --green-soft:#16301f; --amber:#f2c14e; --amber-soft:#3a2e0e;
+  --blue:#7fb0ff; --blue-soft:#1c2c48; --orange:#ff9d5c; --orange-soft:#3d2312; --shadow:none; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#12151d; --surface:#1b1f2a; --surface2:#242936; --fg:#eceef3; --muted:#9aa3b5; --line:#323847;
+  --accent:#7ea0ee; --accent-fg:#0f1830; --accent-soft:#232d47;
+  --red:#ff6b76; --red-soft:#3d1c21; --green:#5fcf8a; --green-soft:#16301f; --amber:#f2c14e; --amber-soft:#3a2e0e;
+  --blue:#7fb0ff; --blue-soft:#1c2c48; --orange:#ff9d5c; --orange-soft:#3d2312; --shadow:none; color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:26px;font-weight:700}
+h2{font-size:22px;font-weight:700}
+h3{font-size:18px;font-weight:600}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* app shell */
+#app{height:100%;display:flex;flex-direction:column}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--accent-fg);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.topbar .brand{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em;line-height:1}
+.topbar .brand small{display:block;font-family:var(--body);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.85;margin-top:3px}
+.topbar .who{margin-left:auto;text-align:right;font-size:13px;line-height:1.25}
+.topbar .who b{display:block;font-weight:600}
+.topbar .logout{background:transparent;border:1px solid color-mix(in srgb,var(--accent-fg) 45%,transparent);color:var(--accent-fg);border-radius:8px;padding:6px 10px;font-size:13px}
+.main{flex:1;min-height:0;display:flex}
+.content{flex:1;min-width:0;overflow-y:auto;padding:16px;padding-block:16px 24px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.tabbar{display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));flex-shrink:0}
+.tabbar button{flex:1;background:none;border:0;padding:6px 2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:500;color:var(--muted);position:relative}
+.tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button.active{color:var(--accent);background:var(--accent-soft)}
+.tabbar .dot{position:absolute;top:4px;right:calc(50% - 16px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+@media (min-width:760px){
+  .main{flex-direction:row-reverse}
+  .tabbar{flex-direction:column;border-top:0;border-right:1px solid var(--line);width:110px;padding:12px 8px;justify-content:flex-start;gap:4px}
+  .tabbar button{flex:0 0 auto;padding:10px 4px;font-size:12px}
+  .tabbar .dot{right:12px}
+}
+
+/* cards & bits */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ok{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;line-height:1.5;white-space:nowrap}
+.badge.red{background:var(--red-soft);color:var(--red)} .badge.green{background:var(--green-soft);color:var(--green)}
+.badge.amber{background:var(--amber-soft);color:var(--amber)} .badge.blue{background:var(--blue-soft);color:var(--blue)}
+.badge.orange{background:var(--orange-soft);color:var(--orange)} .badge.grey{background:var(--surface2);color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 9px 2px 4px;font-size:13px;background:var(--surface)}
+.chip .av{width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.chip.me{border-color:var(--accent);background:var(--accent-soft)}
+.chip.inactive{color:var(--red);border-color:var(--red)}
+.name-inactive{color:var(--red);font-weight:600}
+.stripe{border-left:5px solid var(--line)}
+.stripe.renfort{border-left-color:var(--red)} .stripe.vacation{border-left-color:var(--green)} .stripe.formation{border-left-color:var(--amber)} .stripe.evenement{border-left-color:var(--orange)} .stripe.permanence{border-left-color:var(--blue)}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi div{background:var(--surface2);border-radius:8px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--display);font-size:26px;line-height:1;font-weight:700}
+.kpi span{font-size:12px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;min-width:0}
+.field input,.field select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-weight:400;font-size:15px;width:100%;min-width:0}
+.field input[type=date],.field input[type=time]{min-height:38px}
+.check{display:flex;align-items:center;gap:8px;font-weight:500}
+.check input{width:18px;height:18px}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:var(--shadow);z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--muted);padding:24px 12px;border:1px dashed var(--line);border-radius:var(--radius)}
+.segment{display:inline-flex;background:var(--surface2);border-radius:8px;padding:3px;gap:2px}
+.segment button{border:0;background:transparent;border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:var(--muted)}
+.segment button.active{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.subtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.subtabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--muted)}
+.subtabs button.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.day{display:grid;grid-template-columns:52px 1fr;gap:10px}
+.day .d{text-align:center;background:var(--surface2);border-radius:8px;padding:6px 0;align-self:start}
+.day .d b{display:block;font-family:var(--display);font-size:22px;line-height:1}
+.day .d span{font-size:11px;text-transform:uppercase;color:var(--muted)}
+.day.today .d{background:var(--accent);color:var(--accent-fg)} .day.today .d span{color:var(--accent-fg)}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.slot .t{font-weight:600}
+
+/* Excel-like grid */
+.gridwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+.pgrid th,.pgrid td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;text-align:center;height:28px;min-width:26px}
+.pgrid th{background:var(--surface2);font-weight:600;position:sticky;top:0;z-index:1}
+.pgrid th.we,.pgrid td.we{background:color-mix(in srgb,var(--surface2) 60%,var(--surface))}
+.pgrid .nm{position:sticky;left:0;z-index:2;background:var(--surface);text-align:left;padding:0 8px;white-space:nowrap;min-width:150px;font-weight:500}
+.pgrid th.nm{z-index:3}
+.pgrid .tot{font-weight:700;background:var(--surface2);min-width:44px;position:sticky;right:0;z-index:2}
+.pgrid td.c{font-weight:700;color:#fff}
+.pgrid td.c.renfort{background:var(--red)} .pgrid td.c.vacation{background:var(--green)} .pgrid td.c.formation{background:var(--amber)} .pgrid td.c.evenement{background:var(--orange)} .pgrid td.c.permanence{background:var(--blue)}
+.pgrid td.c.pending{opacity:.55}
+
+/* login */
+.login{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(160deg,var(--accent) 0 38%,var(--bg) 38%)}
+.login .box{background:var(--surface);border-radius:14px;padding:24px 20px;width:100%;max-width:420px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
+.login .logo{font-family:var(--display);font-size:34px;font-weight:700;line-height:1;color:var(--accent)}
+.demo{display:flex;flex-direction:column;gap:6px}
+.demo button{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.demo button:hover{background:var(--surface2)}
+.dlist{display:flex;flex-direction:column;gap:0}
+.dlist>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.dlist>div:last-child{border-bottom:0}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.monthnav{display:inline-flex;align-items:center;gap:4px}
+.monthnav b{font-family:var(--display);font-size:20px;min-width:150px;text-align:center;text-transform:capitalize}
+.monthnav button{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:34px;font-size:18px}
+.pax-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.pax-item:last-child{border-bottom:0}
+.av-lg{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.av-lg.inactive{background:var(--red-soft);color:var(--red)}
+.phone{font-family:var(--body);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+@media (prefers-reduced-motion:reduce){ .toast{transition:none} }
+</style>
+
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- données de démonstration (issues du fichier Planning_BSTC.xlsx) ---------------- */
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+const iso = d => d.toISOString().slice(0,10);
+const dISO = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return iso(d); };
+const TYPES = {
+  renfort:{label:'Renfort',cls:'renfort',color:'red'},
+  vacation:{label:'Vacation',cls:'vacation',color:'green'},
+  formation:{label:'Formation',cls:'formation',color:'amber'},
+  evenement:{label:'Événement',cls:'evenement',color:'orange'},
+  permanence:{label:'Permanence',cls:'permanence',color:'blue'},
+};
+const DOSSIER_ITEMS = [
+  ['visite_medicale','Visite médicale'],['habilitation','Habilitation'],['tir','Séance de tir'],
+  ['pie','PIE'],['grenades','Grenades'],['sig_pro','SIG Pro'],['baton','Bâton'],
+];
+const NAMES = [
+  ['GOMEZ','Richard','Major','encadrement'],['WEBER','Didier','','encadrement'],
+  ['MATHIEU','Arnaud'],['MAMERI','Djamel'],['COQUET','Fabrice'],['THELINEAU','Philippe'],
+  ['BENZINA','Lhoucine'],['BONTE','Melanie'],['AKEZDAW','Issam'],['LEGEARD','Olivier'],
+];
+// Octobre 2026 (extrait du fichier) : [jour, heures, code] — R=renfort, V=vacation, F=matin/formation, P=permanence encadrement
+const OCT = {
+  'GOMEZ':[[1,8,'R'],[14,8,'R']],'WEBER':[[5,8,'R']],
+  'MATHIEU':[[21,7,'R']],'COQUET':[[14,7,'R'],[30,7,'F']],'THELINEAU':[[5,7,'R'],[14,7,'R'],[21,7,'R']],
+  'BENZINA':[[1,7,'R'],[5,7,'R']],'BONTE':[[1,7,'R'],[14,7,'R']],'LEGEARD':[[1,7,'R'],[5,7,'R'],[30,7,'F']],
+  'AKEZDAW':[[21,7,'R']],
+};
+// Septembre 2026 (passé) : quelques renforts effectués
+const SEP = {
+  'GOMEZ':[[28,8,'R']],'THELINEAU':[[28,7,'R']],'BENZINA':[[28,7,'R']],'BONTE':[[12,7,'R']],
+  'MATHIEU':[[24,7,'R']],'AKEZDAW':[[24,7,'E'],[28,7,'R']],'LEGEARD':[[12,7,'R'],[24,7,'R']],
+};
+const CODE = {R:['renfort','15:00','22:00','Renfort BSTC'],V:['vacation','15:00','22:00','Vacation 15h-22h'],F:['formation','10:00','17:00','Matin 10h-17h'],P:['permanence','09:00','17:00','Permanence encadrement'],E:['evenement','17:00','00:00',"Fête de l'Humanité — Brétigny"]};
+
+function seedState(){
+  let seq=1; const id=p=>p+(seq++);
+  const members = NAMES.map((n,i)=>{
+    const dossier={};
+    DOSSIER_ITEMS.forEach(([k],j)=>{ dossier[k] = addDays(iso(TODAY), 120 + ((i*53+j*37)%300)); });
+    if(n[0]==='COQUET') dossier.pie = addDays(iso(TODAY), -20);            // expiré → alerte rouge
+    if(n[0]==='THELINEAU') dossier.visite_medicale = addDays(iso(TODAY), 12); // expire bientôt → alerte orange
+    if(n[0]==='MAMERI') dossier.tir = '';                                    // non renseigné
+    return { id:'m'+(i+1), nom:n[0], prenom:n[1], grade:n[2]||'', role:n[3]||'reserviste', actif: n[0]!=='MAMERI',
+      tel:`06 00 00 ${String(10+i).padStart(2,'0')} ${String((i*37)%90+10).padStart(2,'0')}`, dossier };
+  });
+  members.unshift({id:'m0',nom:'BSTC',prenom:'Responsable',grade:'',role:'admin',actif:true,tel:'06 00 00 00 00',dossier:{}});
+  const byNom = Object.fromEntries(members.map(m=>[m.nom,m]));
+  const besoins=[], demandes=[], heures=[];
+  const key = {};
+  function place(month, data, past){
+    for(const [nom, list] of Object.entries(data)){
+      const m = byNom[nom]; if(!m) continue;
+      for(const [day,h,code] of list){
+        const [type,debut,fin,libelle] = CODE[code];
+        const k = `${month}-${day}-${code}`;
+        let b = key[k];
+        if(!b){ b = {id:id('b'), date:dISO(2026,month,day), debut, fin, type, libelle, lieu: code==='E'?'Brétigny-sur-Orge':'Paris', places:0, duree: code==='P'?8:(code==='E'?7:h)}; key[k]=b; besoins.push(b); }
+        b.places++;
+        demandes.push({id:id('d'), besoinId:b.id, memberId:m.id, statut:'attribuee'});
+        if(past){
+          const pending = day>=28 || (day===24 && nom==='AKEZDAW');
+          if(!(day===24 && nom==='AKEZDAW') && !(day===28 && nom==='AKEZDAW'))
+            heures.push({id:id('h'), besoinId:b.id, memberId:m.id, heures:h, statut: pending?'declaree':'validee', validePar: pending?null:'m1', date:b.date});
+        }
+      }
+    }
+  }
+  place(9, SEP, true); place(10, OCT, false);
+  // quelques places encore ouvertes en octobre + besoins de novembre
+  besoins.filter(b=>b.date>='2026-10-12'&&b.type==='renfort').slice(0,6).forEach(b=>b.places+=1);
+  const nov = [[3,'R',4],[11,'E',6],[19,'F',8]];
+  nov.forEach(([day,code,places])=>{
+    const [type,debut,fin,libelle]=CODE[code];
+    besoins.push({id:id('b'),date:dISO(2026,11,day),debut,fin,type,libelle: code==='E'?'Cérémonie du 11 novembre — sécurisation':(code==='F'?'Formation risques électriques':libelle),lieu:code==='E'?'Paris 8e':'Paris',places,duree:code==='P'?8:7});
+  });
+  const nb = besoins.filter(b=>b.date.startsWith('2026-11'));
+  const req = [['BONTE',0],['LEGEARD',0],['COQUET',1],['THELINEAU',2]];
+  req.forEach(([nom,i])=>demandes.push({id:id('d'),besoinId:nb[i].id,memberId:byNom[nom].id,statut:'demandee'}));
+  return {seq, members, besoins, demandes, heures, user:null, tab:'planning', month:'2026-10', view:'liste', sub:'demandes', paxOpen:null};
+}
+
+/* ---------------- état & persistance ---------------- */
+let S;
+const KEY='bstc-planning-demo-v2';
+function load(){ try{ const s=localStorage.getItem(KEY); if(s){ S=JSON.parse(s); return; } }catch(e){} S=seedState(); }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function reset(){ S=seedState(); save(); render(); toast('Démo réinitialisée'); }
+function nid(p){ return p+(S.seq++); }
+load();
+
+/* ---------------- helpers ---------------- */
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const member = id=>S.members.find(m=>m.id===id);
+const besoin = id=>S.besoins.find(b=>b.id===id);
+const fullName = m => m ? `${m.nom} ${m.prenom}`.trim() : '?';
+const shortName = m => m ? `${m.prenom.charAt(0)}. ${m.nom}` : '?';
+const initials = m => m ? (m.prenom.charAt(0)+m.nom.charAt(0)).toUpperCase() : '?';
+const me = ()=>member(S.user);
+const isEnc = ()=>['encadrement','admin'].includes(me()?.role);
+const fmtDate = s => new Date(s+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+const fmtLong = s => new Date(s+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const monthLabel = ym => new Date(ym+'-01T00:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+const hm = t => t.replace(':','h').replace(/h00$/,'h');
+const attribs = b => S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='attribuee');
+const restantes = b => b.places - attribs(b).length;
+const roleLabel = r => ({reserviste:'Réserviste',encadrement:'Encadrement',admin:'Administrateur'}[r]);
+function dossierStatus(v){
+  if(!v) return {cls:'grey',label:'Non renseigné',rank:2};
+  const days = Math.round((new Date(v+'T00:00:00')-TODAY)/86400000);
+  if(days<0) return {cls:'red',label:`Expiré depuis ${-days} j`,rank:3};
+  if(days<=30) return {cls:'amber',label:`Expire dans ${days} j`,rank:1};
+  return {cls:'green',label:`Valide jusqu'au ${new Date(v+'T00:00:00').toLocaleDateString('fr-FR')}`,rank:0};
+}
+const alertes = m => DOSSIER_ITEMS.filter(([k])=>dossierStatus(m.dossier[k]).rank>=1);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); }
+function shiftMonth(n){ const d=new Date(S.month+'-01T00:00:00'); d.setMonth(d.getMonth()+n); S.month=iso(d).slice(0,7); save(); render(); }
+const pendingDemandes = ()=>S.demandes.filter(d=>d.statut==='demandee').length;
+const pendingHeures = ()=>S.heures.filter(h=>h.statut==='declaree').length;
+
+/* ---------------- actions ---------------- */
+window.act = {
+  login(id){ S.user=id; S.tab='planning'; save(); render(); },
+  logout(){ S.user=null; save(); render(); },
+  tab(t){ S.tab=t; save(); render(); },
+  sub(t){ S.sub=t; S.paxOpen=null; save(); render(); },
+  nouveau(){ S.tab='gestion'; S.sub='besoins'; save(); render(); const f=document.getElementById('nb-form'); if(f){ f.scrollIntoView({block:'start'}); document.getElementById('nb-date')?.focus(); } },
+  view(v){ S.view=v; save(); render(); },
+  month(n){ shiftMonth(n); },
+  reset,
+  demander(bid){ S.demandes.push({id:nid('d'),besoinId:bid,memberId:S.user,statut:'demandee'}); save(); render(); toast('Demande envoyée à l’encadrement'); },
+  retirer(did){ S.demandes=S.demandes.filter(d=>d.id!==did); save(); render(); toast('Demande retirée'); },
+  attribuer(did){ const d=S.demandes.find(x=>x.id===did); const b=besoin(d.besoinId); if(restantes(b)<=0){toast('Plus de place sur ce créneau');return;} d.statut='attribuee'; d.par=S.user; save(); render(); toast(`${shortName(member(d.memberId))} attribué·e`); },
+  refuser(did){ const d=S.demandes.find(x=>x.id===did); d.statut='refusee'; d.par=S.user; save(); render(); toast('Demande refusée'); },
+  declarer(bid){ const inp=document.getElementById('h-'+bid); const v=parseFloat(inp.value); if(!(v>0&&v<=24)){toast('Indique un nombre d’heures valide');return;} const b=besoin(bid); S.heures.push({id:nid('h'),besoinId:bid,memberId:S.user,heures:v,statut:'declaree',validePar:null,date:b.date}); save(); render(); toast('Heures déclarées, en attente de validation'); },
+  validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
+  refuserH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='refusee'; h.validePar=S.user; save(); render(); toast('Déclaration refusée'); },
+  creerBesoin(ev){ ev.preventDefault(); const f=ev.target; const date=f.date.value, debut=f.debut.value, fin=f.fin.value; if(!date||!debut||!fin){toast('Date et horaires obligatoires');return;}
+    let duree=(new Date('2000-01-01T'+fin)-new Date('2000-01-01T'+debut))/3600000; if(duree<=0) duree+=24;
+    S.besoins.push({id:nid('b'),date,debut,fin,type:f.type.value,libelle:f.libelle.value||TYPES[f.type.value].label,lieu:f.lieu.value||'Paris',places:parseInt(f.places.value)||1,duree});
+    S.month=date.slice(0,7); save(); render(); toast('Besoin publié — visible par tous'); },
+  supprBesoin(bid){ S.besoins=S.besoins.filter(b=>b.id!==bid); S.demandes=S.demandes.filter(d=>d.besoinId!==bid); S.heures=S.heures.filter(h=>h.besoinId!==bid); save(); render(); toast('Besoin supprimé'); },
+  pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
+  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='tel'){ m.tel=v; } else { m.dossier[k]=v; } save(); render(); },
+  copy(txt){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast('Numéro copié'),()=>toast(txt)); } else toast(txt); },
+};
+
+/* ---------------- rendu ---------------- */
+function render(){
+  const app=$('#app');
+  if(!S.user){ app.innerHTML=renderLogin(); return; }
+  const m=me();
+  const tabs=[
+    ['planning','Planning','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>'],
+    ['besoins','Besoins','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>'],
+    ['moi','Moi','<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'],
+    ['equipe','Équipe','<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="10" r="2.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M16 20c0-3 2-5 5-5"/></svg>'],
+  ];
+  if(isEnc()) tabs.push(['gestion','Gestion','<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/><path d="m16 16 2 2 4-4"/></svg>']);
+  const badge = pendingDemandes()+pendingHeures();
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="brand">Planning BSTC<small>Réserve · Brigade des transports</small></div>
+      <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
+      <button class="logout" onclick="act.logout()">Quitter</button>
+    </header>
+    <div class="main">
+      <div class="content"><div class="wrap">${({planning:renderPlanning,besoins:renderBesoins,moi:renderMoi,equipe:renderEquipe,gestion:renderGestion})[S.tab]()}</div></div>
+      <nav class="tabbar">${tabs.map(([k,l,i])=>`<button class="${S.tab===k?'active':''}" onclick="act.tab('${k}')">${i}${l}${k==='gestion'&&badge?`<span class="dot">${badge}</span>`:''}</button>`).join('')}</nav>
+    </div>`;
+}
+
+function renderLogin(){
+  const demo=[['m0','Responsable BSTC','Administrateur'],['m1','Major GOMEZ Richard','Encadrement'],['m9','AKEZDAW Issam','Réserviste']];
+  return `<div class="login"><div class="box">
+    <div><div class="logo">Planning BSTC</div><div class="eyebrow">Réserve opérationnelle · Brigade des transports</div></div>
+    <form class="stack" onsubmit="event.preventDefault();act.login('m9')">
+      <label class="field">Adresse email<input id="login-email" type="email" placeholder="prenom.nom@exemple.fr" autocomplete="username"></label>
+      <label class="field">Mot de passe<input id="login-pwd" type="password" placeholder="••••••••" autocomplete="current-password"></label>
+      <button class="btn primary" type="submit">Se connecter</button>
+    </form>
+    <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
+      <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
+    <p class="small muted" style="margin:0">Données de démonstration réduites (10 PAX, extrait du planning Excel). Les numéros de téléphone sont fictifs.</p>
+  </div></div>`;
+}
+
+function monthNav(){ return `<div class="monthnav"><button onclick="act.month(-1)" aria-label="Mois précédent">‹</button><b>${monthLabel(S.month)}</b><button onclick="act.month(1)" aria-label="Mois suivant">›</button></div>`; }
+function legend(){ return `<div class="legend">${Object.values(TYPES).map(t=>`<span><i style="background:var(--${t.color})"></i>${t.label}</span>`).join('')}</div>`; }
+function typeBadge(b){ const t=TYPES[b.type]; return `<span class="badge ${t.color}">${t.label}</span>`; }
+
+function renderPlanning(){
+  const list = S.besoins.filter(b=>b.date.startsWith(S.month)).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
+  let body;
+  if(S.view==='grille') body = renderGrille(list);
+  else {
+    const days=[...new Set(list.map(b=>b.date))];
+    body = days.length? days.map(d=>{
+      const dt=new Date(d+'T00:00:00');
+      return `<div class="day ${d===iso(TODAY)?'today':''}"><div class="d"><b class="num">${dt.getDate()}</b><span>${dt.toLocaleDateString('fr-FR',{weekday:'short'})}</span></div>
+        <div class="stack">${list.filter(b=>b.date===d).map(b=>{
+          const at=attribs(b); const r=restantes(b);
+          return `<div class="slot stripe ${b.type}"><div class="row between"><span class="t">${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span>${typeBadge(b)}</div>
+            <div class="row" style="gap:6px">${at.length?at.map(a=>chip(member(a.memberId))).join(''):'<span class="small muted">Personne d’attribué</span>'}${r>0&&b.date>=iso(TODAY)?`<span class="badge amber">${r} place${r>1?'s':''} libre${r>1?'s':''}</span>`:''}</div></div>`;
+        }).join('')}</div></div>`;
+    }).join('') : `<div class="empty">Aucun créneau publié pour ${monthLabel(S.month)}.</div>`;
+  }
+  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${isEnc()?'<button class="btn primary sm" onclick="act.nouveau()">+ Nouveau besoin</button>':''}</div></div>
+    ${legend()}
+    <p class="small muted" style="margin:0">Planning et attributions visibles par tous les réservistes. Ton nom est surligné.</p>
+    ${body}`;
+}
+function chip(m){ return `<span class="chip ${m.id===S.user?'me':''} ${m.actif?'':'inactive'}"><span class="av">${initials(m)}</span>${esc(shortName(m))}</span>`; }
+
+function renderGrille(list){
+  const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate();
+  const cells={}; // memberId -> day -> {h,type,pending}
+  list.forEach(b=>attribs(b).forEach(a=>{
+    const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===a.memberId&&x.statut!=='refusee');
+    const day=+b.date.slice(8);
+    (cells[a.memberId] ||= {})[day] = {h: h? h.heures : b.duree, type:b.type, pending: !h || h.statut==='declaree'};
+  }));
+  const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.role==='encadrement'?0:1)-(b.role==='encadrement'?0:1)||a.nom.localeCompare(b.nom));
+  const head=Array.from({length:nDays},(_,i)=>{const d=new Date(y,mo-1,i+1); const we=d.getDay()%6===0; return `<th class="${we?'we':''}"><div class="small muted" style="font-weight:500">${'DLMMJVS'[d.getDay()]}</div>${i+1}</th>`;}).join('');
+  const body=rows.map(m=>{
+    let tot=0;
+    const tds=Array.from({length:nDays},(_,i)=>{const c=cells[m.id]?.[i+1]; const we=new Date(y,mo-1,i+1).getDay()%6===0; if(!c) return `<td class="${we?'we':''}"></td>`; tot+=c.h; return `<td class="c ${c.type} ${c.pending?'pending':''} num" title="${TYPES[c.type].label}${c.pending?' — heures non validées':''}">${c.h}</td>`;}).join('');
+    return `<tr><td class="nm ${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(m.nom)} ${esc(m.prenom)}</td>${tds}<td class="tot num">${tot||''}</td></tr>`;
+  }).join('');
+  return `<div class="gridwrap"><table class="pgrid"><thead><tr><th class="nm">PAX</th>${head}<th class="tot">Total</th></tr></thead><tbody>${body}</tbody></table></div>
+    <p class="small muted" style="margin:0">Même lecture que le fichier Excel : une ligne par PAX, une colonne par jour, les heures dans la case. Une case pâle = heures pas encore validées par l’encadrement.</p>`;
+}
+
+function renderBesoins(){
+  const today=iso(TODAY);
+  const list=S.besoins.filter(b=>b.date>=today).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
+  const mine=S.demandes.filter(d=>d.memberId===S.user);
+  const cards=list.map(b=>{
+    const at=attribs(b); const r=restantes(b); const d=mine.find(x=>x.besoinId===b.id);
+    let action;
+    if(d?.statut==='attribuee') action=`<span class="badge green">✓ Attribué</span>`;
+    else if(d?.statut==='demandee') action=`<span class="badge amber">Demande en attente</span> <button class="btn sm" onclick="act.retirer('${d.id}')">Retirer</button>`;
+    else if(d?.statut==='refusee') action=`<span class="badge grey">Non retenu</span>`;
+    else if(r<=0) action=`<span class="badge grey">Complet</span>`;
+    else if(!me().actif) action=`<span class="badge red">Compte sans activité</span>`;
+    else action=`<button class="btn primary sm" onclick="act.demander('${b.id}')">Je suis disponible</button>`;
+    return `<div class="card stripe ${b.type} stack" style="gap:8px">
+      <div class="row between"><div><div class="eyebrow">${fmtDate(b.date)}</div><h3>${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</h3><div class="small muted">${esc(b.lieu)} · ${b.duree} h · ${at.length}/${b.places} attribué${at.length>1?'s':''}</div></div>${typeBadge(b)}</div>
+      ${at.length?`<div class="row" style="gap:6px">${at.map(a=>chip(member(a.memberId))).join('')}</div>`:''}
+      <div class="row between"><span class="small ${r>0?'':'muted'}">${r>0?`${r} place${r>1?'s':''} libre${r>1?'s':''}`:'Aucune place libre'}</span><span class="row">${action}</span></div></div>`;
+  }).join('');
+  return `<div><h2>Besoins à pourvoir</h2><p class="small muted" style="margin:4px 0 0">Indique tes disponibilités ; l’encadrement attribue ensuite et le planning se met à jour pour tout le monde.</p></div>
+    ${cards||'<div class="empty">Aucun besoin à venir.</div>'}`;
+}
+
+function renderMoi(){
+  const m=me(); const ym=S.month; const y=iso(TODAY).slice(0,4);
+  const mineH=S.heures.filter(h=>h.memberId===S.user);
+  const sum=(arr)=>arr.reduce((s,h)=>s+h.heures,0);
+  const valMois=sum(mineH.filter(h=>h.statut==='validee'&&h.date.startsWith(iso(TODAY).slice(0,7))));
+  const attente=sum(mineH.filter(h=>h.statut==='declaree'));
+  const valAn=sum(mineH.filter(h=>h.statut==='validee'&&h.date.startsWith(y)));
+  const done=S.demandes.filter(d=>d.memberId===S.user&&d.statut==='attribuee').map(d=>besoin(d.besoinId)).filter(b=>b&&b.date<iso(TODAY)).sort((a,b)=>b.date.localeCompare(a.date));
+  const aDeclarer=done.filter(b=>!mineH.some(h=>h.besoinId===b.id&&h.statut!=='refusee'));
+  const aVenir=S.demandes.filter(d=>d.memberId===S.user&&d.statut==='attribuee').map(d=>besoin(d.besoinId)).filter(b=>b&&b.date>=iso(TODAY)).sort((a,b)=>a.date.localeCompare(b.date));
+  const hist=mineH.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  const stat={declaree:'<span class="badge amber">En attente</span>',validee:'<span class="badge green">Validé</span>',refusee:'<span class="badge red">Refusé</span>'};
+  return `<div class="row" style="gap:12px"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div><h2 class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</h2><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · <b style="color:var(--red)">Plus d’activité à la BSTC</b>'}</div></div></div>
+    <div class="card"><div class="eyebrow" style="margin-bottom:8px">Mes heures</div><div class="kpi"><div><b class="num">${valMois}</b><span>validées ce mois</span></div><div><b class="num">${attente}</b><span>en attente</span></div><div><b class="num">${valAn}</b><span>validées en ${y}</span></div></div></div>
+    ${aDeclarer.length?`<div class="card stack"><h3>À déclarer</h3><p class="small muted" style="margin:0">Saisis le nombre d’heures réellement effectuées. L’encadrement (Richard, Didier ou le responsable) valide ensuite.</p>
+      ${aDeclarer.map(b=>`<div class="row between stripe ${b.type}" style="padding-left:10px"><div><b>${fmtDate(b.date)}</b> · ${esc(b.libelle)}<div class="small muted">${hm(b.debut)} – ${hm(b.fin)}</div></div><div class="row" style="gap:6px"><input id="h-${b.id}" type="number" min="0.5" max="24" step="0.5" value="${b.duree}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures effectuées"> h <button class="btn primary sm" onclick="act.declarer('${b.id}')">Déclarer</button></div></div>`).join('')}</div>`:''}
+    <div class="card stack"><h3>Mes prochaines vacations</h3>${aVenir.length?aVenir.map(b=>{const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));return `<div class="stripe ${b.type}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b>${typeBadge(b)}</div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div><div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(chip).join(''):'<span>personne d’autre pour l’instant</span>'}</div></div>`;}).join(''):'<div class="small muted">Aucune vacation attribuée à venir. Va dans « Besoins » pour te positionner.</div>'}</div>
+    <div class="card stack"><h3>Mon dossier</h3><div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<div><span>${l}</span><span class="badge ${s.cls}">${s.label}</span></div>`;}).join('')}</div><p class="small muted" style="margin:0">Dates mises à jour par l’encadrement uniquement.</p></div>
+    <div class="card stack"><h3>Historique récent</h3><div class="dlist">${hist.length?hist.map(h=>{const b=besoin(h.besoinId);return `<div><span><b>${fmtDate(h.date)}</b> <span class="small muted">${esc(b?.libelle||'')}</span></span><span class="row" style="gap:8px"><span class="num">${h.heures} h</span>${stat[h.statut]}</span></div>`;}).join(''):'<div class="small muted">Rien pour l’instant.</div>'}</div></div>`;
+}
+
+function renderEquipe(){
+  const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.role==='encadrement'?0:1)-(b.role==='encadrement'?0:1)||a.nom.localeCompare(b.nom));
+  return `<div><h2>Équipe</h2><p class="small muted" style="margin:4px 0 0">${rows.filter(m=>m.actif).length} réservistes actifs · appuie sur un numéro pour le copier.</p></div>
+    <div class="card" style="padding-block:4px">${rows.map(m=>`<div class="pax-item" style="cursor:default"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · plus d’activité'}</div></div><button class="btn sm phone" onclick="act.copy('${m.tel}')">${m.tel}</button></div>`).join('')}</div>`;
+}
+
+function renderGestion(){
+  const subs=[['demandes',`Demandes${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['besoins','Besoins'],['pax','Dossiers PAX']];
+  return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.nouveau()">+ Nouveau besoin</button></div>
+    <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
+    ${({demandes:gDemandes,heures:gHeures,besoins:gBesoins,pax:gPax})[S.sub]()}`;
+}
+
+function gDemandes(){
+  const pend=S.demandes.filter(d=>d.statut==='demandee');
+  const byB={}; pend.forEach(d=>(byB[d.besoinId] ||= []).push(d));
+  const ids=Object.keys(byB).sort((a,b)=>besoin(a).date.localeCompare(besoin(b).date));
+  if(!ids.length) return '<div class="empty">Aucune demande en attente. Tout est à jour.</div>';
+  return `<p class="small muted" style="margin:0">Attribue les collègues sur chaque créneau. Les alertes de dossier sont rappelées à côté du nom.</p>`+ids.map(bid=>{const b=besoin(bid); const r=restantes(b);
+    return `<div class="card stripe ${b.type} stack"><div class="row between"><div><div class="eyebrow">${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</div><h3>${esc(b.libelle)}</h3><div class="small muted">${attribs(b).length}/${b.places} attribués · <b>${r} place${r>1?'s':''} restante${r>1?'s':''}</b></div></div>${typeBadge(b)}</div>
+      ${attribs(b).length?`<div class="row" style="gap:6px">${attribs(b).map(a=>chip(member(a.memberId))).join('')}</div>`:''}
+      <div class="dlist">${byB[bid].map(d=>{const m=member(d.memberId); const al=alertes(m);
+        return `<div><div style="min-width:0"><div class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</div>${al.length?`<div class="row" style="gap:4px;margin-top:2px">${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div>`:'<div class="small muted">Dossier à jour</div>'}</div>
+          <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')" ${r<=0?'disabled':''}>Attribuer</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`;}).join('')}</div></div>`;}).join('');
+}
+
+function gHeures(){
+  const pend=S.heures.filter(h=>h.statut==='declaree').sort((a,b)=>a.date.localeCompare(b.date));
+  const enc=S.members.filter(m=>['encadrement','admin'].includes(m.role)).map(m=>m.prenom).join(', ');
+  const recent=S.heures.filter(h=>h.statut==='validee'&&h.validePar).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  return `<p class="small muted" style="margin:0">Seules les heures validées ici comptent dans les compteurs. Valideurs : ${esc(enc)}.</p>
+    ${pend.length?`<div class="card stack"><h3>${pend.length} déclaration${pend.length>1?'s':''} en attente</h3><div class="dlist">${pend.map(h=>{const m=member(h.memberId); const b=besoin(h.besoinId); const diff=h.heures!==b.duree;
+      return `<div><div><b>${esc(fullName(m))}</b><div class="small muted">${fmtDate(h.date)} · ${esc(b.libelle)} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><span class="num" style="font-weight:700">${h.heures} h</span>${diff?`<span class="badge amber" title="Différent de la durée prévue">≠ ${b.duree} h</span>`:''}<button class="btn ok sm" onclick="act.validerH('${h.id}')">Valider</button><button class="btn danger sm" onclick="act.refuserH('${h.id}')">Refuser</button></div></div>`;}).join('')}</div></div>`:'<div class="empty">Aucune déclaration d’heures en attente.</div>'}
+    <div class="card stack"><h3>Dernières validations</h3><div class="dlist">${recent.map(h=>`<div><span>${esc(fullName(member(h.memberId)))} <span class="small muted">· ${fmtDate(h.date)}</span></span><span class="small muted"><span class="num" style="color:var(--fg);font-weight:600">${h.heures} h</span> · validé par ${esc(member(h.validePar)?.prenom||'')}</span></div>`).join('')}</div></div>`;
+}
+
+function gBesoins(){
+  const list=S.besoins.filter(b=>b.date>=iso(TODAY)).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
+  return `<div class="card stack" id="nb-form" style="border-color:var(--accent)"><h3>Nouveau besoin</h3><p class="small muted" style="margin:0">Une fois publié, le créneau apparaît dans « Besoins » pour tous les réservistes, qui peuvent s’y positionner.</p>
+    <form class="stack" onsubmit="act.creerBesoin(event)">
+      <div class="grid2"><label class="field">Date<input name="date" id="nb-date" type="date" required value="${addDays(iso(TODAY),7)}"></label>
+        <label class="field">Type<select name="type" id="nb-type">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}">${t.label}</option>`).join('')}</select></label>
+        <label class="field">Début<input name="debut" id="nb-debut" type="time" value="15:00" required></label><label class="field">Fin<input name="fin" id="nb-fin" type="time" value="22:00" required></label>
+        <label class="field">Places<input name="places" id="nb-places" type="number" min="1" max="30" value="4"></label><label class="field">Lieu<input name="lieu" id="nb-lieu" placeholder="Paris"></label></div>
+      <label class="field">Libellé<input name="libelle" id="nb-libelle" placeholder="Ex. Renfort BSTC, Fête de l’Humanité, Formation risques électriques"></label>
+      <div><button class="btn primary" type="submit">Publier le besoin</button></div></form></div>
+    <div class="card stack"><h3>Besoins à venir (${list.length})</h3><div class="dlist">${list.map(b=>`<div><div><b>${fmtDate(b.date)}</b> ${hm(b.debut)}–${hm(b.fin)} · ${esc(b.libelle)}<div class="small muted">${attribs(b).length}/${b.places} attribués · ${S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='demandee').length} en attente</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${typeBadge(b)}<button class="btn danger sm" onclick="act.supprBesoin('${b.id}')">Suppr.</button></div></div>`).join('')||'<div class="small muted">Aucun.</div>'}</div></div>`;
+}
+
+function gPax(){
+  const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom));
+  const nAl=rows.filter(m=>m.actif&&alertes(m).length).length;
+  return `<div class="row between"><div><h3>${rows.length} PAX</h3><div class="small muted">${rows.filter(m=>!m.actif).length} sans activité · ${nAl} dossier${nAl>1?'s':''} avec alerte</div></div><button class="btn sm" onclick="act.reset()">Réinitialiser la démo</button></div>
+    <div class="card" style="padding-block:4px">${rows.map(m=>{const al=alertes(m); const open=S.paxOpen===m.id;
+      return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · plus d’activité à la BSTC'}</div></div>
+        ${!m.actif?'':al.length?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)?'red':'amber'}">${al.length} alerte${al.length>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}<span class="muted">${open?'▾':'▸'}</span></div>
+        ${open?`<div class="stack" style="padding:6px 0 14px 46px" onclick="event.stopPropagation()">
+          <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></label>
+          <div class="grid2"><label class="field">Rôle<select id="role-${m.id}" onchange="act.paxField('${m.id}','role',this.value)">${['reserviste','encadrement','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}</select></label>
+          <label class="field">Téléphone<input id="tel-${m.id}" value="${esc(m.tel)}" onchange="act.paxField('${m.id}','tel',this.value)"></label></div>
+          <div class="eyebrow">Dates de validité</div>
+          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="field">${l} <span class="badge ${s.cls}" style="font-weight:500">${s.label}</span><input type="date" id="${k}-${m.id}" value="${m.dossier[k]||''}" onchange="act.paxField('${m.id}','${k}',this.value)"></label>`;}).join('')}</div>
+        </div>`:''}`;}).join('')}</div>`;
+}
+
+render();
+</script>
