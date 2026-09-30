@@ -137,14 +137,14 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .pgrid tr.count td.notit{color:var(--muted)}
 .chip.wait{border-style:dashed;color:var(--muted);background:transparent}
 .chip.wait .av{background:var(--surface2);color:var(--muted)}
-.chip.ok{border-color:var(--red);background:var(--red-soft)}
-.chip.ok .av{background:var(--red);color:var(--surface)}
+.chip.ok{border-color:var(--green);background:var(--green-soft)}
+.chip.ok .av{background:var(--green);color:var(--surface)}
 .chip.tit{border-color:var(--blue);background:var(--blue-soft)}
 .chip.tit .av{background:var(--blue);color:var(--surface)}
 .legend i.hatch{background:repeating-linear-gradient(135deg,var(--surface2) 0 3px,var(--surface) 3px 6px);border:1px dashed var(--muted)}
 .meter{display:inline-flex;gap:3px;vertical-align:middle}
 .meter i{width:11px;height:16px;border-radius:3px;border:1px solid var(--line);background:var(--surface2)}
-.meter i.on{background:var(--red);border-color:var(--red)}
+.meter i.on{background:var(--green);border-color:var(--green)}
 .meter i.over{background:var(--surface);border:2px solid var(--red)}
 .dayrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .dayrow:last-child{border-bottom:0}
@@ -167,7 +167,7 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .cal-d .cnt{font-size:11px;font-weight:700;line-height:1;min-height:11px;color:var(--muted)}
 .cal-d .cnt.full{color:var(--green)} .cal-d .cnt.open{color:var(--amber)} .cal-d .cnt.over{color:var(--red)}
 .cal-d.wait{background:repeating-linear-gradient(135deg,var(--surface2) 0 5px,var(--surface) 5px 10px);border:1px dashed var(--muted)}
-.cal-d.ok{background:var(--red);border-color:var(--red);color:var(--surface)}
+.cal-d.ok{background:var(--green);border-color:var(--green);color:var(--surface)}
 .cal-d.tit{background:var(--blue);border-color:var(--blue);color:var(--surface)}
 .cal-d.ok .cnt,.cal-d.tit .cnt{color:inherit}
 .cal-d.past{opacity:.45}
@@ -178,7 +178,13 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .dlist>.valrow{padding:12px 0;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:10px}
 .dlist>.valrow>:first-child{flex:0 0 auto}
 .valrow .btn{flex:1;justify-content:center;padding:10px 12px}
-.dlist>div>.pl{flex:1 1 230px}
+.dlist>div>.pl{flex:1 1 150px}
+.abtn{border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:600;line-height:1.5}
+.adet{margin-top:4px;padding:6px 8px;background:var(--surface2);border-radius:6px}
+.badge.navy{background:var(--accent-soft);color:var(--accent)}
+.stripe.vacation{border-left-color:var(--accent)}
+.pgrid tr.count td.vr.navy{background:var(--accent-soft);color:var(--accent)}
+.next{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-color:var(--green);background:var(--green-soft)}
 .w-sm{display:none}
 .login .logo{margin-bottom:6px}
 @media (max-width:600px){
@@ -217,7 +223,7 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .busy .content{opacity:.55;pointer-events:none}
 .linkbtn{background:none;border:0;padding:4px 0;color:var(--accent);font-weight:600;text-decoration:underline;text-align:left}
 .stripe.matin{border-left-color:var(--amber)}
-.cal-d.vac{border-top:4px solid var(--green)} .cal-d.mat{border-top:4px solid var(--amber)}
+.cal-d.vac{border-top:4px solid var(--accent)} .cal-d.mat{border-top:4px solid var(--amber)}
 .cal-d.off{background:transparent;border-color:transparent;color:var(--muted)}
 .cal-d.off b{font-weight:600}
 .cal-d.ok,.cal-d.tit{border-top-color:transparent}
@@ -273,7 +279,7 @@ const iso = d => dISO(d.getFullYear(), d.getMonth()+1, d.getDate()); // date loc
 const dISO = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return iso(d); };
 const TYPES = {
-  vacation:{label:'Vacation',court:'vac',color:'green',debut:'15:00',fin:'22:00'},
+  vacation:{label:'Vacation',court:'vac',color:'navy',debut:'15:00',fin:'22:00'},
   matin:{label:'Matin',court:'mat',color:'amber',debut:'10:00',fin:'17:00'},
 };
 const typeOf = b => TYPES[b&&b.type] || TYPES.vacation;
@@ -315,7 +321,7 @@ function seedState(){
 
 /* ---------------- état & persistance ---------------- */
 let S;
-const KEY='bstc-planning-demo-v16';
+const KEY='bstc-planning-demo-v17';
 function load(){ if(REMOTE){ S={members:[],besoins:[],demandes:[],heures:[],notifs:[],retraits:[],pending:[],user:null,tab:'planning',month:addDays(iso(TODAY),3).slice(0,7),view:'liste',sub:'demandes',paxOpen:null,day:null,auth:'in'}; return; } try{ const s=localStorage.getItem(KEY); if(s){ S=JSON.parse(s); return; } }catch(e){} S=seedState(); }
 function save(){ if(REMOTE) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function reset(){ S=seedState(); save(); render(); toast('Démo réinitialisée'); }
@@ -345,9 +351,10 @@ function patrouille(date){
   const tit=ds.filter(d=>member(d.memberId).titulaire&&d.statut==='attribuee');
   const att=ds.filter(d=>!member(d.memberId).titulaire&&d.statut==='attribuee');
   const wait=ds.filter(d=>d.statut==='demandee');
-  const cap=CAP[Math.min(tit.length,2)];
-  const etat=!tit.length?'notit':att.length>cap?'over':att.length===cap?'full':'open';
-  return {b,tit,att,wait,cap,etat,libres:Math.max(0,cap-att.length),vide:!ds.filter(d=>d.statut!=='refusee').length};
+  const fixe=!!(b&&b.places>0);   // l'admin peut fixer lui-même le nombre de places d'une vacation
+  const cap=fixe?b.places:CAP[Math.min(tit.length,2)];
+  const etat=(!tit.length&&!fixe)?'notit':att.length>cap?'over':att.length===cap?'full':'open';
+  return {b,tit,att,wait,cap,fixe,etat,libres:Math.max(0,cap-att.length),vide:!ds.filter(d=>d.statut!=='refusee').length};
 }
 const restantes = b => patrouille(b.date).libres;
 function vacPatch(b,k,v){   // modification d'une vacation par l'admin
@@ -355,6 +362,7 @@ function vacPatch(b,k,v){   // modification d'une vacation par l'admin
   if(k==='type'){ const t=TYPES[v]||TYPES.vacation; o.type=v; o.debut=t.debut; o.fin=t.fin; if(!b.libelle||b.libelle===typeOf(b).label) o.libelle=t.label; }
   else if(k==='libelle'){ o.libelle=String(v).trim()||typeOf(b).label; }
   else if(k==='debut'||k==='fin'){ if(!v) return null; o[k]=v; }
+  else if(k==='places'){ return {places:Math.max(0,Math.min(40,parseInt(v)||0))}; }
   else return null;
   const d=o.debut||b.debut, f=o.fin||b.fin; let h=(new Date('2000-01-01T'+f)-new Date('2000-01-01T'+d))/3600000; if(h<=0) h+=24; o.duree=h;
   return o;
@@ -459,6 +467,21 @@ window.act = {
   go(id,focus){ const el=document.getElementById(id); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1400); if(focus) setTimeout(()=>document.getElementById(focus)?.focus({preventScroll:true}),450); },
   copy(txt,msg){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(msg||'Numéro copié'),()=>toast(txt)); } else toast(txt); },
   credOk(){ S.cred=null; render(); },
+  alerte(id){ S.alertOpen=S.alertOpen===id?null:id; render(); },
+  delNotif(id){ if(!isEnc()) return; S.notifs=(S.notifs||[]).filter(n=>n.id!==id); save(); render(); toast('Message supprimé'); },
+  // Export du mois, comme la feuille Excel : une ligne par personne, une colonne par jour, heures et total.
+  exportMois(){ const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate(); const dates=Array.from({length:nDays},(_,i)=>dISO(y,mo,i+1));
+    const q=v=>{ v=String(v==null?'':v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+    const rows=[[monthLabel(S.month).toUpperCase(),'',...dates.map(d=>'DLMMJVS'[new Date(d+'T00:00:00').getDay()]),'Total'],['Nom','Téléphone',...dates.map((_,i)=>i+1),''],
+      ['VACATION DU MOIS','',...dates.map(d=>{ const b=vacOf(d); return b?typeOf(b).court:''; }),'']];
+    S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.titulaire?0:1)-(b.titulaire?0:1)||a.nom.localeCompare(b.nom)).forEach(m=>{ let tot=0;
+      const c=dates.map(d=>{ const b=vacOf(d); const dm=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===m.id&&x.statut==='attribuee'); if(!dm) return '';
+        const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===m.id&&x.statut!=='refusee'); const v=h?h.heures:(m.titulaire?8:b.duree); tot+=v; return String(v).replace('.',','); });
+      rows.push([((m.grade?m.grade+' ':'')+fullName(m)).trim(),m.tel||'',...c,String(tot).replace('.',',')]); });
+    const csv='﻿'+rows.map(r=>r.map(q).join(';')).join('\r\n');
+    try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download=`planning-bstc-${S.month}.csv`; document.body.appendChild(a); a.click(); a.remove(); }catch(e){}
+    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(csv).catch(()=>{});
+    toast('Export du mois téléchargé (il s’ouvre dans Excel)'); },
 };
 
 /* ---------------- rendu ---------------- */
@@ -477,7 +500,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v16</small></div>
+      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v17</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -510,13 +533,13 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 16</b> · 30/09/2026 · vacations créées par l’admin</p>
+    <p class="small muted" style="margin:0"><b>Version 17</b> · 30/09/2026 · vacations créées par l’admin</p>
   </div></div>`;
 }
 
 function monthNav(){ const cur=iso(TODAY).slice(0,7);
   return `<div class="row" style="gap:6px"><div class="monthnav"><button onclick="act.month(-1)" aria-label="Mois précédent">‹</button><b>${monthLabel(S.month)}</b><button onclick="act.month(1)" aria-label="Mois suivant">›</button></div>${S.month!==cur?'<button class="btn sm" onclick="act.thisMonth()">Aujourd’hui</button>':''}</div>`; }
-function legend(){ return `<div class="legend"><span><i style="background:var(--green)"></i>Vacation 15h–22h</span><span><i style="background:var(--amber)"></i>Matin 10h–17h</span><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Dispo posée, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>`; }
+function legend(){ return `<div class="legend"><span><i style="background:var(--accent)"></i>Vacation 15h–22h</span><span><i style="background:var(--amber)"></i>Matin 10h–17h</span><span><i style="background:var(--green)"></i>Validé</span><span><i class="hatch"></i>Dispo posée, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>`; }
 function typeBadge(b){ const t=typeOf(b); return `<span class="badge ${t.color}">${t.label}</span>`; }
 function vacTitle(b){ const t=typeOf(b); return `${hm(b.debut)} – ${hm(b.fin)}${b.libelle&&b.libelle!==t.label?' · '+esc(b.libelle):''}`; }
 
@@ -534,13 +557,18 @@ function meter(p){ const n=Math.max(p.cap,p.att.length); return n?`<span class="
 function myAction(date){
   const m=me(); const b=vacOf(date); if(!b||date<iso(TODAY)||m.id==='m0') return '';
   const d=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user);
-  if(d?.statut==='attribuee') return `<span class="badge ${m.titulaire?'blue':'red'}">${m.titulaire?'Présent':'✓ Validé'}</span>${outBtn(d)}`;
+  if(d?.statut==='attribuee') return `<span class="badge ${m.titulaire?'blue':'green'}">${m.titulaire?'Présent':'✓ Validé'}</span>${outBtn(d)}`;
   if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${outBtn(d)}`;
   if(!m.actif) return `<span class="badge red">Compte sans activité</span>`;
   if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
   return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent':m.role==='admin'?'Je me mets dessus':'Je suis dispo'}</button>`;
 }
-function paxLine(m){ const al=alertes(m); return `<div class="pl" style="min-width:0"><div class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</div>${al.length?`<div class="row" style="gap:4px;margin-top:2px">${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div>`:''}</div>`; }
+function alertBadge(m){ const al=alertes(m); const t=tirInfo(m); const n=al.length+(t.ok?0:1); if(!n) return '';
+  const red=al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)||t.n===0;
+  return `<button class="badge ${red?'red':'amber'} abtn" onclick="event.stopPropagation();act.alerte('${m.id}')" aria-expanded="${S.alertOpen===m.id}" title="Voir les alertes du dossier">⚠ ${n}</button>`; }
+function alertDetail(m){ if(S.alertOpen!==m.id) return ''; const l=alertes(m).map(([k,lab])=>`${lab} : ${dossierStatus(m.dossier[k]).label.toLowerCase()}`); const t=tirInfo(m); if(!t.ok) l.push('Tirs : '+t.label);
+  return `<div class="small muted adet">${l.map(esc).join('<br>')}</div>`; }
+function paxLine(m){ return `<div class="pl" style="min-width:0"><span class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</span> ${alertBadge(m)}${alertDetail(m)}</div>`; }
 // Fiche de la vacation d'un jour : titulaires, compteur, validés, en attente, et les actions selon le profil
 function dayPanel(date,noAct){
   const b=vacOf(date); if(!b) return '';
@@ -548,7 +576,7 @@ function dayPanel(date,noAct){
   const titRow = adm
     ? titulaires().map(t=>{const on=p.tit.some(d=>d.memberId===t.id); return `<label class="check"><input type="checkbox" id="tit-${date}-${t.id}" ${on?'checked':''} onchange="act.titPresence('${date}','${t.id}',this.checked)"> ${esc(shortName(t))}</label>`;}).join('')||'<span class="small muted">Aucun titulaire déclaré (Gestion › Réservistes)</span>'
     : (p.tit.length?p.tit.map(d=>chip(member(d.memberId),'tit')).join(''):'<span class="small muted">Aucun titulaire indiqué</span>');
-  const capTxt = p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.cap} réservistes`:'Aucun titulaire indiqué pour ce jour';
+  const capTxt = p.fixe?`${p.cap} places fixées par l’admin${p.tit.length?'':' · aucun titulaire indiqué'}`:p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.cap} réservistes`:'Aucun titulaire indiqué pour ce jour';
   const att = !p.att.length?'<span class="small muted">Personne pour l’instant</span>'
     : adm?`<div class="dlist">${p.att.map(d=>`<div>${paxLine(member(d.memberId))}<button class="btn sm" onclick="act.retirer('${d.id}')">${d.memberId===S.user&&S.confirm===d.id?'Confirmer le retrait':'Retirer'}</button></div>`).join('')}</div>`
     : `<div class="row" style="gap:6px">${p.att.map(d=>chip(member(d.memberId),'ok')).join('')}</div>`;
@@ -562,19 +590,31 @@ function dayPanel(date,noAct){
         <label class="field">Type<select id="vt-${b.id}" onchange="act.majVac('${b.id}','type',this.value)">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${b.type===k?'selected':''}>${t.label} ${hm(t.debut)}–${hm(t.fin)}</option>`).join('')}</select></label>
         <label class="field">Libellé<input id="vl-${b.id}" value="${esc(b.libelle)}" placeholder="ex. Fête de l’Humanité" onchange="act.majVac('${b.id}','libelle',this.value)"></label>
         <label class="field">Début<input type="time" id="vd-${b.id}" value="${b.debut}" onchange="act.majVac('${b.id}','debut',this.value)"></label>
-        <label class="field">Fin<input type="time" id="vf-${b.id}" value="${b.fin}" onchange="act.majVac('${b.id}','fin',this.value)"></label></div>
+        <label class="field">Fin<input type="time" id="vf-${b.id}" value="${b.fin}" onchange="act.majVac('${b.id}','fin',this.value)"></label>
+        <label class="field">Nombre de places<input type="number" min="0" max="40" inputmode="numeric" id="vp-${b.id}" value="${b.places>0?b.places:''}" placeholder="automatique : 5 ou 8" onchange="act.majVac('${b.id}','places',this.value)"></label></div>
+      <div class="small muted">Laisse « places » vide pour la règle habituelle (5 avec un titulaire, 8 avec deux). Mets un nombre pour en prendre plus ou moins ce jour-là.</div>
       <div><button class="btn danger sm" onclick="act.supprVac('${b.id}')">${S.confirm==='vac-'+b.id?'Confirmer la suppression':'Supprimer la vacation'}</button></div></div></details>`:'';
   return `<div class="card stripe ${b.type} stack fiche" id="fiche-jour">
     <div class="row between"><div><div class="eyebrow">${typeOf(b).label} du</div><h3>${fmtLong(date)}</h3><div class="small muted">${vacTitle(b)} · ${esc(b.lieu||'Paris')}</div></div>${patBadge(p)}</div>
     ${my&&noAct!==true?`<div class="myact">${my}</div>`:''}
     <div class="row" style="gap:6px 14px"><span class="eyebrow">Titulaires</span>${titRow}</div>
     <div class="row small muted" style="gap:8px">${meter(p)}<span>${capTxt}</span></div>
-    <div class="stack" style="gap:4px"><div class="eyebrow">Validés · ${p.att.length}${p.tit.length?'/'+p.cap:''}</div>${att}</div>
+    ${adm&&(p.etat==='full'||p.etat==='over')?'<div class="small muted">Besoin de plus de monde ? Ouvre « Modifier ou supprimer cette vacation » et change le nombre de places.</div>':''}
+    <div class="stack" style="gap:4px"><div class="eyebrow">Validés · ${p.att.length}${p.etat==='notit'?'':'/'+p.cap}</div>${att}</div>
     <div class="stack" style="gap:4px"><div class="eyebrow">Dispos en attente · ${p.wait.length}</div>${wait}</div>
     ${add}${edit}
   </div>`;
 }
 
+function nextCard(){
+  const m=me(); if(!m||m.id==='m0') return ''; const today=iso(TODAY);
+  const mine=S.demandes.filter(d=>d.memberId===S.user&&d.statut!=='refusee').map(d=>({d,b:besoin(d.besoinId)})).filter(x=>x.b&&x.b.date>=today).sort((a,b)=>a.b.date.localeCompare(b.b.date));
+  const ok=mine.find(x=>x.d.statut==='attribuee'); const att=mine.filter(x=>x.d.statut==='demandee').length;
+  if(!ok&&!att) return '';
+  if(!ok) return `<div class="card small muted">${att} dispo${att>1?'s':''} en attente de validation par l’admin.</div>`;
+  const avec=attribs(ok.b).filter(a=>a.memberId!==S.user).map(a=>shortName(member(a.memberId))).filter(Boolean);
+  return `<div class="card next"><div style="min-width:0;flex:1 1 200px"><div class="eyebrow">${m.titulaire?'Ma prochaine présence':'Ma prochaine vacation'}</div><b>${fmtDate(ok.b.date)} · ${hm(ok.b.debut)} – ${hm(ok.b.fin)}</b><div class="small">${avec.length?'Avec '+esc(avec.join(', ')):'Personne d’autre pour l’instant'}${att?` · ${att} autre${att>1?'s':''} dispo${att>1?'s':''} en attente`:''}</div></div></div>`;
+}
 function renderPlanning(){
   const list = S.besoins.filter(b=>b.date.startsWith(S.month)).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
   let body;
@@ -587,8 +627,9 @@ function renderPlanning(){
           ${my?`<div class="row" style="gap:6px;justify-content:flex-end">${my}</div>`:''}</div></div>`;
     }).join('') : `<div class="empty">Aucune vacation créée pour ${monthLabel(S.month)}.${isEnc()?' Va dans « Vacations » pour en créer.':''}</div>`;
   }
-  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${isEnc()?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Créer une vacation</button>':''}</div></div>
-    ${S.view==='grille'?legend():'<div class="legend"><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Dispo en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>'}
+  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${isEnc()&&S.view==='grille'?'<button class="btn sm" onclick="act.exportMois()">Exporter le mois</button>':''}${isEnc()?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Créer une vacation</button>':''}</div></div>
+    ${nextCard()}
+    ${S.view==='grille'?legend():'<div class="legend"><span><i style="background:var(--green)"></i>Validé</span><span><i class="hatch"></i>Dispo en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>'}
     ${body}`;
 }
 
@@ -598,7 +639,7 @@ function renderGrille(list){
   list.forEach(b=>S.demandes.filter(d=>d.besoinId===b.id&&d.statut!=='refusee').forEach(a=>{
     const m=member(a.memberId); if(!m) return; const day=+b.date.slice(8);
     const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===a.memberId&&x.statut!=='refusee');
-    (cells[a.memberId] = cells[a.memberId] || {})[day] = {h: h? h.heures : (m.titulaire?8:b.duree), cls:m.titulaire?'permanence':'renfort', wait:a.statut==='demandee', tit:m.titulaire};
+    (cells[a.memberId] = cells[a.memberId] || {})[day] = {h: h? h.heures : (m.titulaire?8:b.duree), cls:m.titulaire?'permanence':'vacation', wait:a.statut==='demandee', tit:m.titulaire};
   }));
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.titulaire?0:1)-(b.titulaire?0:1)||a.nom.localeCompare(b.nom));
   const dates=Array.from({length:nDays},(_,i)=>dISO(y,mo,i+1));
@@ -642,10 +683,10 @@ function renderBesoins(){
   if(sel&&b&&my) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${my}</div></div>`;
   else if(sel&&!b&&adm) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation. Créer :</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" onclick="act.creerVac('${S.day}','${k}')">+ ${t.label}</button>`).join('')}</div></div>`;
   else if(sel&&!b) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation ce jour</div></div></div>`;
-  return `<div><h2>Vacations du mois</h2><p class="small muted" style="margin:4px 0 0">${adm?'Touche un jour : crée la vacation (Vacation 15h–22h ou Matin 10h–17h), puis gère qui est dessus.':'Touche un jour coloré, puis « Je suis dispo ». L’admin valide : le jour passe en rouge.'}</p></div>
+  return `<div><h2>Vacations du mois</h2><p class="small muted" style="margin:4px 0 0">${adm?'Touche un jour : crée la vacation (Vacation 15h–22h ou Matin 10h–17h), puis gère qui est dessus.':'Touche un jour coloré, puis « Je suis dispo ». L’admin valide : le jour passe en vert.'}</p></div>
     <div class="toolbar">${monthNav()}</div>
     <div class="card stack" style="padding:10px"><div class="cal">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
-      <div class="legend"><span><i style="background:var(--green)"></i>Vacation</span><span><i style="background:var(--amber)"></i>Matin</span><span><i class="hatch"></i>Ma dispo en attente</span><span><i style="background:var(--red)"></i>Je suis validé</span><span><b class="num">3/5</b> validés / places</span></div></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Vacation</span><span><i style="background:var(--amber)"></i>Matin</span><span><i class="hatch"></i>Ma dispo en attente</span><span><i style="background:var(--green)"></i>Je suis validé</span><span><b class="num">3/5</b> validés / places</span></div></div>
     ${bar}
     ${sel&&b?dayPanel(S.day,true):''}`;
 }
@@ -681,7 +722,7 @@ function mesProchaines(){
   const list=S.demandes.filter(d=>d.memberId===S.user&&d.statut!=='refusee').map(d=>({d,b:besoin(d.besoinId)})).filter(x=>x.b&&x.b.date>=today).sort((a,b)=>a.b.date.localeCompare(b.b.date));
   return `<div class="card stack"><h3>Mes prochaines vacations</h3>${list.length?list.map(({d,b})=>{
     const ok=d.statut==='attribuee'; const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));
-    return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge red">Validé</span>`:'<span class="badge grey">En attente de validation</span>'}${outBtn(d)}</span></div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div>${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
+    return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge green">Validé</span>`:'<span class="badge grey">En attente de validation</span>'}${outBtn(d)}</span></div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div>${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
   }).join(''):'<div class="small muted">Rien de prévu. Va dans « Vacations » pour te proposer.</div>'}</div>`;
 }
 
@@ -729,16 +770,16 @@ function gDemandes(){
   const pendR=S.demandes.filter(d=>d.statut==='demandee'&&besoin(d.besoinId)&&besoin(d.besoinId).date>=today&&member(d.memberId))
     .sort((a,b)=>besoin(a.besoinId).date.localeCompare(besoin(b.besoinId).date));
   const rDates=S.besoins.filter(b=>b.date>=today&&!patrouille(b.date).vide).map(b=>b.date).sort();
-  const ret=(S.retraits||[]).filter(r=>member(r.memberId));
+  const ret=(S.notifs||[]).filter(r=>member(r.memberId)).slice(0,8);
   const rows=pendR.map(d=>{ const b=besoin(d.besoinId); const m=member(d.memberId); const p=patrouille(b.date); const al=alertes(m);
     return `<div class="valrow"><div style="min-width:0"><div class="${m.actif?'':'name-inactive'}" style="font-weight:700">${esc(fullName(m))}</div>
         <div><b>${fmtDate(b.date)}</b> <span class="small muted">· ${typeOf(b).label} ${vacTitle(b)}</span></div>
-        <div class="row" style="gap:4px;margin-top:4px">${patBadge(p)}${tirInfo(m).ok?'':tirBadge(m)}${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div></div>
+        <div class="row" style="gap:4px;margin-top:4px">${patBadge(p)}${alertBadge(m)}</div>${alertDetail(m)}</div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok" onclick="act.attribuer('${d.id}')">Valider</button><button class="btn danger" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`; }).join('');
   return `<div class="card stack" id="a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Dispos à valider</h3><span class="badge ${pendR.length?'red':'green'}">${pendR.length?pendR.length+' en attente':'Tout est validé'}</span></div>
-      <p class="small muted" style="margin:0">Dès qu’un réserviste se propose sur une vacation, il arrive ici. Touche « Valider » : il passe en rouge sur le planning de tout le monde.</p>
+      <p class="small muted" style="margin:0">Dès qu’un réserviste se propose sur une vacation, il arrive ici. Touche « Valider » : il passe en vert sur le planning de tout le monde.</p>
       ${rows?`<div class="dlist">${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
-    ${ret.length?`<div class="card stack"><h3>Désistements</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est retiré</span><span class="small muted">${fmtDate(r.date)} · place libérée</span></div>`).join('')}</div></div>`:''}
+    ${ret.length?`<div class="card stack"><h3>Désistements</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est désisté <span class="small muted">· ${fmtDate(r.date)}</span></span><button class="btn sm" onclick="act.delNotif('${r.id}')">Supprimer</button></div>`).join('')}</div></div>`:''}
     ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 5 réservistes avec un titulaire, 8 avec deux. Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
 }
 
@@ -881,7 +922,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     <button class="linkbtn" onclick="act.authMode('up')">Première installation</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 16</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 17</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -973,6 +1014,7 @@ const RA = {
   delPax(id){ if(id===S.user) return; if(S.confirm!=='del-'+id){ S.confirm='del-'+id; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.paxOpen=null;
     return run(()=>sb.from('members').delete().eq('id',id),'Compte supprimé'); },
   // ---- notifications
+  delNotif(id){ return run(()=>sb.from('notifs').delete().eq('id',id),'Message supprimé'); },
   lu(id){ const n=(S.notifs||[]).find(x=>x.id===id); if(n) n.lu={[S.user]:true}; render(); sb.from('notif_lus').insert({notif_id:id,member_id:S.user}).then(()=>{}); },
   voir(id,date){ S.tab='besoins'; S.month=date.slice(0,7); S.day=date; RA.lu(id); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest'}); },
 };
