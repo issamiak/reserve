@@ -424,8 +424,8 @@ window.act = {
   cell(date){ S.day=date; const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(!d&&me().actif) act.dispo(date); else { save(); render(); } },
   dispo(date){ const m=me(); if(!m.actif||m.id==='m0') return; const b=ensureRenfort(date);
     S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===m.id));
-    S.demandes.push({id:nid('d'),besoinId:b.id,memberId:m.id,statut:m.titulaire?'attribuee':'demandee'});
-    save(); render(); toast(m.titulaire?'Présence enregistrée':'Renfort posé — le responsable doit le valider'); },
+    const direct=m.titulaire||m.role==='admin'; S.demandes.push({id:nid('d'),besoinId:b.id,memberId:m.id,statut:direct?'attribuee':'demandee'});
+    save(); render(); toast(m.titulaire?'Présence enregistrée':direct?'Renfort posé et validé':'Renfort posé — le responsable doit le valider'); },
   retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId); const m=member(d.memberId);
     if(d.statut==='attribuee'&&!m.titulaire&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
     S.confirm=null;
@@ -488,7 +488,7 @@ function render(){
   const m=me();
   const tabs=[
     ['planning','Planning','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>'],
-    ['besoins','Dispos','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>'],
+    ['besoins','Mes renforts','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>'],
     ['moi','Moi','<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'],
     ['equipe','Équipe','<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="10" r="2.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M16 20c0-3 2-5 5-5"/></svg>'],
   ];
@@ -496,9 +496,9 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="lg">Brigade des transports · </span>v13</small></div>
+      <div class="brand">Planning BSTC<small><span class="lg">Brigade des transports · </span>v15</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
-      <button class="logout" onclick="act.logout()">Quitter</button>
+      ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
     <div class="main">
       <div class="content"><div class="wrap">${notifBanner()}${({planning:renderPlanning,besoins:renderBesoins,moi:renderMoi,equipe:renderEquipe,gestion:renderGestion})[S.tab]()}</div></div>
@@ -529,7 +529,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 13</b> · 30/09/2026 · tirs, habilitations, gestion des réservistes</p>
+    <p class="small muted" style="margin:0"><b>Version 15</b> · 30/09/2026 · tirs, habilitations, gestion des réservistes</p>
   </div></div>`;
 }
 
@@ -557,7 +557,7 @@ function myAction(date){
   if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${out}`;
   if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
   if(!m.actif) return `<span class="badge red">Compte sans activité</span>`;
-  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je suis présent':'Je pose un renfort'}</button>`;
+  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent ce jour':'Je pose un renfort'}</button>`;
 }
 function paxLine(m){ const al=alertes(m); return `<div class="pl" style="min-width:0"><div class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</div>${al.length?`<div class="row" style="gap:4px;margin-top:2px">${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div>`:''}</div>`; }
 // Fiche d'un jour : titulaires, compteur, attribués, en attente, et les actions selon le rôle
@@ -580,7 +580,7 @@ function dayPanel(date,noAct){
     <div class="stack" style="gap:4px"><div class="eyebrow">Renforts validés · ${p.att.length}${p.tit.length?'/'+p.cap:''}</div>${att}</div>
     <div class="stack" style="gap:4px"><div class="eyebrow">Renforts posés, en attente · ${p.wait.length}</div>${wait}</div>`;
   return `<div class="card stripe renfort stack" id="fiche-jour">
-    <div class="row between"><div><div class="eyebrow">Patrouille du</div><h3>${fmtLong(date)}</h3></div>${p.vide?'':patBadge(p)}</div>
+    <div class="row between"><div><div class="eyebrow">${p.vide?'Jour sélectionné · rien de posé':'Patrouille du'}</div><h3>${fmtLong(date)}</h3></div>${p.vide?'':patBadge(p)}</div>
     ${my&&noAct!==true?`<div class="myact">${my}</div>`:''}${detail}
   </div>`;
 }
@@ -604,7 +604,7 @@ function renderPlanning(){
           return `<div class="slot stripe ${b.type}"><div class="row between"><span class="t">${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span>${typeBadge(b)}</div>
             <div class="row" style="gap:6px">${at.length?at.map(a=>chip(member(a.memberId))).join(''):'<span class="small muted">Personne d’attribué</span>'}${r>0&&b.date>=iso(TODAY)?`<span class="badge amber">${r} place${r>1?'s':''} libre${r>1?'s':''}</span>`:''}</div></div>`;
         }).join('')}</div></div>`;
-    }).join('') : `<div class="empty">Rien de posé pour ${monthLabel(S.month)}. Va dans « Dispos » pour poser un renfort.</div>`;
+    }).join('') : `<div class="empty">Rien de posé pour ${monthLabel(S.month)}. Va dans « Mes renforts » pour poser un renfort.</div>`;
   }
   return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${me().id!=='m0'?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Poser un renfort</button>':''}</div></div>
     ${S.view==='grille'?legend():'<div class="legend"><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Posé, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>'}
@@ -673,12 +673,12 @@ function renderBesoins(){
       ${at.length?`<div class="row" style="gap:6px">${at.map(a=>chip(member(a.memberId))).join('')}</div>`:''}
       <div class="row between"><span class="small ${r>0?'':'muted'}">${r>0?`${r} place${r>1?'s':''} libre${r>1?'s':''}`:'Aucune place libre'}</span><span class="row" style="gap:6px">${action}</span></div></div>`;
   }).join('');
-  return `<div><h2>Mes renforts</h2><p class="small muted" style="margin:4px 0 0"><b>1.</b> Touche un jour. <b>2.</b> Touche « Je pose un renfort ». <b>3.</b> L’admin valide : le jour passe en rouge.</p></div>
+  return `<div><h2>Mes renforts</h2><p class="small muted" style="margin:4px 0 0">${me().titulaire?'Tu es titulaire : touche un jour, puis « Je serai présent ce jour ». Les jours sans marque sont vides.':'<b>1.</b> Touche un jour. <b>2.</b> Touche « Je pose un renfort ». <b>3.</b> L’admin valide : le jour passe en rouge. Les jours sans marque sont vides.'}</p></div>
     <div class="toolbar">${monthNav()}</div>
     <div class="card stack" style="padding:10px"><div class="cal">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
       <div class="legend"><span><i class="hatch"></i>Posé, en attente</span><span><i style="background:var(--red)"></i>Validé</span><span><b class="num">3/5</b> validés / places</span><span><b class="num">+2</b> posés, pas de titulaire</span></div></div>
-    ${sel&&myAction(S.day)?`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${patrouille(S.day).vide?'Personne pour l’instant':'Détail plus bas'}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${myAction(S.day)}</div></div>`:''}
-    ${sel?dayPanel(S.day,true):'<div class="empty">Touche un jour du calendrier.</div>'}
+    ${sel&&myAction(S.day)?`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${patrouille(S.day).vide?'Aucun renfort posé ce jour':'Détail plus bas'}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${myAction(S.day)}</div></div>`:''}
+    ${sel?((patrouille(S.day).vide&&!isEnc())?'':dayPanel(S.day,true)):'<div class="empty">Touche un jour du calendrier.</div>'}
     ${cards?`<h3>Événements et formations</h3>${cards}`:''}`;
 }
 
@@ -714,7 +714,7 @@ function mesProchaines(){
   return `<div class="card stack"><h3>Mes prochaines vacations</h3>${list.length?list.map(({d,b})=>{
     const ok=d.statut==='attribuee'; const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));
     return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge ${TYPES[b.type].color}">Validé</span>`:'<span class="badge grey">En attente d’attribution</span>'}${outBtn(d)}</span></div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div>${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
-  }).join(''):'<div class="small muted">Rien de prévu. Va dans « Dispos » pour poser un renfort.</div>'}</div>`;
+  }).join(''):'<div class="small muted">Rien de prévu. Va dans « Mes renforts » pour poser un renfort.</div>'}</div>`;
 }
 
 function renderMoi(){
@@ -885,7 +885,7 @@ async function loadAll(){
 async function run(fn,msg){
   if(BUSY) return; setBusy(true);
   try{ const rs=[].concat(await fn()); rs.forEach(r=>{ if(r&&r.error) throw r.error; });
-    await loadAll(); if(!MEROW||!MEROW.approuve){ S.user=null; S.auth='wait'; }
+    await loadAll(); syncMe();
     setBusy(false); render(); if(msg) toast(typeof msg==='function'?msg():msg); }
   catch(e){ setBusy(false); try{ await loadAll(); }catch(_){} render(); toast('Erreur : '+errMsg(e)); }
 }
@@ -897,8 +897,11 @@ async function enter(){
   catch(e){ S.user=null; S.authErr=errMsg(e); }
   setBusy(false); render();
 }
-async function refresh(){ if(!S.user||BUSY||document.visibilityState!=='visible') return; const a=document.activeElement; if(a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;
-  try{ await loadAll(); if(!MEROW||!MEROW.approuve){ S.user=null; S.auth='wait'; } render(); }catch(e){} }
+function syncMe(){ if(!MEROW||!MEROW.approuve){ S.user=null; S.auth='wait'; return; } if(S.user!==MEROW.id){ S.user=MEROW.id; } if(MEROW.role!=='admin'&&S.tab==='gestion') S.tab='planning'; }
+let LOADING=false;
+async function refresh(force){ if(!S.user||BUSY||LOADING) return; if(force!==true){ if(document.visibilityState!=='visible') return; const a=document.activeElement; if(a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return; }
+  LOADING=true; try{ const before=JSON.stringify([S.members,S.besoins,S.demandes,S.heures,S.notifs,S.pending,S.user]); await loadAll(); syncMe();
+    if(force===true||JSON.stringify([S.members,S.besoins,S.demandes,S.heures,S.notifs,S.pending,S.user])!==before) render(); }catch(e){ if(force===true) toast('Erreur : '+errMsg(e)); } LOADING=false; }
 
 function renderAuth(){
   const head=`<div><div class="logo">Planning BSTC</div><div class="eyebrow">Réserve opérationnelle · Brigade des transports</div></div>`;
@@ -921,7 +924,7 @@ function renderAuth(){
       <button class="btn primary" type="submit">Se connecter</button></form>
     <button class="linkbtn" onclick="act.authMode('up')">Créer mon compte</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 13</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 15</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -945,10 +948,13 @@ const RA = {
   async changePwd(){ const el=document.getElementById('me-pwd'); const v=el?el.value:''; if(v.length<6){ toast('6 caractères au moins'); return; }
     const r=await sb.auth.updateUser({password:v}); if(r.error){ toast('Erreur : '+errMsg(r.error)); return; } el.value=''; toast('Mot de passe changé'); },
   login(){}, reset(){},
+  async refreshNow(){ await refresh(true); toast('À jour'); },
+  tab(t){ S.tab=t; S.confirm=null; render(); refresh(); },
+  sub(t){ S.sub=t; S.paxOpen=null; render(); refresh(); },
   approuver(id){ return run(()=>sb.from('members').update({approuve:true}).eq('id',id),'Compte accepté'); },
   refuserCompte(id){ return run(()=>sb.from('members').delete().eq('id',id),'Compte refusé'); },
   // ---- renforts
-  dispo(date){ const m=me(); if(!m.actif) return; return run(()=>sb.rpc('poser_renfort',{d:date}), m.titulaire?'Présence enregistrée':'Renfort posé — le responsable doit le valider'); },
+  dispo(date){ const m=me(); if(!m.actif) return; return run(()=>sb.rpc('poser_renfort',{d:date}), m.titulaire?'Présence enregistrée':m.role==='admin'?'Renfort posé et validé':'Renfort posé — le responsable doit le valider'); },
   cell(date){ S.day=date; const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(!d&&me().actif) return RA.dispo(date); render(); },
   demander(bid){ return run(()=>sb.from('demandes').insert({besoin_id:bid,member_id:S.user,statut:'demandee'}),'Demande envoyée à l’admin'); },
   retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const m=member(d.memberId); const val=d.statut==='attribuee'&&!m.titulaire;
@@ -1003,7 +1009,7 @@ async function boot(){
   sb=window.supabase.createClient(CFG.url, CFG.key);
   render();
   try{ const r=await sb.auth.getSession(); if(r.data&&r.data.session){ AUTHU=r.data.session.user; await enter(); } }catch(e){ S.authErr=errMsg(e); render(); }
-  setInterval(refresh, 25000);
+  setInterval(refresh, 10000);
   document.addEventListener('visibilitychange', refresh);
 }
 boot();
