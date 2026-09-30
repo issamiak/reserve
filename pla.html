@@ -179,10 +179,10 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .dlist>.valrow>:first-child{flex:0 0 auto}
 .valrow .btn{flex:1;justify-content:center;padding:10px 12px}
 .dlist>div>.pl{flex:1 1 230px}
-.sm{display:none}
+.w-sm{display:none}
 .login .logo{margin-bottom:6px}
 @media (max-width:600px){
-  .lg{display:none} .sm{display:inline}
+  .w-lg{display:none} .w-sm{display:inline}
   .topbar{padding:8px 12px;gap:8px}
   .topbar .brand{font-size:20px;white-space:nowrap}
   .topbar .brand small{display:inline;margin:0 0 0 6px;font-size:10px;opacity:.7;letter-spacing:.04em}
@@ -216,6 +216,16 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 @media (max-width:360px){ .topbar .brand{font-size:18px} .topbar .brand small{display:none} .monthnav b{min-width:104px;font-size:18px} }
 .busy .content{opacity:.55;pointer-events:none}
 .linkbtn{background:none;border:0;padding:4px 0;color:var(--accent);font-weight:600;text-decoration:underline;text-align:left}
+.stripe.matin{border-left-color:var(--amber)}
+.cal-d.vac{border-top:4px solid var(--green)} .cal-d.mat{border-top:4px solid var(--amber)}
+.cal-d.off{background:transparent;border-color:transparent;color:var(--muted)}
+.cal-d.off b{font-weight:600}
+.cal-d.ok,.cal-d.tit{border-top-color:transparent}
+.pgrid tr.count td.vr{font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.pgrid tr.count td.vr.green{background:var(--green-soft);color:var(--green)} .pgrid tr.count td.vr.amber{background:var(--amber-soft);color:var(--amber)}
+.vacedit{border-top:1px solid var(--line);padding-top:10px}
+.vacedit summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--accent)}
+@media (min-width:760px){ .wrap{max-width:980px} .cal-d{min-height:64px} .actbar{position:static;box-shadow:none} .tabbar{width:120px} }
 .todo{border-color:var(--accent);background:var(--accent-soft)}
 @media (max-width:600px){ .pgrid .nm{min-width:118px;padding:0 6px} .pgrid .nm .badge{display:none} .pgrid .tot{position:static} }
 .rule{background:var(--accent-soft);border-radius:8px;padding:8px 12px;font-size:13px}
@@ -263,86 +273,49 @@ const iso = d => dISO(d.getFullYear(), d.getMonth()+1, d.getDate()); // date loc
 const dISO = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return iso(d); };
 const TYPES = {
-  renfort:{label:'Renfort',cls:'renfort',color:'red'},
-  vacation:{label:'Vacation',cls:'vacation',color:'green'},
-  formation:{label:'Formation',cls:'formation',color:'amber'},
-  evenement:{label:'Événement',cls:'evenement',color:'orange'},
-  permanence:{label:'Permanence',cls:'permanence',color:'blue'},
+  vacation:{label:'Vacation',court:'vac',color:'green',debut:'15:00',fin:'22:00'},
+  matin:{label:'Matin',court:'mat',color:'amber',debut:'10:00',fin:'17:00'},
 };
+const typeOf = b => TYPES[b&&b.type] || TYPES.vacation;
 const DOSSIER_ITEMS = [
   ['visite_medicale','Visite médicale'],['habilitation','Habilitation'],
   ['pie','PIE'],['grenades','Grenades'],['baton','Bâton'],
 ];
-const NAMES = [
-  ['GOMEZ','Richard','Major','admin'],['WEBER','Didier','','admin'],
-  ['AKEZDAW','Issam'],['BONTE','Melanie'],
-];
-// Octobre 2026 (extrait du fichier) : [jour, heures, code] — R=renfort, V=vacation, F=matin/formation, P=permanence encadrement
-const OCT = { 'GOMEZ':[[5,8,'R'],[8,8,'R']], 'WEBER':[[8,8,'R'],[14,8,'R']], 'BONTE':[[8,7,'R']] };
-// Renforts posés par les agents, pas encore validés (jours d'octobre)
-const OCT_DISPO = {'BONTE':[14]};
-// Règle de la patrouille : nombre de renforts selon le nombre de titulaires présents (Richard, Didier)
+// Règle de la patrouille : nombre de réservistes selon le nombre de titulaires présents
 const CAP = {0:0, 1:5, 2:8};
-// Septembre 2026 (passé) : quelques renforts effectués
-const SEP = { 'GOMEZ':[[28,8,'R']], 'AKEZDAW':[[28,7,'R']], 'BONTE':[[28,7,'R']] };
-const CODE = {R:['renfort','15:00','22:00','Renfort BSTC'],V:['vacation','15:00','22:00','Vacation 15h-22h'],F:['formation','10:00','17:00','Matin 10h-17h'],P:['permanence','09:00','17:00','Permanence encadrement'],E:['evenement','17:00','00:00',"Fête de l'Humanité — Brétigny"]};
 
 function seedState(){
-  let seq=1; const id=p=>p+(seq++);
-  const T=(d,ok)=>({id:'t'+(seq++),date:addDays(iso(TODAY),d),ok:!!ok}); // une séance de tir, il y a d jours
-  const members = NAMES.map((n,i)=>{
-    const dossier={};
-    DOSSIER_ITEMS.forEach(([k],j)=>{ dossier[k] = addDays(iso(TODAY), 120 + ((i*53+j*37)%300)); });
-    if(n[0]==='COQUET') dossier.pie = addDays(iso(TODAY), -20);            // expiré → alerte rouge
-    if(n[0]==='THELINEAU') dossier.visite_medicale = addDays(iso(TODAY), 12); // expire bientôt → alerte orange
-    if(n[0]==='MAMERI') dossier.tir = '';
-    if(n[0]==='AKEZDAW'){ dossier.baton = ''; dossier.grenades = ''; }                                    // non renseigné
-    return { id:'m'+(i+1), nom:n[0], prenom:n[1], grade:n[2]||'', role:n[3]||'reserviste', actif: n[0]!=='MAMERI', titulaire: ['GOMEZ','WEBER'].includes(n[0]),
-      tel:`06 00 00 ${String(10+i).padStart(2,'0')} ${String((i*37)%90+10).padStart(2,'0')}`, email:`${n[1]}.${n[0]}@exemple.fr`.toLowerCase(), aVerifier: n[0]==='AKEZDAW'?{pie:true}:{}, tirs: n[0]==='AKEZDAW'?[T(-410,1),T(-200,1),T(-40,0)]:n[0]==='BONTE'?[T(-340,1),T(-170,1),T(-25,1)]:[T(-250,1),T(-120,1),T(-30,1)], dossier };
-  });
-  members.unshift({id:'m0',nom:'BSTC',prenom:'Responsable',grade:'',role:'admin',actif:true,tel:'06 00 00 00 00',tirs:[],aVerifier:{},dossier:{}});
-  const byNom = Object.fromEntries(members.map(m=>[m.nom,m]));
+  let seq=1; const id=p=>p+(seq++); const today=iso(TODAY);
+  const T=(d,ok)=>({id:'t'+(seq++),date:addDays(today,d),ok:!!ok}); // une séance de tir, il y a d jours
+  const mk=(i,nom,prenom,grade,role,tit,tirs)=>{ const dossier={}; DOSSIER_ITEMS.forEach(([k],j)=>{ dossier[k]=addDays(today,120+((i*53+j*37)%300)); });
+    return {id:'m'+i,nom,prenom,grade,role,titulaire:tit,actif:true,tel:`06 00 00 ${10+i} ${String((i*37)%90+10)}`,email:`${prenom}.${nom}@exemple.fr`.toLowerCase(),aVerifier:{},tirs,dossier}; };
+  const members=[
+    {id:'m0',nom:'BSTC',prenom:'Responsable',grade:'',role:'admin',titulaire:false,actif:true,tel:'06 00 00 00 00',email:'',tirs:[],aVerifier:{},dossier:{}},
+    mk(1,'GOMEZ','Richard','Major','admin',true,[T(-250,1),T(-120,1),T(-30,1)]),
+    mk(2,'WEBER','Didier','','admin',true,[T(-250,1),T(-120,1),T(-30,1)]),
+    mk(3,'AKEZDAW','Issam','','reserviste',false,[T(-410,1),T(-200,1),T(-40,0)]),
+    mk(4,'BONTE','Melanie','','reserviste',false,[T(-340,1),T(-170,1),T(-25,1)]),
+  ];
+  members[3].dossier.baton=''; members[3].dossier.grenades=''; members[3].aVerifier={pie:true};
   const besoins=[], demandes=[], heures=[];
-  const key = {};
-  function place(month, data, past){
-    for(const [nom, list] of Object.entries(data)){
-      const m = byNom[nom]; if(!m) continue;
-      for(const [day,h,code] of list){
-        const [type,debut,fin,libelle] = CODE[code];
-        const k = `${month}-${day}-${code}`;
-        let b = key[k];
-        if(!b){ b = {id:id('b'), date:dISO(2026,month,day), debut, fin, type, libelle, lieu: code==='E'?'Brétigny-sur-Orge':'Paris', places:0, duree: code==='P'?8:(code==='E'||code==='R'?7:h)}; key[k]=b; besoins.push(b); }
-        b.places++;
-        demandes.push({id:id('d'), besoinId:b.id, memberId:m.id, statut:'attribuee'});
-        if(past){
-          const pending = day>=28 || (day===24 && nom==='AKEZDAW');
-          if(!(day===24 && nom==='AKEZDAW') && !(day===28 && nom==='AKEZDAW'))
-            heures.push({id:id('h'), besoinId:b.id, memberId:m.id, heures:h, statut: pending?'declaree':'validee', validePar: pending?null:'m1', date:b.date});
-        }
-      }
-    }
-  }
-  place(9, SEP, true); place(10, OCT, false);
-  // quelques places encore ouvertes en octobre + besoins de novembre
-  for(const [nom,days] of Object.entries(OCT_DISPO)) days.forEach(day=>{
-    const date=dISO(2026,10,day); let b=besoins.find(x=>x.type==='renfort'&&x.date===date);
-    if(!b){ b={id:id('b'),date,debut:'15:00',fin:'22:00',type:'renfort',libelle:'Renfort BSTC',lieu:'Paris',places:0,duree:7}; besoins.push(b); }
-    demandes.push({id:id('d'),besoinId:b.id,memberId:byNom[nom].id,statut:'demandee'});
-  });
-  const nov = [[19,'F',8]];
-  nov.forEach(([day,code,places])=>{
-    const [type,debut,fin,libelle]=CODE[code];
-    besoins.push({id:id('b'),date:dISO(2026,11,day),debut,fin,type,libelle: code==='E'?'Cérémonie du 11 novembre — sécurisation':(code==='F'?'Formation risques électriques':libelle),lieu:code==='E'?'Paris 8e':'Paris',places,duree:code==='P'?8:7});
-  });
-  const nb = besoins.filter(b=>b.date.startsWith('2026-11'));
-  const req = [];
-  req.forEach(([nom,i])=>demandes.push({id:id('d'),besoinId:nb[i].id,memberId:byNom[nom].id,statut:'demandee'}));
-  return {seq, members, besoins, demandes, heures, user:null, tab:'planning', month:addDays(iso(TODAY),3).slice(0,7), view:'liste', sub:'demandes', paxOpen:null, retraits:[], notifs:[], day:null};
+  const vac=(date,type)=>{ const t=TYPES[type]; const b={id:id('b'),date,debut:t.debut,fin:t.fin,type,libelle:t.label,lieu:'Paris',places:0,duree:7}; besoins.push(b); return b; };
+  const on=(b,mid,statut)=>demandes.push({id:id('d'),besoinId:b.id,memberId:mid,statut});
+  // septembre (passé) : une vacation effectuée, heures à déclarer / à valider
+  const s28=vac('2026-09-28','vacation'); on(s28,'m1','attribuee'); on(s28,'m3','attribuee'); on(s28,'m4','attribuee');
+  heures.push({id:id('h'),besoinId:s28.id,memberId:'m1',heures:8,statut:'declaree',validePar:null,date:s28.date});
+  heures.push({id:id('h'),besoinId:s28.id,memberId:'m4',heures:7,statut:'declaree',validePar:null,date:s28.date});
+  // octobre : les vacations du mois, créées par l'admin
+  const V={}; [[1,'vacation'],[2,'matin'],[5,'vacation'],[6,'vacation'],[8,'vacation'],[9,'vacation'],[12,'vacation'],[13,'vacation'],[14,'vacation'],[15,'vacation'],[16,'matin'],[20,'vacation'],[21,'vacation'],[26,'vacation'],[27,'vacation'],[28,'vacation'],[29,'vacation'],[30,'matin']]
+    .forEach(([d,t])=>{ V[d]=vac(dISO(2026,10,d),t); });
+  on(V[5],'m1','attribuee'); on(V[8],'m1','attribuee'); on(V[8],'m2','attribuee'); on(V[14],'m2','attribuee');
+  on(V[8],'m4','attribuee'); on(V[14],'m4','demandee');
+  vac('2026-11-19','matin');
+  return {seq, members, besoins, demandes, heures, user:null, tab:'planning', month:addDays(today,3).slice(0,7), view:'liste', sub:'demandes', paxOpen:null, retraits:[], notifs:[], day:null};
 }
 
 /* ---------------- état & persistance ---------------- */
 let S;
-const KEY='bstc-planning-demo-v9';
+const KEY='bstc-planning-demo-v16';
 function load(){ if(REMOTE){ S={members:[],besoins:[],demandes:[],heures:[],notifs:[],retraits:[],pending:[],user:null,tab:'planning',month:addDays(iso(TODAY),3).slice(0,7),view:'liste',sub:'demandes',paxOpen:null,day:null,auth:'in'}; return; } try{ const s=localStorage.getItem(KEY); if(s){ S=JSON.parse(s); return; } }catch(e){} S=seedState(); }
 function save(){ if(REMOTE) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function reset(){ S=seedState(); save(); render(); toast('Démo réinitialisée'); }
@@ -365,19 +338,27 @@ const monthLabel = ym => new Date(ym+'-01T00:00:00').toLocaleDateString('fr-FR',
 const hm = t => t.replace(':','h').replace(/h00$/,'h');
 const attribs = b => S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='attribuee');
 const titulaires = ()=>S.members.filter(m=>m.titulaire);
-const renfortOf = date => S.besoins.find(b=>b.type==='renfort'&&b.date===date);
-function ensureRenfort(date){ let b=renfortOf(date); if(!b){ b={id:nid('b'),date,debut:'15:00',fin:'22:00',type:'renfort',libelle:'Renfort BSTC',lieu:'Paris',places:0,duree:7}; S.besoins.push(b); } return b; }
-// Comptabilité d'un jour : titulaires présents, renforts attribués, renforts en attente, capacité (5 ou 8)
+const vacOf = date => S.besoins.find(b=>b.date===date);   // la vacation du jour (une seule par jour)
+// Comptabilité d'un jour : titulaires présents, réservistes validés, en attente, capacité (5 ou 8)
 function patrouille(date){
-  const b=renfortOf(date); const ds=b?S.demandes.filter(d=>d.besoinId===b.id&&member(d.memberId)):[];
+  const b=vacOf(date); const ds=b?S.demandes.filter(d=>d.besoinId===b.id&&member(d.memberId)):[];
   const tit=ds.filter(d=>member(d.memberId).titulaire&&d.statut==='attribuee');
   const att=ds.filter(d=>!member(d.memberId).titulaire&&d.statut==='attribuee');
   const wait=ds.filter(d=>d.statut==='demandee');
   const cap=CAP[Math.min(tit.length,2)];
   const etat=!tit.length?'notit':att.length>cap?'over':att.length===cap?'full':'open';
-  return {b,tit,att,wait,cap,etat,libres:Math.max(0,cap-att.length),vide:!ds.length};
+  return {b,tit,att,wait,cap,etat,libres:Math.max(0,cap-att.length),vide:!ds.filter(d=>d.statut!=='refusee').length};
 }
-const restantes = b => b.type==='renfort' ? patrouille(b.date).libres : b.places - attribs(b).length;
+const restantes = b => patrouille(b.date).libres;
+function vacPatch(b,k,v){   // modification d'une vacation par l'admin
+  const o={};
+  if(k==='type'){ const t=TYPES[v]||TYPES.vacation; o.type=v; o.debut=t.debut; o.fin=t.fin; if(!b.libelle||b.libelle===typeOf(b).label) o.libelle=t.label; }
+  else if(k==='libelle'){ o.libelle=String(v).trim()||typeOf(b).label; }
+  else if(k==='debut'||k==='fin'){ if(!v) return null; o[k]=v; }
+  else return null;
+  const d=o.debut||b.debut, f=o.fin||b.fin; let h=(new Date('2000-01-01T'+f)-new Date('2000-01-01T'+d))/3600000; if(h<=0) h+=24; o.duree=h;
+  return o;
+}
 const roleLabel = r => r==='admin'?'Admin':'Réserviste';
 function dossierStatus(v){
   if(!v) return {cls:'grey',label:'Non renseigné',rank:2};
@@ -413,44 +394,43 @@ window.act = {
   logout(){ S.user=null; save(); render(); },
   tab(t){ S.tab=t; S.confirm=null; save(); render(); },
   sub(t){ S.sub=t; S.paxOpen=null; save(); render(); },
-  nouveau(){ S.tab='gestion'; S.sub='besoins'; save(); render(); const f=document.getElementById('nb-form'); if(f){ f.scrollIntoView({block:'start'}); document.getElementById('nb-date')?.focus(); } },
   view(v){ S.view=v; save(); render(); },
   month(n){ shiftMonth(n); },
   thisMonth(){ S.month=iso(TODAY).slice(0,7); S.day=iso(TODAY); save(); render(); },
   pick(date){ S.day=date; S.confirm=null; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest',behavior:'smooth'}); },
   reset,
-  demander(bid){ S.demandes.push({id:nid('d'),besoinId:bid,memberId:S.user,statut:'demandee'}); save(); render(); toast('Demande envoyée à l’admin'); },
   day(date){ S.day = S.day===date?null:date; save(); render(); },
-  cell(date){ S.day=date; const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(!d&&me().actif) act.dispo(date); else { save(); render(); } },
-  dispo(date){ const m=me(); if(!m.actif||m.id==='m0') return; const b=ensureRenfort(date);
-    S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===m.id));
-    const direct=m.titulaire||m.role==='admin'; S.demandes.push({id:nid('d'),besoinId:b.id,memberId:m.id,statut:direct?'attribuee':'demandee'});
-    save(); render(); toast(m.titulaire?'Présence enregistrée':direct?'Renfort posé et validé':'Renfort posé — le responsable doit le valider'); },
-  retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId); const m=member(d.memberId);
-    if(d.statut==='attribuee'&&!m.titulaire&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
-    S.confirm=null;
-    if(d.statut==='attribuee'&&!m.titulaire){ S.retraits=[{memberId:d.memberId,date:b.date,libelle:b.libelle},...(S.retraits||[])].slice(0,8);
-      S.notifs=[{id:nid('n'),memberId:d.memberId,date:b.date,lu:{[d.memberId]:true}},...(S.notifs||[])].slice(0,12); } // prévient l'admin et tous les autres qu'une place est libre
-    S.demandes=S.demandes.filter(x=>x.id!==did); save(); render(); toast(d.statut==='attribuee'&&!m.titulaire?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
-  titPresence(date,mid,on){ if(!isEnc()) return; const b=ensureRenfort(date);
+  cell(date){ S.day=date; const b=vacOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(b&&!d&&me().actif&&date>=iso(TODAY)) act.dispo(date); else { save(); render(); } },
+  // ---- vacations (admin)
+  creerVac(date,type){ if(!isEnc()||vacOf(date)) return; const t=TYPES[type]||TYPES.vacation;
+    S.besoins.push({id:nid('b'),date,debut:t.debut,fin:t.fin,type,libelle:t.label,lieu:'Paris',places:0,duree:7}); S.day=date; save(); render(); toast(`${t.label} créée — les réservistes peuvent se proposer`); },
+  supprVac(bid){ if(!isEnc()) return; if(S.confirm!=='vac-'+bid){ S.confirm='vac-'+bid; render(); toast('Touche « Confirmer la suppression »'); return; }
+    S.confirm=null; S.vacEdit=null; S.besoins=S.besoins.filter(b=>b.id!==bid); S.demandes=S.demandes.filter(d=>d.besoinId!==bid); S.heures=S.heures.filter(h=>h.besoinId!==bid); save(); render(); toast('Vacation supprimée'); },
+  majVac(bid,k,v){ const b=besoin(bid); if(!b||!isEnc()) return; const o=vacPatch(b,k,v); if(!o) return; Object.assign(b,o); save(); render(); toast('Vacation modifiée'); },
+  ajouter(date){ if(!isEnc()) return; const b=vacOf(date); const mid=document.getElementById('add-'+date)?.value; if(!b||!mid){ toast('Choisis une personne dans la liste'); return; }
+    S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===mid)); S.demandes.push({id:nid('d'),besoinId:b.id,memberId:mid,statut:'attribuee',par:S.user}); save(); render(); toast(`${shortName(member(mid))} ajouté·e à la vacation`); },
+  titPresence(date,mid,on){ if(!isEnc()) return; const b=vacOf(date); if(!b) return;
     S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===mid));
     if(on) S.demandes.push({id:nid('d'),besoinId:b.id,memberId:mid,statut:'attribuee',par:S.user});
-    save(); render(); const p=patrouille(date); toast(p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} renforts possibles`:'Plus de titulaire ce jour-là'); },
+    save(); render(); const p=patrouille(date); toast(p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} réservistes possibles`:'Plus de titulaire ce jour-là'); },
+  // ---- dispos
+  dispo(date){ const m=me(); const b=vacOf(date); if(!b){ toast('Pas de vacation ce jour'); return; } if(!m.actif||m.id==='m0') return;
+    S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===m.id)); const direct=m.role==='admin';
+    S.demandes.push({id:nid('d'),besoinId:b.id,memberId:m.id,statut:direct?'attribuee':'demandee'});
+    save(); render(); toast(m.titulaire?'Présence enregistrée':direct?'Tu es sur la vacation':'Dispo posée — l’admin doit la valider'); },
+  retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId); const m=member(d.memberId); const self=d.memberId===S.user; const val=d.statut==='attribuee'&&!m.titulaire;
+    if(self&&val&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
+    S.confirm=null;
+    if(self&&val&&b.date>=iso(TODAY)){ S.retraits=[{memberId:d.memberId,date:b.date,libelle:b.libelle},...(S.retraits||[])].slice(0,8);
+      S.notifs=[{id:nid('n'),memberId:d.memberId,date:b.date,lu:{[d.memberId]:true}},...(S.notifs||[])].slice(0,12); } // prévient l'admin et tous les autres qu'une place est libre
+    S.demandes=S.demandes.filter(x=>x.id!==did); save(); render(); toast(!self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
   attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
-    if(b.type!=='renfort'&&restantes(b)<=0){toast('Plus de place sur ce créneau');return;}
-    d.statut='attribuee'; d.par=S.user; save(); render();
-    const p=b.type==='renfort'?patrouille(b.date):null;
-    toast(`${shortName(member(d.memberId))} validé·e${p?(p.tit.length?` — ${p.att.length}/${p.cap}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'):''}`); },
-  desattribuer(did){ const d=S.demandes.find(x=>x.id===did); d.statut='demandee'; delete d.par; save(); render(); toast('Validation annulée — repasse en attente'); },
+    d.statut='attribuee'; d.par=S.user; save(); render(); const p=patrouille(b.date);
+    toast(`${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${p.att.length}/${p.cap}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`); },
   refuser(did){ const d=S.demandes.find(x=>x.id===did); d.statut='refusee'; d.par=S.user; save(); render(); toast('Demande refusée'); },
   declarer(bid){ const inp=document.getElementById('h-'+bid); const v=parseFloat(inp.value); if(!(v>0&&v<=24)){toast('Indique un nombre d’heures valide');return;} const b=besoin(bid); S.heures.push({id:nid('h'),besoinId:bid,memberId:S.user,heures:v,statut:'declaree',validePar:null,date:b.date}); save(); render(); toast('Heures déclarées, en attente de validation'); },
   validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
   refuserH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='refusee'; h.validePar=S.user; save(); render(); toast('Déclaration refusée'); },
-  creerBesoin(ev){ ev.preventDefault(); const f=ev.target; const date=f.date.value, debut=f.debut.value, fin=f.fin.value; if(!date||!debut||!fin){toast('Date et horaires obligatoires');return;}
-    let duree=(new Date('2000-01-01T'+fin)-new Date('2000-01-01T'+debut))/3600000; if(duree<=0) duree+=24;
-    S.besoins.push({id:nid('b'),date,debut,fin,type:f.type.value,libelle:f.libelle.value||TYPES[f.type.value].label,lieu:f.lieu.value||'Paris',places:parseInt(f.places.value)||1,duree});
-    S.month=date.slice(0,7); save(); render(); toast('Besoin publié — visible par tous'); },
-  supprBesoin(bid){ S.besoins=S.besoins.filter(b=>b.id!==bid); S.demandes=S.demandes.filter(d=>d.besoinId!==bid); S.heures=S.heures.filter(h=>h.besoinId!==bid); save(); render(); toast('Besoin supprimé'); },
   pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
   paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Date enregistrée'); return; } save(); render(); },
   monProfil(k,v){ const m=me(); v=v.trim();
@@ -477,7 +457,8 @@ window.act = {
   lu(id){ const n=(S.notifs||[]).find(x=>x.id===id); if(n){ (n.lu = n.lu || {})[S.user]=true; save(); render(); } },
   voir(id,date){ const n=(S.notifs||[]).find(x=>x.id===id); if(n) (n.lu = n.lu || {})[S.user]=true; S.tab='besoins'; S.month=date.slice(0,7); S.day=date; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest'}); },
   go(id,focus){ const el=document.getElementById(id); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1400); if(focus) setTimeout(()=>document.getElementById(focus)?.focus({preventScroll:true}),450); },
-  copy(txt){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast('Numéro copié'),()=>toast(txt)); } else toast(txt); },
+  copy(txt,msg){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(msg||'Numéro copié'),()=>toast(txt)); } else toast(txt); },
+  credOk(){ S.cred=null; render(); },
 };
 
 /* ---------------- rendu ---------------- */
@@ -488,7 +469,7 @@ function render(){
   const m=me();
   const tabs=[
     ['planning','Planning','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>'],
-    ['besoins','Mes renforts','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>'],
+    ['besoins','Vacations','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M12 12v6M9 15h6"/></svg>'],
     ['moi','Moi','<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'],
     ['equipe','Équipe','<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="10" r="2.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M16 20c0-3 2-5 5-5"/></svg>'],
   ];
@@ -496,7 +477,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="lg">Brigade des transports · </span>v15</small></div>
+      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v16</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -529,14 +510,15 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 15</b> · 30/09/2026 · tirs, habilitations, gestion des réservistes</p>
+    <p class="small muted" style="margin:0"><b>Version 16</b> · 30/09/2026 · vacations créées par l’admin</p>
   </div></div>`;
 }
 
 function monthNav(){ const cur=iso(TODAY).slice(0,7);
   return `<div class="row" style="gap:6px"><div class="monthnav"><button onclick="act.month(-1)" aria-label="Mois précédent">‹</button><b>${monthLabel(S.month)}</b><button onclick="act.month(1)" aria-label="Mois suivant">›</button></div>${S.month!==cur?'<button class="btn sm" onclick="act.thisMonth()">Aujourd’hui</button>':''}</div>`; }
-function legend(){ return `<div class="legend">${Object.values(TYPES).map(t=>`<span><i style="background:var(--${t.color})"></i>${t.label}</span>`).join('')}<span><i class="hatch"></i>Posé, en attente</span></div>`; }
-function typeBadge(b){ const t=TYPES[b.type]; return `<span class="badge ${t.color}">${t.label}</span>`; }
+function legend(){ return `<div class="legend"><span><i style="background:var(--green)"></i>Vacation 15h–22h</span><span><i style="background:var(--amber)"></i>Matin 10h–17h</span><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Dispo posée, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>`; }
+function typeBadge(b){ const t=typeOf(b); return `<span class="badge ${t.color}">${t.label}</span>`; }
+function vacTitle(b){ const t=typeOf(b); return `${hm(b.debut)} – ${hm(b.fin)}${b.libelle&&b.libelle!==t.label?' · '+esc(b.libelle):''}`; }
 
 function chip(m,cls){ return `<span class="chip ${typeof cls==='string'?cls:''} ${m.id===S.user?'me':''} ${m.actif?'':'inactive'}"><span class="av">${initials(m)}</span>${esc(shortName(m))}</span>`; }
 function outBtn(d){ if(!d) return ''; return S.confirm===d.id?`<button class="btn danger sm" onclick="act.retirer('${d.id}')">Confirmer le retrait</button>`:`<button class="btn sm" onclick="act.retirer('${d.id}')">Retirer</button>`; }
@@ -547,41 +529,49 @@ function patBadge(p){
   if(p.etat==='over') return `<span class="badge red">${p.att.length}/${p.cap} · sureffectif</span>`;
   return `<span class="badge amber">${p.att.length}/${p.cap} · ${p.libres} place${p.libres>1?'s':''}</span>`;
 }
-function meter(p){ const n=Math.max(p.cap,p.att.length); return n?`<span class="meter" role="img" aria-label="${p.att.length} renforts attribués sur ${p.cap}">${Array.from({length:n},(_,i)=>`<i class="${i<p.att.length?(i>=p.cap?'over':'on'):''}"></i>`).join('')}</span>`:''; }
-// Ce que l'utilisateur connecté peut faire sur le renfort d'un jour
+function meter(p){ const n=Math.max(p.cap,p.att.length); return n?`<span class="meter" role="img" aria-label="${p.att.length} réservistes validés sur ${p.cap}">${Array.from({length:n},(_,i)=>`<i class="${i<p.att.length?(i>=p.cap?'over':'on'):''}"></i>`).join('')}</span>`:''; }
+// Ce que l'utilisateur connecté peut faire sur la vacation d'un jour
 function myAction(date){
-  const m=me(); if(date<iso(TODAY)||m.id==='m0') return '';
-  const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user);
-  const out=outBtn(d);
-  if(d?.statut==='attribuee') return `<span class="badge ${m.titulaire?'blue':'red'}">${m.titulaire?'Présent':'✓ Validé'}</span>${out}`;
-  if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${out}`;
-  if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
+  const m=me(); const b=vacOf(date); if(!b||date<iso(TODAY)||m.id==='m0') return '';
+  const d=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user);
+  if(d?.statut==='attribuee') return `<span class="badge ${m.titulaire?'blue':'red'}">${m.titulaire?'Présent':'✓ Validé'}</span>${outBtn(d)}`;
+  if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${outBtn(d)}`;
   if(!m.actif) return `<span class="badge red">Compte sans activité</span>`;
-  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent ce jour':'Je pose un renfort'}</button>`;
+  if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
+  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent':m.role==='admin'?'Je me mets dessus':'Je suis dispo'}</button>`;
 }
 function paxLine(m){ const al=alertes(m); return `<div class="pl" style="min-width:0"><div class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</div>${al.length?`<div class="row" style="gap:4px;margin-top:2px">${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div>`:''}</div>`; }
-// Fiche d'un jour : titulaires, compteur, attribués, en attente, et les actions selon le rôle
+// Fiche de la vacation d'un jour : titulaires, compteur, validés, en attente, et les actions selon le profil
 function dayPanel(date,noAct){
-  const p=patrouille(date); const future=date>=iso(TODAY); const enc=isEnc()&&future; const my=myAction(date);
-  const titRow = enc
-    ? titulaires().map(t=>{const on=p.tit.some(d=>d.memberId===t.id); return `<label class="check"><input type="checkbox" id="tit-${date}-${t.id}" ${on?'checked':''} onchange="act.titPresence('${date}','${t.id}',this.checked)"> ${esc(shortName(t))}</label>`;}).join('')
+  const b=vacOf(date); if(!b) return '';
+  const p=patrouille(date); const adm=isEnc(); const my=myAction(date);
+  const titRow = adm
+    ? titulaires().map(t=>{const on=p.tit.some(d=>d.memberId===t.id); return `<label class="check"><input type="checkbox" id="tit-${date}-${t.id}" ${on?'checked':''} onchange="act.titPresence('${date}','${t.id}',this.checked)"> ${esc(shortName(t))}</label>`;}).join('')||'<span class="small muted">Aucun titulaire déclaré (Gestion › Réservistes)</span>'
     : (p.tit.length?p.tit.map(d=>chip(member(d.memberId),'tit')).join(''):'<span class="small muted">Aucun titulaire indiqué</span>');
-  const capTxt = p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.cap} renforts`:'Aucun titulaire indiqué pour ce jour';
+  const capTxt = p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.cap} réservistes`:'Aucun titulaire indiqué pour ce jour';
   const att = !p.att.length?'<span class="small muted">Personne pour l’instant</span>'
-    : enc?`<div class="dlist">${p.att.map(d=>`<div>${paxLine(member(d.memberId))}<button class="btn sm" onclick="act.desattribuer('${d.id}')">Annuler la validation</button></div>`).join('')}</div>`
+    : adm?`<div class="dlist">${p.att.map(d=>`<div>${paxLine(member(d.memberId))}<button class="btn sm" onclick="act.retirer('${d.id}')">${d.memberId===S.user&&S.confirm===d.id?'Confirmer le retrait':'Retirer'}</button></div>`).join('')}</div>`
     : `<div class="row" style="gap:6px">${p.att.map(d=>chip(member(d.memberId),'ok')).join('')}</div>`;
-  const blocked = false;
   const wait = !p.wait.length?'<span class="small muted">Personne</span>'
-    : enc?`<div class="dlist">${p.wait.map(d=>`<div>${paxLine(member(d.memberId))}<div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')" ${blocked?'disabled':''}>Valider</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`).join('')}</div>`
+    : adm?`<div class="dlist">${p.wait.map(d=>`<div>${paxLine(member(d.memberId))}<div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')">Valider</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`).join('')}</div>`
     : `<div class="row" style="gap:6px">${p.wait.map(d=>chip(member(d.memberId),'wait')).join('')}</div>`;
-  const detail = p.vide&&!enc ? `<div class="small muted">${future?'Personne ne s’est encore positionné ce jour-là.':'Rien ce jour-là.'}</div>` : `
+  const dispo=S.members.filter(m=>m.id!=='m0'&&m.actif&&!m.titulaire&&!S.demandes.some(d=>d.besoinId===b.id&&d.memberId===m.id&&d.statut==='attribuee')).sort((x,y)=>x.nom.localeCompare(y.nom));
+  const add = adm?`<div class="row" style="gap:8px"><select id="add-${date}" class="dinput" style="max-width:none;flex:1 1 170px" aria-label="Personne à ajouter à la vacation"><option value="">Ajouter quelqu’un à la vacation…</option>${dispo.map(m=>`<option value="${m.id}">${esc(fullName(m))}</option>`).join('')}</select><button class="btn" onclick="act.ajouter('${date}')">Ajouter</button></div>`:'';
+  const edit = adm?`<details class="vacedit" ${S.vacEdit===b.id?'open':''} ontoggle="S.vacEdit=this.open?'${b.id}':(S.vacEdit==='${b.id}'?null:S.vacEdit)"><summary>Modifier ou supprimer cette vacation</summary>
+      <div class="stack" style="margin-top:8px"><div class="grid2">
+        <label class="field">Type<select id="vt-${b.id}" onchange="act.majVac('${b.id}','type',this.value)">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${b.type===k?'selected':''}>${t.label} ${hm(t.debut)}–${hm(t.fin)}</option>`).join('')}</select></label>
+        <label class="field">Libellé<input id="vl-${b.id}" value="${esc(b.libelle)}" placeholder="ex. Fête de l’Humanité" onchange="act.majVac('${b.id}','libelle',this.value)"></label>
+        <label class="field">Début<input type="time" id="vd-${b.id}" value="${b.debut}" onchange="act.majVac('${b.id}','debut',this.value)"></label>
+        <label class="field">Fin<input type="time" id="vf-${b.id}" value="${b.fin}" onchange="act.majVac('${b.id}','fin',this.value)"></label></div>
+      <div><button class="btn danger sm" onclick="act.supprVac('${b.id}')">${S.confirm==='vac-'+b.id?'Confirmer la suppression':'Supprimer la vacation'}</button></div></div></details>`:'';
+  return `<div class="card stripe ${b.type} stack fiche" id="fiche-jour">
+    <div class="row between"><div><div class="eyebrow">${typeOf(b).label} du</div><h3>${fmtLong(date)}</h3><div class="small muted">${vacTitle(b)} · ${esc(b.lieu||'Paris')}</div></div>${patBadge(p)}</div>
+    ${my&&noAct!==true?`<div class="myact">${my}</div>`:''}
     <div class="row" style="gap:6px 14px"><span class="eyebrow">Titulaires</span>${titRow}</div>
     <div class="row small muted" style="gap:8px">${meter(p)}<span>${capTxt}</span></div>
-    <div class="stack" style="gap:4px"><div class="eyebrow">Renforts validés · ${p.att.length}${p.tit.length?'/'+p.cap:''}</div>${att}</div>
-    <div class="stack" style="gap:4px"><div class="eyebrow">Renforts posés, en attente · ${p.wait.length}</div>${wait}</div>`;
-  return `<div class="card stripe renfort stack" id="fiche-jour">
-    <div class="row between"><div><div class="eyebrow">${p.vide?'Jour sélectionné · rien de posé':'Patrouille du'}</div><h3>${fmtLong(date)}</h3></div>${p.vide?'':patBadge(p)}</div>
-    ${my&&noAct!==true?`<div class="myact">${my}</div>`:''}${detail}
+    <div class="stack" style="gap:4px"><div class="eyebrow">Validés · ${p.att.length}${p.tit.length?'/'+p.cap:''}</div>${att}</div>
+    <div class="stack" style="gap:4px"><div class="eyebrow">Dispos en attente · ${p.wait.length}</div>${wait}</div>
+    ${add}${edit}
   </div>`;
 }
 
@@ -590,96 +580,74 @@ function renderPlanning(){
   let body;
   if(S.view==='grille') body = renderGrille(list);
   else {
-    const shown=list.filter(b=>b.type!=='renfort'||!patrouille(b.date).vide);
-    const days=[...new Set(shown.map(b=>b.date))];
-    body = days.length? days.map(d=>{
-      const dt=new Date(d+'T00:00:00');
+    body = list.length? list.map(b=>{ const d=b.date; const dt=new Date(d+'T00:00:00'); const p=patrouille(d); const my=myAction(d);
       return `<div class="day ${d===iso(TODAY)?'today':''}"><div class="d"><b class="num">${dt.getDate()}</b><span>${dt.toLocaleDateString('fr-FR',{weekday:'short'})}</span></div>
-        <div class="stack">${shown.filter(b=>b.date===d).map(b=>{
-          if(b.type==='renfort'){ const p=patrouille(d); const my=myAction(d);
-            return `<div class="slot stripe renfort"><div class="row between"><span class="t">${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span>${patBadge(p)}</div>
-              <div class="row" style="gap:6px">${p.tit.map(a=>chip(member(a.memberId),'tit')).join('')}${p.att.map(a=>chip(member(a.memberId),'ok')).join('')}${p.wait.map(a=>chip(member(a.memberId),'wait')).join('')}</div>
-              ${my?`<div class="row" style="gap:6px;justify-content:flex-end">${my}</div>`:''}</div>`; }
-          const at=attribs(b); const r=restantes(b);
-          return `<div class="slot stripe ${b.type}"><div class="row between"><span class="t">${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span>${typeBadge(b)}</div>
-            <div class="row" style="gap:6px">${at.length?at.map(a=>chip(member(a.memberId))).join(''):'<span class="small muted">Personne d’attribué</span>'}${r>0&&b.date>=iso(TODAY)?`<span class="badge amber">${r} place${r>1?'s':''} libre${r>1?'s':''}</span>`:''}</div></div>`;
-        }).join('')}</div></div>`;
-    }).join('') : `<div class="empty">Rien de posé pour ${monthLabel(S.month)}. Va dans « Mes renforts » pour poser un renfort.</div>`;
+        <div class="slot stripe ${b.type}"><div class="row between"><span class="t">${typeOf(b).label} · ${vacTitle(b)}</span>${patBadge(p)}</div>
+          <div class="row" style="gap:6px">${p.tit.map(a=>chip(member(a.memberId),'tit')).join('')}${p.att.map(a=>chip(member(a.memberId),'ok')).join('')}${p.wait.map(a=>chip(member(a.memberId),'wait')).join('')}${p.vide?'<span class="small muted">Personne pour l’instant</span>':''}</div>
+          ${my?`<div class="row" style="gap:6px;justify-content:flex-end">${my}</div>`:''}</div></div>`;
+    }).join('') : `<div class="empty">Aucune vacation créée pour ${monthLabel(S.month)}.${isEnc()?' Va dans « Vacations » pour en créer.':''}</div>`;
   }
-  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${me().id!=='m0'?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Poser un renfort</button>':''}</div></div>
-    ${S.view==='grille'?legend():'<div class="legend"><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Posé, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>'}
+  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${isEnc()?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Créer une vacation</button>':''}</div></div>
+    ${S.view==='grille'?legend():'<div class="legend"><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Dispo en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>'}
     ${body}`;
 }
 
 function renderGrille(list){
   const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate(); const today=iso(TODAY);
-  const cells={}; // memberId -> jour -> {h,type,wait}
+  const cells={}; // memberId -> jour -> {h,cls,wait}
   list.forEach(b=>S.demandes.filter(d=>d.besoinId===b.id&&d.statut!=='refusee').forEach(a=>{
-    const m=member(a.memberId); if(!m) return;
-    const day=+b.date.slice(8); const prev=cells[a.memberId]?.[day]; if(prev&&!prev.wait) return;
+    const m=member(a.memberId); if(!m) return; const day=+b.date.slice(8);
     const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===a.memberId&&x.statut!=='refusee');
-    (cells[a.memberId] = cells[a.memberId] || {})[day] = {h: h? h.heures : (b.type==='renfort'&&m.titulaire?8:b.duree), type:(b.type==='renfort'&&m.titulaire)?'permanence':b.type, wait:a.statut==='demandee', tit:b.type==='renfort'&&m.titulaire};
+    (cells[a.memberId] = cells[a.memberId] || {})[day] = {h: h? h.heures : (m.titulaire?8:b.duree), cls:m.titulaire?'permanence':'renfort', wait:a.statut==='demandee', tit:m.titulaire};
   }));
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.titulaire?0:1)-(b.titulaire?0:1)||a.nom.localeCompare(b.nom));
   const dates=Array.from({length:nDays},(_,i)=>dISO(y,mo,i+1));
   const we=dates.map((_,i)=>new Date(y,mo-1,i+1).getDay()%6===0);
   const head=dates.map((dt,i)=>`<th class="dayh ${we[i]?'we':''} ${S.day===dt?'sel':''}" onclick="act.day('${dt}')"><div class="small muted" style="font-weight:500">${'DLMMJVS'[new Date(y,mo-1,i+1).getDay()]}</div>${i+1}</th>`).join('');
+  const vacRow=`<tr class="count"><td class="nm">Vacation du mois</td>${dates.map(dt=>{const b=vacOf(dt); return b?`<td class="vr ${typeOf(b).color}" title="${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}">${typeOf(b).court}</td>`:'<td></td>';}).join('')}<td class="tot"></td></tr>`;
   const body=rows.map(m=>{
     let tot=0;
-    const tds=dates.map((dt,i)=>{const c=cells[m.id]?.[i+1]; const mine=m.id===S.user&&dt>=today&&m.actif;
+    const tds=dates.map((dt,i)=>{const c=cells[m.id]?.[i+1]; const mine=m.id===S.user&&dt>=today&&m.actif&&!!vacOf(dt);
       const cls=`${we[i]?'we':''} ${S.day===dt?'sel':''} ${mine?'mine':''}`; const click=`onclick="act.${mine?'cell':'day'}('${dt}')"`;
-      if(!c) return `<td class="${cls}" ${click}${mine?' title="Poser un renfort ce jour-là"':''}></td>`;
-      if(c.wait) return `<td class="wait num ${cls}" ${click} title="Renfort posé — en attente d’attribution">${c.h}</td>`;
-      tot+=c.h; return `<td class="c ${c.type} num ${cls}" ${click} title="${c.tit?'Titulaire présent':TYPES[c.type].label+' attribué'}">${c.h}</td>`;}).join('');
-    return `<tr><td class="nm ${m.actif?'':'name-inactive'}"><span class="lg">${m.grade?esc(m.grade)+' ':''}${esc(m.nom)} ${esc(m.prenom)}</span><span class="sm">${esc(shortName(m))}</span>${m.titulaire?' <span class="badge blue">Titulaire</span>':''}</td>${tds}<td class="tot num">${tot||''}</td></tr>`;
+      if(!c) return `<td class="${cls}" ${click}${mine?' title="Me proposer sur cette vacation"':''}></td>`;
+      if(c.wait) return `<td class="wait num ${cls}" ${click} title="Dispo posée — en attente de validation">${c.h}</td>`;
+      tot+=c.h; return `<td class="c ${c.cls} num ${cls}" ${click} title="${c.tit?'Titulaire présent':'Validé'}">${c.h}</td>`;}).join('');
+    return `<tr><td class="nm ${m.actif?'':'name-inactive'}"><span class="w-lg">${m.grade?esc(m.grade)+' ':''}${esc(m.nom)} ${esc(m.prenom)}</span><span class="w-sm">${esc(shortName(m))}</span>${m.titulaire?' <span class="badge blue">Titulaire</span>':''}</td>${tds}<td class="tot num">${tot||''}</td></tr>`;
   }).join('');
   const pats=dates.map(patrouille);
   const count=`<tr class="count"><td class="nm">Titulaires</td>${pats.map(p=>`<td class="num">${p.tit.length||''}</td>`).join('')}<td class="tot"></td></tr>
-    <tr class="count"><td class="nm">Validés / places</td>${pats.map(p=>p.vide?'<td></td>':`<td class="num ${p.etat}" title="${p.etat==='notit'?'Pas de titulaire':p.etat==='full'?'Patrouille complète':p.etat==='over'?'Sureffectif':p.libres+' place(s) libre(s)'}">${p.etat==='notit'?'–':p.att.length+'/'+p.cap}</td>`).join('')}<td class="tot"></td></tr>
+    <tr class="count"><td class="nm">Validés / places</td>${pats.map(p=>(!p.b||p.vide)?'<td></td>':`<td class="num ${p.etat}" title="${p.etat==='notit'?'Pas de titulaire':p.etat==='full'?'Complète':p.etat==='over'?'Sureffectif':p.libres+' place(s) libre(s)'}">${p.etat==='notit'?'–':p.att.length+'/'+p.cap}</td>`).join('')}<td class="tot"></td></tr>
     <tr class="count"><td class="nm">En attente</td>${pats.map(p=>`<td class="num">${p.wait.length||''}</td>`).join('')}<td class="tot"></td></tr>`;
-  const sel=S.day&&S.day.startsWith(S.month);
-  return `<div class="gridwrap"><table class="pgrid"><thead><tr><th class="nm">PAX</th>${head}<th class="tot">Total</th></tr></thead><tbody>${body}${count}</tbody></table></div>
-    <p class="small muted" style="margin:0">Comme dans l’Excel : une ligne par PAX, une colonne par jour. ${me().id!=='m0'?'Touche une case de ta ligne pour poser un renfort. ':''}Touche un jour pour voir la patrouille. Les trois lignes du bas font le compte jour par jour : vert = complète, orange = il reste des places.</p>
+  const sel=S.day&&S.day.startsWith(S.month)&&vacOf(S.day);
+  return `<div class="gridwrap"><table class="pgrid"><thead><tr><th class="nm">PAX</th>${head}<th class="tot">Total</th></tr></thead><tbody>${vacRow}${body}${count}</tbody></table></div>
+    <p class="small muted" style="margin:0">Comme dans l’Excel : la première ligne donne les vacations du mois, puis une ligne par personne. Touche un jour pour voir le détail.</p>
     ${sel?dayPanel(S.day):''}`;
 }
 
+// Onglet « Vacations » : le calendrier du mois. L'admin crée les vacations, le réserviste se propose dessus.
 function renderBesoins(){
-  const today=iso(TODAY); const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate();
-  if(!(S.day&&S.day.startsWith(S.month))){ const first=dISO(y,mo,1), last=dISO(y,mo,nDays); S.day = (today>=first&&today<=last)?today:(first>today?first:S.day); }
+  const today=iso(TODAY); const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate(); const adm=isEnc(); const m=me();
+  if(!(S.day&&S.day.startsWith(S.month))){ const first=dISO(y,mo,1), last=dISO(y,mo,nDays);
+    const next=S.besoins.filter(b=>b.date.startsWith(S.month)&&b.date>=today).map(b=>b.date).sort()[0];
+    S.day = (adm&&today>=first&&today<=last)?today:(next||((today>=first&&today<=last)?today:first)); }
   const lead=(new Date(y,mo-1,1).getDay()+6)%7; // la semaine commence le lundi
-  const m=me();
-  const cells=Array.from({length:nDays},(_,i)=>{ const d=dISO(y,mo,i+1); const p=patrouille(d);
-    const mine=p.b&&S.demandes.find(x=>x.besoinId===p.b.id&&x.memberId===S.user&&x.statut!=='refusee');
+  const cells=Array.from({length:nDays},(_,i)=>{ const d=dISO(y,mo,i+1); const b=vacOf(d); const p=patrouille(d);
+    const mine=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user&&x.statut!=='refusee');
     const st=mine?(mine.statut==='attribuee'?(m.titulaire?'tit':'ok'):'wait'):'';
-    const cnt=p.vide?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:`+${p.wait.length}`):`${p.att.length}/${p.cap}`;
-    const lbl=`${fmtLong(d)}${st==='ok'?', renfort attribué':st==='wait'?', renfort posé en attente':st==='tit'?', présent':''}${p.vide?'':', '+(p.etat==='notit'?p.wait.length+' en attente, pas de titulaire':p.att.length+' attribués sur '+p.cap)}`;
-    return `<button class="cal-d ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.day===d?'sel':''}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.day===d}"><b class="num">${i+1}</b><span class="cnt ${p.etat} num">${cnt}</span></button>`; }).join('');
-  const sel=S.day&&S.day.startsWith(S.month);
-  const list=S.besoins.filter(b=>b.date>=today&&b.type!=='renfort').sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
-  const mine=S.demandes.filter(d=>d.memberId===S.user);
-  const cards=list.map(b=>{
-    const at=attribs(b); const r=restantes(b); const d=mine.find(x=>x.besoinId===b.id);
-    const out=outBtn(d);
-    let action;
-    if(d?.statut==='attribuee') action=`<span class="badge ${TYPES[b.type].color}">✓ Validé</span>${out}`;
-    else if(d?.statut==='demandee') action=`<span class="badge grey">En attente</span>${out}`;
-    else if(d?.statut==='refusee') action=`<span class="badge grey">Non retenu</span>`;
-    else if(m.id==='m0') action='';
-    else if(r<=0) action=`<span class="badge grey">Complet</span>`;
-    else if(!m.actif) action=`<span class="badge red">Compte sans activité</span>`;
-    else action=`<button class="btn primary sm" onclick="act.demander('${b.id}')">Je suis disponible</button>`;
-    return `<div class="card stripe ${b.type} stack" style="gap:8px">
-      <div class="row between"><div><div class="eyebrow">${fmtDate(b.date)}</div><h3>${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</h3><div class="small muted">${esc(b.lieu)} · ${b.duree} h · ${at.length}/${b.places} attribué${at.length>1?'s':''}</div></div>${typeBadge(b)}</div>
-      ${at.length?`<div class="row" style="gap:6px">${at.map(a=>chip(member(a.memberId))).join('')}</div>`:''}
-      <div class="row between"><span class="small ${r>0?'':'muted'}">${r>0?`${r} place${r>1?'s':''} libre${r>1?'s':''}`:'Aucune place libre'}</span><span class="row" style="gap:6px">${action}</span></div></div>`;
-  }).join('');
-  return `<div><h2>Mes renforts</h2><p class="small muted" style="margin:4px 0 0">${me().titulaire?'Tu es titulaire : touche un jour, puis « Je serai présent ce jour ». Les jours sans marque sont vides.':'<b>1.</b> Touche un jour. <b>2.</b> Touche « Je pose un renfort ». <b>3.</b> L’admin valide : le jour passe en rouge. Les jours sans marque sont vides.'}</p></div>
+    const cnt=!b?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:p.wait.length?`+${p.wait.length}`:typeOf(b).court):`${p.att.length}/${p.cap}`;
+    const lbl=`${fmtLong(d)}${b?', '+typeOf(b).label:', pas de vacation'}${st==='ok'?', validé':st==='wait'?', dispo en attente':st==='tit'?', présent':''}`;
+    return `<button class="cal-d ${b?(b.type==='matin'?'mat':'vac'):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.day===d?'sel':''}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
+  const sel=S.day&&S.day.startsWith(S.month); const b=sel&&vacOf(S.day); const my=sel?myAction(S.day):'';
+  let bar='';
+  if(sel&&b&&my) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${my}</div></div>`;
+  else if(sel&&!b&&adm) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation. Créer :</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" onclick="act.creerVac('${S.day}','${k}')">+ ${t.label}</button>`).join('')}</div></div>`;
+  else if(sel&&!b) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation ce jour</div></div></div>`;
+  return `<div><h2>Vacations du mois</h2><p class="small muted" style="margin:4px 0 0">${adm?'Touche un jour : crée la vacation (Vacation 15h–22h ou Matin 10h–17h), puis gère qui est dessus.':'Touche un jour coloré, puis « Je suis dispo ». L’admin valide : le jour passe en rouge.'}</p></div>
     <div class="toolbar">${monthNav()}</div>
     <div class="card stack" style="padding:10px"><div class="cal">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
-      <div class="legend"><span><i class="hatch"></i>Posé, en attente</span><span><i style="background:var(--red)"></i>Validé</span><span><b class="num">3/5</b> validés / places</span><span><b class="num">+2</b> posés, pas de titulaire</span></div></div>
-    ${sel&&myAction(S.day)?`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${patrouille(S.day).vide?'Aucun renfort posé ce jour':'Détail plus bas'}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${myAction(S.day)}</div></div>`:''}
-    ${sel?((patrouille(S.day).vide&&!isEnc())?'':dayPanel(S.day,true)):'<div class="empty">Touche un jour du calendrier.</div>'}
-    ${cards?`<h3>Événements et formations</h3>${cards}`:''}`;
+      <div class="legend"><span><i style="background:var(--green)"></i>Vacation</span><span><i style="background:var(--amber)"></i>Matin</span><span><i class="hatch"></i>Ma dispo en attente</span><span><i style="background:var(--red)"></i>Je suis validé</span><span><b class="num">3/5</b> validés / places</span></div></div>
+    ${bar}
+    ${sel&&b?dayPanel(S.day,true):''}`;
 }
 
 function tirMeter(i){ return `<span class="meter" role="img" aria-label="${i.n} tirs sur 3">${[0,1,2].map(k=>`<i class="${k<i.n?'on':''}"></i>`).join('')}</span>`; }
@@ -713,8 +681,8 @@ function mesProchaines(){
   const list=S.demandes.filter(d=>d.memberId===S.user&&d.statut!=='refusee').map(d=>({d,b:besoin(d.besoinId)})).filter(x=>x.b&&x.b.date>=today).sort((a,b)=>a.b.date.localeCompare(b.b.date));
   return `<div class="card stack"><h3>Mes prochaines vacations</h3>${list.length?list.map(({d,b})=>{
     const ok=d.statut==='attribuee'; const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));
-    return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge ${TYPES[b.type].color}">Validé</span>`:'<span class="badge grey">En attente d’attribution</span>'}${outBtn(d)}</span></div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div>${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
-  }).join(''):'<div class="small muted">Rien de prévu. Va dans « Mes renforts » pour poser un renfort.</div>'}</div>`;
+    return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge red">Validé</span>`:'<span class="badge grey">En attente de validation</span>'}${outBtn(d)}</span></div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div>${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
+  }).join(''):'<div class="small muted">Rien de prévu. Va dans « Vacations » pour te proposer.</div>'}</div>`;
 }
 
 function renderMoi(){
@@ -749,36 +717,29 @@ function renderEquipe(){
 }
 
 function renderGestion(){
-  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Réservistes'],['besoins','Événements']];
-  return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.nouveau()">+ Nouveau besoin</button></div>
+  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Réservistes']];
+  if(!subs.some(([k])=>k===S.sub)) S.sub='demandes';
+  return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.tab('besoins')">+ Créer une vacation</button></div>
     <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
-    ${({demandes:gDemandes,heures:gHeures,habil:gHabil,besoins:gBesoins,pax:gPax})[S.sub]()}`;
+    ${({demandes:gDemandes,heures:gHeures,habil:gHabil,pax:gPax})[S.sub]()}`;
 }
 
 function gDemandes(){
   const today=iso(TODAY);
-  const pendR=S.demandes.filter(d=>d.statut==='demandee'&&besoin(d.besoinId)?.type==='renfort'&&besoin(d.besoinId).date>=today&&member(d.memberId))
+  const pendR=S.demandes.filter(d=>d.statut==='demandee'&&besoin(d.besoinId)&&besoin(d.besoinId).date>=today&&member(d.memberId))
     .sort((a,b)=>besoin(a.besoinId).date.localeCompare(besoin(b.besoinId).date));
-  const rDates=[...new Set(S.besoins.filter(b=>b.type==='renfort'&&b.date>=today&&!patrouille(b.date).vide).map(b=>b.date))].sort();
-  const pend=S.demandes.filter(d=>d.statut==='demandee'&&besoin(d.besoinId)?.type!=='renfort');
-  const byB={}; pend.forEach(d=>(byB[d.besoinId] = byB[d.besoinId] || []).push(d));
-  const ids=Object.keys(byB).sort((a,b)=>besoin(a).date.localeCompare(besoin(b).date));
+  const rDates=S.besoins.filter(b=>b.date>=today&&!patrouille(b.date).vide).map(b=>b.date).sort();
   const ret=(S.retraits||[]).filter(r=>member(r.memberId));
   const rows=pendR.map(d=>{ const b=besoin(d.besoinId); const m=member(d.memberId); const p=patrouille(b.date); const al=alertes(m);
     return `<div class="valrow"><div style="min-width:0"><div class="${m.actif?'':'name-inactive'}" style="font-weight:700">${esc(fullName(m))}</div>
-        <div><b>${fmtDate(b.date)}</b> <span class="small muted">· ${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span></div>
+        <div><b>${fmtDate(b.date)}</b> <span class="small muted">· ${typeOf(b).label} ${vacTitle(b)}</span></div>
         <div class="row" style="gap:4px;margin-top:4px">${patBadge(p)}${tirInfo(m).ok?'':tirBadge(m)}${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div></div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok" onclick="act.attribuer('${d.id}')">Valider</button><button class="btn danger" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`; }).join('');
-  const autres=ids.map(bid=>{const b=besoin(bid); const r=restantes(b);
-    return `<div class="card stripe ${b.type} stack"><div class="row between"><div><div class="eyebrow">${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</div><h3>${esc(b.libelle)}</h3><div class="small muted">${attribs(b).length}/${b.places} validés · <b>${r} place${r>1?'s':''} restante${r>1?'s':''}</b></div></div>${typeBadge(b)}</div>
-      <div class="dlist">${byB[bid].map(d=>`<div>${paxLine(member(d.memberId))}
-          <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')" ${r<=0?'disabled':''}>Valider</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`).join('')}</div></div>`;}).join('');
-  return `<div class="card stack" id="a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Renforts à valider</h3><span class="badge ${pendR.length?'red':'green'}">${pendR.length?pendR.length+' en attente':'Tout est validé'}</span></div>
-      <p class="small muted" style="margin:0">Dès qu’un agent pose un renfort, il arrive ici. Touche « Valider » : sa case passe en rouge sur le planning de tout le monde.</p>
+  return `<div class="card stack" id="a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Dispos à valider</h3><span class="badge ${pendR.length?'red':'green'}">${pendR.length?pendR.length+' en attente':'Tout est validé'}</span></div>
+      <p class="small muted" style="margin:0">Dès qu’un réserviste se propose sur une vacation, il arrive ici. Touche « Valider » : il passe en rouge sur le planning de tout le monde.</p>
       ${rows?`<div class="dlist">${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
-    ${ret.length?`<div class="card stack"><h3>Retraits après validation</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est retiré</span><span class="small muted">${fmtDate(r.date)} · place libérée</span></div>`).join('')}</div></div>`:''}
-    ${rDates.length?`<div><h3>Détail par jour</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 5 renforts avec un titulaire, 8 avec deux. Le compteur se met à jour tout seul.</p></div>${rDates.map(dayPanel).join('')}`:''}
-    ${autres?`<h3>Événements et formations</h3>${autres}`:''}`;
+    ${ret.length?`<div class="card stack"><h3>Désistements</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est retiré</span><span class="small muted">${fmtDate(r.date)} · place libérée</span></div>`).join('')}</div></div>`:''}
+    ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 5 réservistes avec un titulaire, 8 avec deux. Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
 }
 
 function gHeures(){
@@ -789,19 +750,6 @@ function gHeures(){
     ${pend.length?`<div class="card stack"><h3>${pend.length} déclaration${pend.length>1?'s':''} en attente</h3><div class="dlist">${pend.map(h=>{const m=member(h.memberId); const b=besoin(h.besoinId); const diff=h.heures!==b.duree;
       return `<div><div><b>${esc(fullName(m))}</b><div class="small muted">${fmtDate(h.date)} · ${esc(b.libelle)} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><span class="num" style="font-weight:700">${h.heures} h</span>${diff?`<span class="badge amber" title="Différent de la durée prévue">≠ ${b.duree} h</span>`:''}<button class="btn ok sm" onclick="act.validerH('${h.id}')">Valider</button><button class="btn danger sm" onclick="act.refuserH('${h.id}')">Refuser</button></div></div>`;}).join('')}</div></div>`:'<div class="empty">Aucune déclaration d’heures en attente.</div>'}
     <div class="card stack"><h3>Dernières validations</h3><div class="dlist">${recent.map(h=>`<div><span>${esc(fullName(member(h.memberId)))} <span class="small muted">· ${fmtDate(h.date)}</span></span><span class="small muted"><span class="num" style="color:var(--fg);font-weight:600">${h.heures} h</span> · validé par ${esc(member(h.validePar)?.prenom||'')}</span></div>`).join('')}</div></div>`;
-}
-
-function gBesoins(){
-  const list=S.besoins.filter(b=>b.date>=iso(TODAY)&&b.type!=='renfort').sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
-  return `<div class="card stack" id="nb-form" style="border-color:var(--accent)"><h3>Nouveau besoin</h3><p class="small muted" style="margin:0">Les renforts n’ont pas besoin d’être publiés : chacun les pose librement, jour par jour. Publie ici les événements, formations et permanences, avec un nombre de places.</p>
-    <form class="stack" onsubmit="act.creerBesoin(event)">
-      <div class="grid2"><label class="field">Date<input name="date" id="nb-date" type="date" required value="${addDays(iso(TODAY),7)}"></label>
-        <label class="field">Type<select name="type" id="nb-type">${Object.entries(TYPES).filter(([k])=>k!=='renfort').map(([k,t])=>`<option value="${k}">${t.label}</option>`).join('')}</select></label>
-        <label class="field">Début<input name="debut" id="nb-debut" type="time" value="15:00" required></label><label class="field">Fin<input name="fin" id="nb-fin" type="time" value="22:00" required></label>
-        <label class="field">Places<input name="places" id="nb-places" type="number" min="1" max="30" value="4"></label><label class="field">Lieu<input name="lieu" id="nb-lieu" placeholder="Paris"></label></div>
-      <label class="field">Libellé<input name="libelle" id="nb-libelle" placeholder="Ex. Fête de l’Humanité, Formation risques électriques"></label>
-      <div><button class="btn primary" type="submit">Publier le besoin</button></div></form></div>
-    <div class="card stack"><h3>Événements à venir (${list.length})</h3><div class="dlist">${list.map(b=>`<div><div><b>${fmtDate(b.date)}</b> ${hm(b.debut)}–${hm(b.fin)} · ${esc(b.libelle)}<div class="small muted">${attribs(b).length}/${b.places} attribués · ${S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='demandee').length} en attente</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${typeBadge(b)}<button class="btn danger sm" onclick="act.supprBesoin('${b.id}')">Suppr.</button></div></div>`).join('')||'<div class="small muted">Aucun.</div>'}</div></div>`;
 }
 
 function gHabil(){
@@ -818,30 +766,38 @@ function gHabil(){
       ${pend.length?`<div class="dlist">${pend.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc(fullName(x.m))}</div><div>${x.html}</div></div><button class="btn ok" onclick="${x.on}">Valider</button></div>`).join('')}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
     <div><h3>Habilitations de chacun</h3><p class="small muted" style="margin:4px 0 0">Date de fin de validité par personne. Touche un nom pour ouvrir son dossier.</p></div>
     <div class="gridwrap"><table class="pgrid htab"><thead><tr><th class="nm">PAX</th>${DOSSIER_ITEMS.map(([k,l])=>`<th class="hb">${l}</th>`).join('')}<th class="hb">Tirs / 365 j</th></tr></thead>
-      <tbody>${rows.map(m=>{ const i=tirInfo(m); return `<tr><td class="nm ${m.actif?'':'name-inactive'}" style="cursor:pointer" onclick="act.openPax('${m.id}')"><span class="lg">${esc(fullName(m))}</span><span class="sm">${esc(shortName(m))}</span></td>${DOSSIER_ITEMS.map(([k])=>cell(m,k)).join('')}<td class="hb ${i.cls} num" title="${i.label}">${i.n}/3${i.aval?' ●':''}</td></tr>`; }).join('')}</tbody></table></div>
+      <tbody>${rows.map(m=>{ const i=tirInfo(m); return `<tr><td class="nm ${m.actif?'':'name-inactive'}" style="cursor:pointer" onclick="act.openPax('${m.id}')"><span class="w-lg">${esc(fullName(m))}</span><span class="w-sm">${esc(shortName(m))}</span></td>${DOSSIER_ITEMS.map(([k])=>cell(m,k)).join('')}<td class="hb ${i.cls} num" title="${i.label}">${i.n}/3${i.aval?' ●':''}</td></tr>`; }).join('')}</tbody></table></div>
     <div class="legend"><span><i style="background:var(--green)"></i>Valide</span><span><i style="background:var(--amber)"></i>Expire dans 30 j ou moins</span><span><i style="background:var(--red)"></i>Expiré</span><span>— non renseigné</span><span>● saisi par l’agent, à valider</span></div>`;
 }
 
+function credCard(){ const c=S.cred; if(!c) return '';
+  const txt=`Planning BSTC\n${location.href.split('#')[0]}\nEmail : ${c.email}\nMot de passe : ${c.pwd}`;
+  return `<div class="card stack todo" id="cred-card"><div class="row between"><h3>À transmettre à ${esc(c.nom)}</h3><button class="btn sm" onclick="act.credOk()">OK, c’est noté</button></div>
+    <div class="dlist"><div><span class="small muted">Email</span><b style="user-select:all;overflow-wrap:anywhere">${esc(c.email)}</b></div><div><span class="small muted">Mot de passe</span><b class="num" style="user-select:all">${esc(c.pwd)}</b></div></div>
+    <div class="row" style="gap:8px"><button class="btn primary sm" onclick="act.copy(${esc(JSON.stringify(txt))},'Copié : colle-le dans un message')">Copier le message à envoyer</button><span class="small muted">Ce mot de passe ne sera plus affiché ensuite.</span></div></div>`; }
 function gPax(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom));
   const nRes=rows.filter(m=>m.role!=='admin').length;
-  const form=S.addOpen?`<form class="card stack" id="np-form" style="border-color:var(--accent)" onsubmit="act.addPax(event)"><h3>Nouveau réserviste</h3>
+  const form=S.addOpen?`<form class="card stack" id="np-form" style="border-color:var(--accent)" onsubmit="act.addPax(event)"><h3>Nouveau compte</h3>
       <div class="grid2"><label class="field">Nom<input name="nom" id="np-nom" required autocomplete="off"></label><label class="field">Prénom<input name="prenom" id="np-prenom" required autocomplete="off"></label>
         <label class="field">Grade<input name="grade" id="np-grade" placeholder="facultatif"></label><label class="field">Profil<select name="role" id="np-role"><option value="reserviste">Réserviste</option><option value="admin">Admin</option></select></label>
-        <label class="field">Téléphone<input name="tel" id="np-tel" type="tel" inputmode="tel"></label><label class="field">Adresse email<input name="email" id="np-email" type="email" placeholder="sert d’identifiant de connexion" ${REMOTE?'required':''}></label></div>
-      ${REMOTE?'<p class="small muted" style="margin:0">La personne crée ensuite son mot de passe elle-même, avec « Créer mon compte » et cette adresse email : elle est acceptée directement.</p>':''}
+        <label class="field">Téléphone<input name="tel" id="np-tel" type="tel" inputmode="tel"></label><label class="field">Adresse email (son identifiant)<input name="email" id="np-email" type="email" autocomplete="off" ${REMOTE?'required':''}></label>
+        ${REMOTE?`<label class="field">Mot de passe (à lui transmettre)<input name="pwd" id="np-pwd" required minlength="6" autocomplete="off" value="${esc(S.pwdSug||'')}"></label>`:''}</div>
+      ${REMOTE?'<p class="small muted" style="margin:0">Tu crées le compte complet. La personne se connecte avec cet email et ce mot de passe, puis peut le changer dans « Moi ».</p>':''}
       <div class="row" style="gap:8px"><button class="btn primary" type="submit">Créer le compte</button><button class="btn" type="button" onclick="act.toggleAdd()">Annuler</button></div></form>`:'';
   return `<div class="row between"><div><h3>${nRes} réserviste${nRes>1?'s':''} · ${rows.length-nRes} admin${rows.length-nRes>1?'s':''}</h3><div class="small muted">${rows.filter(m=>!m.actif).length} sans activité</div></div>${S.addOpen?'':'<button class="btn primary" onclick="act.toggleAdd()">+ Ajouter un réserviste</button>'}</div>
+    ${credCard()}
     ${form}
     ${REMOTE?pendingCard():''}
     <div class="card" style="padding-block:4px">${rows.map(m=>{const al=alertes(m); const open=S.paxOpen===m.id; const ti=tirInfo(m); const nv=Object.values(m.aVerifier||{}).filter(Boolean).length+(m.tirs||[]).filter(t=>!t.ok).length;
-      return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.titulaire?' · titulaire':''}${m.actif?'':' · plus d’activité à la BSTC'}${REMOTE&&!m.lie?' · <b>compte pas encore créé</b>':''}</div></div>
+      return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.titulaire?' · titulaire':''}${m.actif?'':' · plus d’activité à la BSTC'}${REMOTE&&!m.lie?' · <b>pas encore de compte</b>':''}</div></div>
         ${!m.actif?'':(al.length||!ti.ok)?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)||ti.n===0?'red':'amber'}">${al.length+(ti.ok?0:1)} alerte${al.length+(ti.ok?0:1)>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}${nv?`<span class="badge blue">${nv} à valider</span>`:''}<span class="muted">${open?'▾':'▸'}</span></div>
         ${open?`<div class="stack paxdetail" style="padding:6px 0 14px 46px" onclick="event.stopPropagation()">
           <div class="grid2"><label class="field">Nom<input id="nom-${m.id}" value="${esc(m.nom)}" onchange="act.paxField('${m.id}','nom',this.value)"></label><label class="field">Prénom<input id="prenom-${m.id}" value="${esc(m.prenom)}" onchange="act.paxField('${m.id}','prenom',this.value)"></label>
           <label class="field">Grade<input id="grade-${m.id}" value="${esc(m.grade||'')}" onchange="act.paxField('${m.id}','grade',this.value)"></label><label class="field">Profil<select id="role-${m.id}" ${m.id===S.user?'disabled':''} onchange="act.paxField('${m.id}','role',this.value)">${['reserviste','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}</select></label>
-          <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" onchange="act.paxField('${m.id}','email',this.value)"></label></div>
-          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la patrouille : 5 renforts à un, 8 à deux)</span></span></label>
+          <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" ${REMOTE&&m.lie?'readonly title="Identifiant de connexion"':''} onchange="act.paxField('${m.id}','email',this.value)"></label></div>
+          ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="6" autocomplete="off" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
+          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation : 5 réservistes à un, 8 à deux)</span></span></label>
           <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
           <div class="eyebrow">Dates de validité</div>
           <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="field">${l} <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span><input type="date" id="${k}-${m.id}" value="${m.dossier[k]||''}" onchange="act.paxField('${m.id}','${k}',this.value)">${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Valider la date saisie par l’agent</button>`:''}</label>`;}).join('')}</div>
@@ -907,28 +863,29 @@ function renderAuth(){
   const head=`<div><div class="logo">Planning BSTC</div><div class="eyebrow">Réserve opérationnelle · Brigade des transports</div></div>`;
   const err=S.authErr?`<div class="badge red" style="white-space:normal;border-radius:8px;padding:6px 10px">${esc(S.authErr)}</div>`:'';
   if(AUTHU&&S.auth==='wait') return `<div class="login"><div class="box">${head}
-    <div class="card todo"><b>Ton compte est créé.</b><div class="small" style="margin-top:4px">Un admin doit l’accepter avant que tu puisses voir le planning. Préviens-le, puis touche « Vérifier ».</div></div>
+    <div class="card todo"><b>Compte en attente.</b><div class="small" style="margin-top:4px">Un admin doit l’accepter avant que tu puisses voir le planning. Préviens-le, puis touche « Vérifier ».</div></div>
     <div class="small muted">Connecté avec ${esc(AUTHU.email||'')}</div>
     <button class="btn primary" onclick="act.recheck()">Vérifier</button><button class="btn" onclick="act.logout()">Me déconnecter</button></div></div>`;
   if(S.auth==='up') return `<div class="login"><div class="box">${head}
-    <form class="stack" onsubmit="act.signUp(event)"><h3>Créer mon compte</h3>${err}
+    <form class="stack" onsubmit="act.signUp(event)"><h3>Première installation</h3><p class="small muted" style="margin:0">À utiliser une seule fois, pour créer le compte du premier admin. Ensuite, c’est l’admin qui crée les comptes de tout le monde.</p>${err}
       <div class="grid2"><label class="field">Prénom<input name="prenom" id="au-prenom" required autocomplete="given-name"></label><label class="field">Nom<input name="nom" id="au-nom" required autocomplete="family-name"></label></div>
       <label class="field">Adresse email<input name="email" id="au-email" type="email" required autocomplete="username"></label>
       <label class="field">Mot de passe (6 caractères au moins)<input name="pwd" id="au-pwd" type="password" minlength="6" required autocomplete="new-password"></label>
-      <button class="btn primary" type="submit">Créer mon compte</button></form>
+      <button class="btn primary" type="submit">Créer le compte admin</button></form>
     <button class="linkbtn" onclick="act.authMode('in')">J’ai déjà un compte</button></div></div>`;
   return `<div class="login"><div class="box">${head}
     <form class="stack" onsubmit="act.signIn(event)">${err}
       <label class="field">Adresse email<input name="email" id="au-email" type="email" required autocomplete="username"></label>
       <label class="field">Mot de passe<input name="pwd" id="au-pwd" type="password" required autocomplete="current-password"></label>
       <button class="btn primary" type="submit">Se connecter</button></form>
-    <button class="linkbtn" onclick="act.authMode('up')">Créer mon compte</button>
+    <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
+    <button class="linkbtn" onclick="act.authMode('up')">Première installation</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 15</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 16</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
-    <p class="small muted" style="margin:0">Ces personnes ont créé un compte. Accepte uniquement celles que tu connais.</p>
+    <p class="small muted" style="margin:0">Ces personnes se sont inscrites elles-mêmes. Accepte uniquement celles que tu connais.</p>
     <div class="dlist">${l.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc((x.nom+' '+x.prenom).trim()||'(sans nom)')}</div><div class="small muted">${esc(x.email||'')}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.approuver('${x.id}')">Accepter</button><button class="btn danger sm" onclick="act.refuserCompte('${x.id}')">Refuser</button></div></div>`).join('')}</div></div>`; }
 
 const RA = {
@@ -953,28 +910,35 @@ const RA = {
   sub(t){ S.sub=t; S.paxOpen=null; render(); refresh(); },
   approuver(id){ return run(()=>sb.from('members').update({approuve:true}).eq('id',id),'Compte accepté'); },
   refuserCompte(id){ return run(()=>sb.from('members').delete().eq('id',id),'Compte refusé'); },
-  // ---- renforts
-  dispo(date){ const m=me(); if(!m.actif) return; return run(()=>sb.rpc('poser_renfort',{d:date}), m.titulaire?'Présence enregistrée':m.role==='admin'?'Renfort posé et validé':'Renfort posé — le responsable doit le valider'); },
-  cell(date){ S.day=date; const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(!d&&me().actif) return RA.dispo(date); render(); },
-  demander(bid){ return run(()=>sb.from('demandes').insert({besoin_id:bid,member_id:S.user,statut:'demandee'}),'Demande envoyée à l’admin'); },
-  retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const m=member(d.memberId); const val=d.statut==='attribuee'&&!m.titulaire;
-    if(val&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
-    S.confirm=null; return run(()=>sb.from('demandes').delete().eq('id',did), val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
-  titPresence(date,mid,on){ return run(()=>sb.rpc('presence_titulaire',{d:date,m:mid,present:on}),()=>{ const p=patrouille(date); return p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} renforts possibles`:'Plus de titulaire ce jour-là'; }); },
-  attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId); if(b.type!=='renfort'&&restantes(b)<=0){ toast('Plus de place sur ce créneau'); return; }
-    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=b.type==='renfort'?patrouille(b.date):null; return `${shortName(member(d.memberId))} validé·e${p?(p.tit.length?` — ${p.att.length}/${p.cap}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'):''}`; }); },
-  desattribuer(did){ return run(()=>sb.from('demandes').update({statut:'demandee',par:null}).eq('id',did),'Validation annulée — repasse en attente'); },
+  // ---- vacations (admin)
+  creerVac(date,type){ if(vacOf(date)) return; const t=TYPES[type]||TYPES.vacation; S.day=date;
+    return run(()=>sb.from('besoins').insert({date,type,debut:t.debut,fin:t.fin,libelle:t.label,lieu:'Paris',places:0,duree:7}),`${t.label} créée — les réservistes peuvent se proposer`); },
+  supprVac(bid){ if(S.confirm!=='vac-'+bid){ S.confirm='vac-'+bid; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.vacEdit=null;
+    return run(()=>sb.from('besoins').delete().eq('id',bid),'Vacation supprimée'); },
+  majVac(bid,k,v){ const b=besoin(bid); if(!b) return; const o=vacPatch(b,k,v); if(!o) return; return run(()=>sb.from('besoins').update(o).eq('id',bid),'Vacation modifiée'); },
+  ajouter(date){ const b=vacOf(date); const mid=document.getElementById('add-'+date)?.value; if(!b||!mid){ toast('Choisis une personne dans la liste'); return; }
+    const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
+    return run(()=>ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user}),()=>`${shortName(member(mid))} ajouté·e à la vacation`); },
+  titPresence(date,mid,on){ const b=vacOf(date); if(!b) return; const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
+    return run(()=>on?(ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user})):(ex?sb.from('demandes').delete().eq('id',ex.id):null),
+      ()=>{ const p=patrouille(date); return p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} réservistes possibles`:'Plus de titulaire ce jour-là'; }); },
+  // ---- dispos
+  dispo(date){ const m=me(); const b=vacOf(date); if(!b){ toast('Pas de vacation ce jour'); return; } if(!m.actif) return; const direct=m.role==='admin';
+    const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===m.id);
+    return run(async()=>{ if(ex){ const r=await sb.from('demandes').delete().eq('id',ex.id); if(r.error) return r; }
+      return sb.from('demandes').insert({besoin_id:b.id,member_id:m.id,statut:direct?'attribuee':'demandee'}); }, m.titulaire?'Présence enregistrée':direct?'Tu es sur la vacation':'Dispo posée — l’admin doit la valider'); },
+  cell(date){ S.day=date; const b=vacOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(b&&!d&&me().actif&&date>=iso(TODAY)) return RA.dispo(date); render(); },
+  retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const m=member(d.memberId); const self=d.memberId===S.user; const val=d.statut==='attribuee'&&!m.titulaire;
+    if(self&&val&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
+    S.confirm=null; return run(()=>sb.from('demandes').delete().eq('id',did), !self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
+  attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
+    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=patrouille(b.date); return `${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${p.att.length}/${p.cap}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`; }); },
   refuser(did){ return run(()=>sb.from('demandes').update({statut:'refusee',par:S.user}).eq('id',did),'Demande refusée'); },
   // ---- heures
   declarer(bid){ const v=parseFloat(document.getElementById('h-'+bid).value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; } const b=besoin(bid);
     return run(()=>sb.from('heures').insert({besoin_id:bid,member_id:S.user,heures:v,statut:'declaree',date:b.date}),'Heures déclarées, en attente de validation'); },
   validerH(hid){ return run(()=>sb.from('heures').update({statut:'validee',valide_par:S.user}).eq('id',hid),'Heures validées'); },
   refuserH(hid){ return run(()=>sb.from('heures').update({statut:'refusee',valide_par:S.user}).eq('id',hid),'Déclaration refusée'); },
-  // ---- événements
-  creerBesoin(ev){ ev.preventDefault(); const f=ev.target; const date=f.date.value, debut=f.debut.value, fin=f.fin.value; if(!date||!debut||!fin){ toast('Date et horaires obligatoires'); return; }
-    let duree=(new Date('2000-01-01T'+fin)-new Date('2000-01-01T'+debut))/3600000; if(duree<=0) duree+=24; const type=f.type.value; S.month=date.slice(0,7);
-    return run(()=>sb.from('besoins').insert({date,debut,fin,type,libelle:f.libelle.value||TYPES[type].label,lieu:f.lieu.value||'Paris',places:parseInt(f.places.value)||1,duree}),'Besoin publié — visible par tous'); },
-  supprBesoin(bid){ return run(()=>sb.from('besoins').delete().eq('id',bid),'Besoin supprimé'); },
   // ---- profil, dossier, tirs
   monProfil(k,v){ v=v.trim(); if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; } if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
     return run(()=>sb.rpc('maj_mon_profil',{p_tel:k==='tel'?v:null,p_email:k==='email'?v:null}),k==='tel'?'Téléphone mis à jour':'Email mis à jour'); },
@@ -990,18 +954,31 @@ const RA = {
     return run(()=>sb.from('tirs').insert({member_id:m.id,date:v,ok:adm}),adm?'Tir ajouté':'Tir ajouté — l’admin va le valider'); },
   delTir(mid,tid){ return run(()=>sb.from('tirs').delete().eq('id',tid),'Tir supprimé'); },
   okTir(mid,tid){ return run(()=>sb.from('tirs').update({ok:true}).eq('id',tid),'Tir validé'); },
-  // ---- réservistes
-  addPax(ev){ ev.preventDefault(); const f=ev.target; const nom=f.nom.value.trim().toUpperCase(), prenom=f.prenom.value.trim(), email=f.email.value.trim().toLowerCase();
-    if(!nom||!prenom||!email){ toast('Nom, prénom et email obligatoires'); return; }
+  // ---- comptes : l'admin crée tout (fiche + compte de connexion avec mot de passe)
+  toggleAdd(){ S.addOpen=!S.addOpen; S.pwdSug='Bstc-'+Math.floor(1000+Math.random()*9000); render(); },
+  async addPax(ev){ ev.preventDefault(); const f=ev.target; const nom=f.nom.value.trim().toUpperCase(), prenom=f.prenom.value.trim(), email=f.email.value.trim().toLowerCase(), pwd=f.pwd.value;
+    if(!nom||!prenom||!email){ toast('Nom, prénom et email obligatoires'); return; } if(pwd.length<6){ toast('Mot de passe : 6 caractères au moins'); return; }
     if(S.members.some(m=>(m.email||'').toLowerCase()===email)||(S.pending||[]).some(x=>(x.email||'').toLowerCase()===email)){ toast('Un compte existe déjà avec cet email'); return; }
-    S.addOpen=false;
-    return run(()=>sb.from('members').insert({nom,prenom,grade:f.grade.value.trim(),role:f.role.value,tel:f.tel.value.trim(),email,approuve:true}),()=>{ const n=S.members.find(m=>(m.email||'').toLowerCase()===email); if(n){ S.paxOpen=n.id; render(); } return `${prenom} ${nom} ajouté·e — il reste à créer son mot de passe`; }); },
+    if(BUSY) return; setBusy(true);
+    try{ let r=await sb.from('members').insert({nom,prenom,grade:f.grade.value.trim(),role:f.role.value,tel:f.tel.value.trim(),email,approuve:true}); if(r.error) throw r.error;
+      r=await tmpClient().auth.signUp({email,password:pwd,options:{data:{nom,prenom}}}); if(r.error) throw r.error;
+      S.addOpen=false; S.cred={nom:prenom+' '+nom,email,pwd}; await loadAll(); syncMe(); const n=S.members.find(m=>(m.email||'').toLowerCase()===email); if(n) S.paxOpen=n.id;
+      setBusy(false); render(); toast('Compte créé'); }
+    catch(e){ S.addOpen=false; setBusy(false); try{ await loadAll(); }catch(_){} render(); toast('Erreur : '+errMsg(e)); } },
+  async setPwd(id){ const m=member(id); const v=document.getElementById('pwd-'+id)?.value||''; if(v.length<6){ toast('Mot de passe : 6 caractères au moins'); return; } if(!m.email){ toast('Renseigne d’abord son adresse email'); return; }
+    if(BUSY) return; setBusy(true);
+    try{ const r=m.lie?await sb.rpc('admin_set_password',{m:id,pwd:v}):await tmpClient().auth.signUp({email:m.email,password:v,options:{data:{nom:m.nom,prenom:m.prenom}}}); if(r.error) throw r.error;
+      S.cred={nom:m.prenom+' '+m.nom,email:m.email,pwd:v}; await loadAll(); syncMe(); setBusy(false); render(); toast(m.lie?'Mot de passe remplacé':'Compte créé'); document.querySelector('.content').scrollTo({top:0,behavior:'smooth'}); }
+    catch(e){ setBusy(false); render(); toast('Erreur : '+errMsg(e)); } },
   delPax(id){ if(id===S.user) return; if(S.confirm!=='del-'+id){ S.confirm='del-'+id; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.paxOpen=null;
     return run(()=>sb.from('members').delete().eq('id',id),'Compte supprimé'); },
   // ---- notifications
   lu(id){ const n=(S.notifs||[]).find(x=>x.id===id); if(n) n.lu={[S.user]:true}; render(); sb.from('notif_lus').insert({notif_id:id,member_id:S.user}).then(()=>{}); },
   voir(id,date){ S.tab='besoins'; S.month=date.slice(0,7); S.day=date; RA.lu(id); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest'}); },
 };
+
+// Second client, sans session enregistrée : sert à créer le compte d'un collègue sans déconnecter l'admin.
+function tmpClient(){ return window.supabase.createClient(CFG.url, CFG.key, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bstc-creation-compte'}}); }
 
 async function boot(){
   if(!REMOTE){ render(); return; }
