@@ -1,4 +1,4 @@
-<title>Planning BSTC</title>
+<!doctype html><html><head><meta charset="utf8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><title>Planning BSTC</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: one-screen app shell — sticky top bar, scrolling content, bottom tab bar on phones (side rail on desktop). */
@@ -44,7 +44,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .topbar .who{margin-left:auto;text-align:right;font-size:13px;line-height:1.25}
 .topbar .who b{display:block;font-weight:600}
 .topbar .logout{background:transparent;border:1px solid color-mix(in srgb,var(--accent-fg) 45%,transparent);color:var(--accent-fg);border-radius:8px;padding:6px 10px;font-size:13px}
-.main{flex:1;min-height:0;display:flex}
+.main{flex:1;min-height:0;display:flex;flex-direction:column}
 .content{flex:1;min-width:0;overflow-y:auto;padding:16px;padding-block:16px 24px}
 .wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 .tabbar{display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));flex-shrink:0}
@@ -123,7 +123,85 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .pgrid .tot{font-weight:700;background:var(--surface2);min-width:44px;position:sticky;right:0;z-index:2}
 .pgrid td.c{font-weight:700;color:#fff}
 .pgrid td.c.renfort{background:var(--red)} .pgrid td.c.vacation{background:var(--green)} .pgrid td.c.formation{background:var(--amber)} .pgrid td.c.evenement{background:var(--orange)} .pgrid td.c.permanence{background:var(--blue)}
-.pgrid td.c.pending{opacity:.55}
+.pgrid td.wait{background:repeating-linear-gradient(135deg,var(--surface2) 0 4px,var(--surface) 4px 8px);color:var(--muted);font-weight:600}
+.pgrid td.mine{cursor:pointer}
+.pgrid td.mine:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.pgrid th.dayh{cursor:pointer}
+.pgrid th.sel{background:var(--accent);color:var(--accent-fg)} .pgrid th.sel .muted{color:var(--accent-fg)}
+.pgrid td.sel{box-shadow:inset 2px 0 0 var(--accent),inset -2px 0 0 var(--accent)}
+.pgrid tr.count td{font-weight:700;font-size:11px;background:var(--surface2)}
+.pgrid tr.count td.nm{font-size:12px}
+.pgrid tr.count td.full{background:var(--green-soft);color:var(--green)}
+.pgrid tr.count td.open{background:var(--amber-soft);color:var(--amber)}
+.pgrid tr.count td.over{background:var(--red-soft);color:var(--red)}
+.pgrid tr.count td.notit{color:var(--muted)}
+.chip.wait{border-style:dashed;color:var(--muted);background:transparent}
+.chip.wait .av{background:var(--surface2);color:var(--muted)}
+.chip.ok{border-color:var(--red);background:var(--red-soft)}
+.chip.ok .av{background:var(--red);color:var(--surface)}
+.chip.tit{border-color:var(--blue);background:var(--blue-soft)}
+.chip.tit .av{background:var(--blue);color:var(--surface)}
+.legend i.hatch{background:repeating-linear-gradient(135deg,var(--surface2) 0 3px,var(--surface) 3px 6px);border:1px dashed var(--muted)}
+.meter{display:inline-flex;gap:3px;vertical-align:middle}
+.meter i{width:11px;height:16px;border-radius:3px;border:1px solid var(--line);background:var(--surface2)}
+.meter i.on{background:var(--red);border-color:var(--red)}
+.meter i.over{background:var(--surface);border:2px solid var(--red)}
+.dayrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dayrow:last-child{border-bottom:0}
+.dayrow .d{width:44px;text-align:center;background:var(--surface2);border-radius:8px;padding:4px 0;flex-shrink:0}
+.dayrow .d b{display:block;font-family:var(--display);font-size:19px;line-height:1}
+.dayrow .d span{font-size:10px;text-transform:uppercase;color:var(--muted)}
+.dayrow .mid{flex:1 1 96px;min-width:0}
+.dayrow .actn{margin-left:auto;display:flex;align-items:center;gap:6px}
+.dinput{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 8px;min-height:38px;max-width:150px;flex-shrink:0}
+.dayrow button.mid{background:none;border:0;padding:4px 0;text-align:left;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dlist>div{flex-wrap:wrap}
+.dlist>div>:first-child{flex:1 1 140px;min-width:0}
+.dlist .num{white-space:nowrap}
+.check{align-items:flex-start}
+.check input{flex-shrink:0;margin-top:2px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .wd{text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:2px 0}
+.cal-d{border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:52px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0}
+.cal-d b{font-family:var(--display);font-size:20px;line-height:1}
+.cal-d .cnt{font-size:11px;font-weight:700;line-height:1;min-height:11px;color:var(--muted)}
+.cal-d .cnt.full{color:var(--green)} .cal-d .cnt.open{color:var(--amber)} .cal-d .cnt.over{color:var(--red)}
+.cal-d.wait{background:repeating-linear-gradient(135deg,var(--surface2) 0 5px,var(--surface) 5px 10px);border:1px dashed var(--muted)}
+.cal-d.ok{background:var(--red);border-color:var(--red);color:var(--surface)}
+.cal-d.tit{background:var(--blue);border-color:var(--blue);color:var(--surface)}
+.cal-d.ok .cnt,.cal-d.tit .cnt{color:inherit}
+.cal-d.past{opacity:.45}
+.cal-d.today b{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.cal-d.sel{outline:3px solid var(--accent);outline-offset:1px}
+.myact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface2);border-radius:8px;padding:10px}
+.myact .btn{flex:1 1 auto;justify-content:center;padding:10px 12px;font-size:15px}
+.dlist>.valrow{padding:12px 0;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:10px}
+.dlist>.valrow>:first-child{flex:0 0 auto}
+.valrow .btn{flex:1;justify-content:center;padding:10px 12px}
+.dlist>div>.pl{flex:1 1 230px}
+.sm{display:none}
+.login .logo{margin-bottom:6px}
+@media (max-width:600px){
+  .lg{display:none} .sm{display:inline}
+  .topbar{padding:8px 12px;gap:8px}
+  .topbar .brand{font-size:20px;white-space:nowrap}
+  .topbar .brand small{display:inline;margin:0 0 0 6px;font-size:10px;opacity:.7;letter-spacing:.04em}
+  .topbar .who{font-size:12px;min-width:0}
+  .topbar .who b{white-space:nowrap}
+  .topbar .logout{padding:5px 8px}
+  .content{padding:12px;padding-block:12px 20px}
+  .wrap{gap:12px}
+  h2{font-size:20px}
+  .monthnav b{min-width:118px;font-size:19px}
+  .cal{gap:3px} .cal-d{min-height:44px} .cal-d b{font-size:18px}
+  .card{padding:12px}
+  .paxdetail{padding-left:0 !important}
+  .pgrid .nm{min-width:92px}
+  .login{background:var(--accent);padding:16px 12px}
+}
+.todo{border-color:var(--accent);background:var(--accent-soft)}
+@media (max-width:600px){ .pgrid .nm{min-width:118px;padding:0 6px} .pgrid .nm .badge{display:none} .pgrid .tot{position:static} }
+.rule{background:var(--accent-soft);border-radius:8px;padding:8px 12px;font-size:13px}
 
 /* login */
 .login{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(160deg,var(--accent) 0 38%,var(--bg) 38%)}
@@ -153,7 +231,7 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 <script>
 /* ---------------- données de démonstration (issues du fichier Planning_BSTC.xlsx) ---------------- */
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-const iso = d => d.toISOString().slice(0,10);
+const iso = d => dISO(d.getFullYear(), d.getMonth()+1, d.getDate()); // date locale, jamais UTC
 const dISO = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 const addDays = (s,n) => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return iso(d); };
 const TYPES = {
@@ -169,21 +247,16 @@ const DOSSIER_ITEMS = [
 ];
 const NAMES = [
   ['GOMEZ','Richard','Major','encadrement'],['WEBER','Didier','','encadrement'],
-  ['MATHIEU','Arnaud'],['MAMERI','Djamel'],['COQUET','Fabrice'],['THELINEAU','Philippe'],
-  ['BENZINA','Lhoucine'],['BONTE','Melanie'],['AKEZDAW','Issam'],['LEGEARD','Olivier'],
+  ['AKEZDAW','Issam'],['BONTE','Melanie'],
 ];
 // Octobre 2026 (extrait du fichier) : [jour, heures, code] — R=renfort, V=vacation, F=matin/formation, P=permanence encadrement
-const OCT = {
-  'GOMEZ':[[1,8,'R'],[14,8,'R']],'WEBER':[[5,8,'R']],
-  'MATHIEU':[[21,7,'R']],'COQUET':[[14,7,'R'],[30,7,'F']],'THELINEAU':[[5,7,'R'],[14,7,'R'],[21,7,'R']],
-  'BENZINA':[[1,7,'R'],[5,7,'R']],'BONTE':[[1,7,'R'],[14,7,'R']],'LEGEARD':[[1,7,'R'],[5,7,'R'],[30,7,'F']],
-  'AKEZDAW':[[21,7,'R']],
-};
+const OCT = { 'GOMEZ':[[5,8,'R'],[8,8,'R']], 'WEBER':[[8,8,'R'],[14,8,'R']], 'BONTE':[[8,7,'R']] };
+// Renforts posés par les agents, pas encore validés (jours d'octobre)
+const OCT_DISPO = {'BONTE':[14]};
+// Règle de la patrouille : nombre de renforts selon le nombre de titulaires présents (Richard, Didier)
+const CAP = {0:0, 1:5, 2:8};
 // Septembre 2026 (passé) : quelques renforts effectués
-const SEP = {
-  'GOMEZ':[[28,8,'R']],'THELINEAU':[[28,7,'R']],'BENZINA':[[28,7,'R']],'BONTE':[[12,7,'R']],
-  'MATHIEU':[[24,7,'R']],'AKEZDAW':[[24,7,'E'],[28,7,'R']],'LEGEARD':[[12,7,'R'],[24,7,'R']],
-};
+const SEP = { 'GOMEZ':[[28,8,'R']], 'AKEZDAW':[[28,7,'R']], 'BONTE':[[28,7,'R']] };
 const CODE = {R:['renfort','15:00','22:00','Renfort BSTC'],V:['vacation','15:00','22:00','Vacation 15h-22h'],F:['formation','10:00','17:00','Matin 10h-17h'],P:['permanence','09:00','17:00','Permanence encadrement'],E:['evenement','17:00','00:00',"Fête de l'Humanité — Brétigny"]};
 
 function seedState(){
@@ -193,9 +266,10 @@ function seedState(){
     DOSSIER_ITEMS.forEach(([k],j)=>{ dossier[k] = addDays(iso(TODAY), 120 + ((i*53+j*37)%300)); });
     if(n[0]==='COQUET') dossier.pie = addDays(iso(TODAY), -20);            // expiré → alerte rouge
     if(n[0]==='THELINEAU') dossier.visite_medicale = addDays(iso(TODAY), 12); // expire bientôt → alerte orange
-    if(n[0]==='MAMERI') dossier.tir = '';                                    // non renseigné
-    return { id:'m'+(i+1), nom:n[0], prenom:n[1], grade:n[2]||'', role:n[3]||'reserviste', actif: n[0]!=='MAMERI',
-      tel:`06 00 00 ${String(10+i).padStart(2,'0')} ${String((i*37)%90+10).padStart(2,'0')}`, dossier };
+    if(n[0]==='MAMERI') dossier.tir = '';
+    if(n[0]==='AKEZDAW'){ dossier.baton = ''; dossier.grenades = ''; }                                    // non renseigné
+    return { id:'m'+(i+1), nom:n[0], prenom:n[1], grade:n[2]||'', role:n[3]||'reserviste', actif: n[0]!=='MAMERI', titulaire: ['GOMEZ','WEBER'].includes(n[0]),
+      tel:`06 00 00 ${String(10+i).padStart(2,'0')} ${String((i*37)%90+10).padStart(2,'0')}`, email:`${n[1]}.${n[0]}@exemple.fr`.toLowerCase(), aVerifier: n[0]==='AKEZDAW'?{tir:true}:{}, dossier };
   });
   members.unshift({id:'m0',nom:'BSTC',prenom:'Responsable',grade:'',role:'admin',actif:true,tel:'06 00 00 00 00',dossier:{}});
   const byNom = Object.fromEntries(members.map(m=>[m.nom,m]));
@@ -208,7 +282,7 @@ function seedState(){
         const [type,debut,fin,libelle] = CODE[code];
         const k = `${month}-${day}-${code}`;
         let b = key[k];
-        if(!b){ b = {id:id('b'), date:dISO(2026,month,day), debut, fin, type, libelle, lieu: code==='E'?'Brétigny-sur-Orge':'Paris', places:0, duree: code==='P'?8:(code==='E'?7:h)}; key[k]=b; besoins.push(b); }
+        if(!b){ b = {id:id('b'), date:dISO(2026,month,day), debut, fin, type, libelle, lieu: code==='E'?'Brétigny-sur-Orge':'Paris', places:0, duree: code==='P'?8:(code==='E'||code==='R'?7:h)}; key[k]=b; besoins.push(b); }
         b.places++;
         demandes.push({id:id('d'), besoinId:b.id, memberId:m.id, statut:'attribuee'});
         if(past){
@@ -221,21 +295,25 @@ function seedState(){
   }
   place(9, SEP, true); place(10, OCT, false);
   // quelques places encore ouvertes en octobre + besoins de novembre
-  besoins.filter(b=>b.date>='2026-10-12'&&b.type==='renfort').slice(0,6).forEach(b=>b.places+=1);
-  const nov = [[3,'R',4],[11,'E',6],[19,'F',8]];
+  for(const [nom,days] of Object.entries(OCT_DISPO)) days.forEach(day=>{
+    const date=dISO(2026,10,day); let b=besoins.find(x=>x.type==='renfort'&&x.date===date);
+    if(!b){ b={id:id('b'),date,debut:'15:00',fin:'22:00',type:'renfort',libelle:'Renfort BSTC',lieu:'Paris',places:0,duree:7}; besoins.push(b); }
+    demandes.push({id:id('d'),besoinId:b.id,memberId:byNom[nom].id,statut:'demandee'});
+  });
+  const nov = [[19,'F',8]];
   nov.forEach(([day,code,places])=>{
     const [type,debut,fin,libelle]=CODE[code];
     besoins.push({id:id('b'),date:dISO(2026,11,day),debut,fin,type,libelle: code==='E'?'Cérémonie du 11 novembre — sécurisation':(code==='F'?'Formation risques électriques':libelle),lieu:code==='E'?'Paris 8e':'Paris',places,duree:code==='P'?8:7});
   });
   const nb = besoins.filter(b=>b.date.startsWith('2026-11'));
-  const req = [['BONTE',0],['LEGEARD',0],['COQUET',1],['THELINEAU',2]];
+  const req = [];
   req.forEach(([nom,i])=>demandes.push({id:id('d'),besoinId:nb[i].id,memberId:byNom[nom].id,statut:'demandee'}));
-  return {seq, members, besoins, demandes, heures, user:null, tab:'planning', month:'2026-10', view:'liste', sub:'demandes', paxOpen:null};
+  return {seq, members, besoins, demandes, heures, user:null, tab:'planning', month:addDays(iso(TODAY),3).slice(0,7), view:'liste', sub:'demandes', paxOpen:null, retraits:[], day:null};
 }
 
 /* ---------------- état & persistance ---------------- */
 let S;
-const KEY='bstc-planning-demo-v2';
+const KEY='bstc-planning-demo-v7';
 function load(){ try{ const s=localStorage.getItem(KEY); if(s){ S=JSON.parse(s); return; } }catch(e){} S=seedState(); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function reset(){ S=seedState(); save(); render(); toast('Démo réinitialisée'); }
@@ -257,7 +335,20 @@ const fmtLong = s => new Date(s+'T00:00:00').toLocaleDateString('fr-FR',{weekday
 const monthLabel = ym => new Date(ym+'-01T00:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
 const hm = t => t.replace(':','h').replace(/h00$/,'h');
 const attribs = b => S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='attribuee');
-const restantes = b => b.places - attribs(b).length;
+const titulaires = ()=>S.members.filter(m=>m.titulaire);
+const renfortOf = date => S.besoins.find(b=>b.type==='renfort'&&b.date===date);
+function ensureRenfort(date){ let b=renfortOf(date); if(!b){ b={id:nid('b'),date,debut:'15:00',fin:'22:00',type:'renfort',libelle:'Renfort BSTC',lieu:'Paris',places:0,duree:7}; S.besoins.push(b); } return b; }
+// Comptabilité d'un jour : titulaires présents, renforts attribués, renforts en attente, capacité (5 ou 8)
+function patrouille(date){
+  const b=renfortOf(date); const ds=b?S.demandes.filter(d=>d.besoinId===b.id&&member(d.memberId)):[];
+  const tit=ds.filter(d=>member(d.memberId).titulaire&&d.statut==='attribuee');
+  const att=ds.filter(d=>!member(d.memberId).titulaire&&d.statut==='attribuee');
+  const wait=ds.filter(d=>d.statut==='demandee');
+  const cap=CAP[Math.min(tit.length,2)];
+  const etat=!tit.length?'notit':att.length>cap?'over':att.length===cap?'full':'open';
+  return {b,tit,att,wait,cap,etat,libres:Math.max(0,cap-att.length),vide:!ds.length};
+}
+const restantes = b => b.type==='renfort' ? patrouille(b.date).libres : b.places - attribs(b).length;
 const roleLabel = r => ({reserviste:'Réserviste',encadrement:'Encadrement',admin:'Administrateur'}[r]);
 function dossierStatus(v){
   if(!v) return {cls:'grey',label:'Non renseigné',rank:2};
@@ -274,17 +365,38 @@ const pendingHeures = ()=>S.heures.filter(h=>h.statut==='declaree').length;
 
 /* ---------------- actions ---------------- */
 window.act = {
-  login(id){ S.user=id; S.tab='planning'; save(); render(); },
+  login(id){ S.user=id; S.confirm=null; const enc=['encadrement','admin'].includes(member(id)?.role); S.tab=enc?'gestion':'planning'; S.sub='demandes'; S.month=addDays(iso(TODAY),3).slice(0,7); save(); render(); },
   logout(){ S.user=null; save(); render(); },
-  tab(t){ S.tab=t; save(); render(); },
+  tab(t){ S.tab=t; S.confirm=null; save(); render(); },
   sub(t){ S.sub=t; S.paxOpen=null; save(); render(); },
   nouveau(){ S.tab='gestion'; S.sub='besoins'; save(); render(); const f=document.getElementById('nb-form'); if(f){ f.scrollIntoView({block:'start'}); document.getElementById('nb-date')?.focus(); } },
   view(v){ S.view=v; save(); render(); },
   month(n){ shiftMonth(n); },
+  thisMonth(){ S.month=iso(TODAY).slice(0,7); S.day=iso(TODAY); save(); render(); },
+  pick(date){ S.day=date; S.confirm=null; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest',behavior:'smooth'}); },
   reset,
   demander(bid){ S.demandes.push({id:nid('d'),besoinId:bid,memberId:S.user,statut:'demandee'}); save(); render(); toast('Demande envoyée à l’encadrement'); },
-  retirer(did){ S.demandes=S.demandes.filter(d=>d.id!==did); save(); render(); toast('Demande retirée'); },
-  attribuer(did){ const d=S.demandes.find(x=>x.id===did); const b=besoin(d.besoinId); if(restantes(b)<=0){toast('Plus de place sur ce créneau');return;} d.statut='attribuee'; d.par=S.user; save(); render(); toast(`${shortName(member(d.memberId))} attribué·e`); },
+  day(date){ S.day = S.day===date?null:date; save(); render(); },
+  cell(date){ S.day=date; const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(!d&&me().actif) act.dispo(date); else { save(); render(); } },
+  dispo(date){ const m=me(); if(!m.actif||m.id==='m0') return; const b=ensureRenfort(date);
+    S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===m.id));
+    S.demandes.push({id:nid('d'),besoinId:b.id,memberId:m.id,statut:m.titulaire?'attribuee':'demandee'});
+    save(); render(); toast(m.titulaire?'Présence enregistrée':'Renfort posé — le responsable doit le valider'); },
+  retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId); const m=member(d.memberId);
+    if(d.statut==='attribuee'&&!m.titulaire&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
+    S.confirm=null;
+    if(d.statut==='attribuee'&&!m.titulaire){ S.retraits=[{memberId:d.memberId,date:b.date,libelle:b.libelle},...(S.retraits||[])].slice(0,8); }
+    S.demandes=S.demandes.filter(x=>x.id!==did); save(); render(); toast(d.statut==='attribuee'&&!m.titulaire?'Renfort retiré — la place est libérée':'Retiré du planning'); },
+  titPresence(date,mid,on){ if(!isEnc()) return; const b=ensureRenfort(date);
+    S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===mid));
+    if(on) S.demandes.push({id:nid('d'),besoinId:b.id,memberId:mid,statut:'attribuee',par:S.user});
+    save(); render(); const p=patrouille(date); toast(p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} renforts possibles`:'Plus de titulaire ce jour-là'); },
+  attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
+    if(b.type!=='renfort'&&restantes(b)<=0){toast('Plus de place sur ce créneau');return;}
+    d.statut='attribuee'; d.par=S.user; save(); render();
+    const p=b.type==='renfort'?patrouille(b.date):null;
+    toast(`${shortName(member(d.memberId))} validé·e${p?(p.tit.length?` — ${p.att.length}/${p.cap}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'):''}`); },
+  desattribuer(did){ const d=S.demandes.find(x=>x.id===did); d.statut='demandee'; delete d.par; save(); render(); toast('Validation annulée — repasse en attente'); },
   refuser(did){ const d=S.demandes.find(x=>x.id===did); d.statut='refusee'; d.par=S.user; save(); render(); toast('Demande refusée'); },
   declarer(bid){ const inp=document.getElementById('h-'+bid); const v=parseFloat(inp.value); if(!(v>0&&v<=24)){toast('Indique un nombre d’heures valide');return;} const b=besoin(bid); S.heures.push({id:nid('h'),besoinId:bid,memberId:S.user,heures:v,statut:'declaree',validePar:null,date:b.date}); save(); render(); toast('Heures déclarées, en attente de validation'); },
   validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
@@ -295,18 +407,25 @@ window.act = {
     S.month=date.slice(0,7); save(); render(); toast('Besoin publié — visible par tous'); },
   supprBesoin(bid){ S.besoins=S.besoins.filter(b=>b.id!==bid); S.demandes=S.demandes.filter(d=>d.besoinId!==bid); S.heures=S.heures.filter(h=>h.besoinId!==bid); save(); render(); toast('Besoin supprimé'); },
   pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
-  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='tel'){ m.tel=v; } else { m.dossier[k]=v; } save(); render(); },
+  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else { if(v&&v<'2000-01-01') return; m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Date enregistrée'); return; } save(); render(); },
+  monProfil(k,v){ const m=me(); v=v.trim();
+    if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; }
+    if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
+    m[k]=v; save(); render(); toast(k==='tel'?'Téléphone mis à jour':'Email mis à jour'); },
+  monDossier(k,v){ if(v&&v<'2000-01-01') return; const m=me(); m.dossier[k]=v; (m.aVerifier ||= {})[k]=!!v; save(); const el=document.getElementById('bd-my-'+k); if(el) el.innerHTML=myBadges(m,k); const mq=document.getElementById('my-manque'); if(mq) mq.innerHTML=myManque(m); toast(v?'Date enregistrée — l’encadrement va la vérifier':'Date effacée'); },
+  confirmer(id,k){ const m=member(id); if(m.aVerifier) delete m.aVerifier[k]; save(); render(); toast('Date confirmée'); },
   copy(txt){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast('Numéro copié'),()=>toast(txt)); } else toast(txt); },
 };
 
 /* ---------------- rendu ---------------- */
 function render(){
   const app=$('#app');
+  const _k=[S.user,S.tab,S.sub].join('|'); const _c=$('.content'); const _st=(_c&&render._k===_k)?_c.scrollTop:0; render._k=_k;
   if(!S.user){ app.innerHTML=renderLogin(); return; }
   const m=me();
   const tabs=[
     ['planning','Planning','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>'],
-    ['besoins','Besoins','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>'],
+    ['besoins','Dispos','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>'],
     ['moi','Moi','<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'],
     ['equipe','Équipe','<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="10" r="2.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M16 20c0-3 2-5 5-5"/></svg>'],
   ];
@@ -314,7 +433,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small>Réserve · Brigade des transports</small></div>
+      <div class="brand">Planning BSTC<small><span class="lg">Brigade des transports · </span>v8</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       <button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -322,89 +441,193 @@ function render(){
       <div class="content"><div class="wrap">${({planning:renderPlanning,besoins:renderBesoins,moi:renderMoi,equipe:renderEquipe,gestion:renderGestion})[S.tab]()}</div></div>
       <nav class="tabbar">${tabs.map(([k,l,i])=>`<button class="${S.tab===k?'active':''}" onclick="act.tab('${k}')">${i}${l}${k==='gestion'&&badge?`<span class="dot">${badge}</span>`:''}</button>`).join('')}</nav>
     </div>`;
+  if(_st) $('.content').scrollTop=_st;
 }
 
 function renderLogin(){
-  const demo=[['m0','Responsable BSTC','Administrateur'],['m1','Major GOMEZ Richard','Encadrement'],['m9','AKEZDAW Issam','Réserviste']];
+  const demo=[['m3','AKEZDAW Issam','Réserviste'],['m4','BONTE Melanie','Réserviste'],['m0','Responsable BSTC','Administrateur'],['m1','Major GOMEZ Richard','Titulaire'],['m2','WEBER Didier','Titulaire']];
   return `<div class="login"><div class="box">
     <div><div class="logo">Planning BSTC</div><div class="eyebrow">Réserve opérationnelle · Brigade des transports</div></div>
-    <form class="stack" onsubmit="event.preventDefault();act.login('m9')">
+    <form class="stack" onsubmit="event.preventDefault();act.login('m3')">
       <label class="field">Adresse email<input id="login-email" type="email" placeholder="prenom.nom@exemple.fr" autocomplete="username"></label>
       <label class="field">Mot de passe<input id="login-pwd" type="password" placeholder="••••••••" autocomplete="current-password"></label>
       <button class="btn primary" type="submit">Se connecter</button>
     </form>
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
-    <p class="small muted" style="margin:0">Données de démonstration réduites (10 PAX, extrait du planning Excel). Les numéros de téléphone sont fictifs.</p>
+    <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
+    <p class="small muted" style="margin:0"><b>Version 8</b> · 30/09/2026 · démo simplifiée</p>
   </div></div>`;
 }
 
-function monthNav(){ return `<div class="monthnav"><button onclick="act.month(-1)" aria-label="Mois précédent">‹</button><b>${monthLabel(S.month)}</b><button onclick="act.month(1)" aria-label="Mois suivant">›</button></div>`; }
-function legend(){ return `<div class="legend">${Object.values(TYPES).map(t=>`<span><i style="background:var(--${t.color})"></i>${t.label}</span>`).join('')}</div>`; }
+function monthNav(){ const cur=iso(TODAY).slice(0,7);
+  return `<div class="row" style="gap:6px"><div class="monthnav"><button onclick="act.month(-1)" aria-label="Mois précédent">‹</button><b>${monthLabel(S.month)}</b><button onclick="act.month(1)" aria-label="Mois suivant">›</button></div>${S.month!==cur?'<button class="btn sm" onclick="act.thisMonth()">Aujourd’hui</button>':''}</div>`; }
+function legend(){ return `<div class="legend">${Object.values(TYPES).map(t=>`<span><i style="background:var(--${t.color})"></i>${t.label}</span>`).join('')}<span><i class="hatch"></i>Posé, en attente</span></div>`; }
 function typeBadge(b){ const t=TYPES[b.type]; return `<span class="badge ${t.color}">${t.label}</span>`; }
+
+function chip(m,cls){ return `<span class="chip ${typeof cls==='string'?cls:''} ${m.id===S.user?'me':''} ${m.actif?'':'inactive'}"><span class="av">${initials(m)}</span>${esc(shortName(m))}</span>`; }
+function outBtn(d){ if(!d) return ''; return S.confirm===d.id?`<button class="btn danger sm" onclick="act.retirer('${d.id}')">Confirmer le retrait</button>`:`<button class="btn sm" onclick="act.retirer('${d.id}')">Retirer</button>`; }
+function patBadge(p){
+  const w=p.wait.length?` · ${p.wait.length} en attente`:'';
+  if(p.etat==='notit') return `<span class="badge grey">Pas de titulaire${p.att.length?` · ${p.att.length} validé${p.att.length>1?'s':''}`:''}${w}</span>`;
+  if(p.etat==='full') return `<span class="badge green">${p.att.length}/${p.cap} · complète</span>`;
+  if(p.etat==='over') return `<span class="badge red">${p.att.length}/${p.cap} · sureffectif</span>`;
+  return `<span class="badge amber">${p.att.length}/${p.cap} · ${p.libres} place${p.libres>1?'s':''}</span>`;
+}
+function meter(p){ const n=Math.max(p.cap,p.att.length); return n?`<span class="meter" role="img" aria-label="${p.att.length} renforts attribués sur ${p.cap}">${Array.from({length:n},(_,i)=>`<i class="${i<p.att.length?(i>=p.cap?'over':'on'):''}"></i>`).join('')}</span>`:''; }
+// Ce que l'utilisateur connecté peut faire sur le renfort d'un jour
+function myAction(date){
+  const m=me(); if(date<iso(TODAY)||m.id==='m0') return '';
+  const b=renfortOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user);
+  const out=outBtn(d);
+  if(d?.statut==='attribuee') return `<span class="badge ${m.titulaire?'blue':'red'}">${m.titulaire?'Présent':'✓ Validé'}</span>${out}`;
+  if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${out}`;
+  if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
+  if(!m.actif) return `<span class="badge red">Compte sans activité</span>`;
+  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je suis présent':'Je pose un renfort'}</button>`;
+}
+function paxLine(m){ const al=alertes(m); return `<div class="pl" style="min-width:0"><div class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</div>${al.length?`<div class="row" style="gap:4px;margin-top:2px">${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div>`:''}</div>`; }
+// Fiche d'un jour : titulaires, compteur, attribués, en attente, et les actions selon le rôle
+function dayPanel(date){
+  const p=patrouille(date); const future=date>=iso(TODAY); const enc=isEnc()&&future; const my=myAction(date);
+  const titRow = enc
+    ? titulaires().map(t=>{const on=p.tit.some(d=>d.memberId===t.id); return `<label class="check"><input type="checkbox" id="tit-${date}-${t.id}" ${on?'checked':''} onchange="act.titPresence('${date}','${t.id}',this.checked)"> ${esc(shortName(t))}</label>`;}).join('')
+    : (p.tit.length?p.tit.map(d=>chip(member(d.memberId),'tit')).join(''):'<span class="small muted">Aucun titulaire indiqué</span>');
+  const capTxt = p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.cap} renforts`:'Aucun titulaire indiqué pour ce jour';
+  const att = !p.att.length?'<span class="small muted">Personne pour l’instant</span>'
+    : enc?`<div class="dlist">${p.att.map(d=>`<div>${paxLine(member(d.memberId))}<button class="btn sm" onclick="act.desattribuer('${d.id}')">Annuler la validation</button></div>`).join('')}</div>`
+    : `<div class="row" style="gap:6px">${p.att.map(d=>chip(member(d.memberId),'ok')).join('')}</div>`;
+  const blocked = false;
+  const wait = !p.wait.length?'<span class="small muted">Personne</span>'
+    : enc?`<div class="dlist">${p.wait.map(d=>`<div>${paxLine(member(d.memberId))}<div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')" ${blocked?'disabled':''}>Valider</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`).join('')}</div>`
+    : `<div class="row" style="gap:6px">${p.wait.map(d=>chip(member(d.memberId),'wait')).join('')}</div>`;
+  const detail = p.vide&&!enc ? `<div class="small muted">${future?'Personne ne s’est encore positionné ce jour-là.':'Rien ce jour-là.'}</div>` : `
+    <div class="row" style="gap:6px 14px"><span class="eyebrow">Titulaires</span>${titRow}</div>
+    <div class="row small muted" style="gap:8px">${meter(p)}<span>${capTxt}</span></div>
+    <div class="stack" style="gap:4px"><div class="eyebrow">Renforts validés · ${p.att.length}${p.tit.length?'/'+p.cap:''}</div>${att}</div>
+    <div class="stack" style="gap:4px"><div class="eyebrow">Renforts posés, en attente · ${p.wait.length}</div>${wait}</div>`;
+  return `<div class="card stripe renfort stack" id="fiche-jour">
+    <div class="row between"><div><div class="eyebrow">Patrouille du</div><h3>${fmtLong(date)}</h3></div>${p.vide?'':patBadge(p)}</div>
+    ${my?`<div class="myact">${my}</div>`:''}${detail}
+  </div>`;
+}
 
 function renderPlanning(){
   const list = S.besoins.filter(b=>b.date.startsWith(S.month)).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
   let body;
   if(S.view==='grille') body = renderGrille(list);
   else {
-    const days=[...new Set(list.map(b=>b.date))];
+    const shown=list.filter(b=>b.type!=='renfort'||!patrouille(b.date).vide);
+    const days=[...new Set(shown.map(b=>b.date))];
     body = days.length? days.map(d=>{
       const dt=new Date(d+'T00:00:00');
       return `<div class="day ${d===iso(TODAY)?'today':''}"><div class="d"><b class="num">${dt.getDate()}</b><span>${dt.toLocaleDateString('fr-FR',{weekday:'short'})}</span></div>
-        <div class="stack">${list.filter(b=>b.date===d).map(b=>{
+        <div class="stack">${shown.filter(b=>b.date===d).map(b=>{
+          if(b.type==='renfort'){ const p=patrouille(d); const my=myAction(d);
+            return `<div class="slot stripe renfort"><div class="row between"><span class="t">${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span>${patBadge(p)}</div>
+              <div class="row" style="gap:6px">${p.tit.map(a=>chip(member(a.memberId),'tit')).join('')}${p.att.map(a=>chip(member(a.memberId),'ok')).join('')}${p.wait.map(a=>chip(member(a.memberId),'wait')).join('')}</div>
+              ${my?`<div class="row" style="gap:6px;justify-content:flex-end">${my}</div>`:''}</div>`; }
           const at=attribs(b); const r=restantes(b);
           return `<div class="slot stripe ${b.type}"><div class="row between"><span class="t">${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span>${typeBadge(b)}</div>
             <div class="row" style="gap:6px">${at.length?at.map(a=>chip(member(a.memberId))).join(''):'<span class="small muted">Personne d’attribué</span>'}${r>0&&b.date>=iso(TODAY)?`<span class="badge amber">${r} place${r>1?'s':''} libre${r>1?'s':''}</span>`:''}</div></div>`;
         }).join('')}</div></div>`;
-    }).join('') : `<div class="empty">Aucun créneau publié pour ${monthLabel(S.month)}.</div>`;
+    }).join('') : `<div class="empty">Rien de posé pour ${monthLabel(S.month)}. Va dans « Dispos » pour poser un renfort.</div>`;
   }
-  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${isEnc()?'<button class="btn primary sm" onclick="act.nouveau()">+ Nouveau besoin</button>':''}</div></div>
-    ${legend()}
-    <p class="small muted" style="margin:0">Planning et attributions visibles par tous les réservistes. Ton nom est surligné.</p>
+  return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${me().id!=='m0'?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Poser un renfort</button>':''}</div></div>
+    ${S.view==='grille'?legend():'<div class="legend"><span><i style="background:var(--red)"></i>Validé</span><span><i class="hatch"></i>Posé, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>'}
     ${body}`;
 }
-function chip(m){ return `<span class="chip ${m.id===S.user?'me':''} ${m.actif?'':'inactive'}"><span class="av">${initials(m)}</span>${esc(shortName(m))}</span>`; }
 
 function renderGrille(list){
-  const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate();
-  const cells={}; // memberId -> day -> {h,type,pending}
-  list.forEach(b=>attribs(b).forEach(a=>{
+  const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate(); const today=iso(TODAY);
+  const cells={}; // memberId -> jour -> {h,type,wait}
+  list.forEach(b=>S.demandes.filter(d=>d.besoinId===b.id&&d.statut!=='refusee').forEach(a=>{
+    const m=member(a.memberId); if(!m) return;
+    const day=+b.date.slice(8); const prev=cells[a.memberId]?.[day]; if(prev&&!prev.wait) return;
     const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===a.memberId&&x.statut!=='refusee');
-    const day=+b.date.slice(8);
-    (cells[a.memberId] ||= {})[day] = {h: h? h.heures : b.duree, type:b.type, pending: !h || h.statut==='declaree'};
+    (cells[a.memberId] ||= {})[day] = {h: h? h.heures : (b.type==='renfort'&&m.titulaire?8:b.duree), type:(b.type==='renfort'&&m.titulaire)?'permanence':b.type, wait:a.statut==='demandee', tit:b.type==='renfort'&&m.titulaire};
   }));
-  const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.role==='encadrement'?0:1)-(b.role==='encadrement'?0:1)||a.nom.localeCompare(b.nom));
-  const head=Array.from({length:nDays},(_,i)=>{const d=new Date(y,mo-1,i+1); const we=d.getDay()%6===0; return `<th class="${we?'we':''}"><div class="small muted" style="font-weight:500">${'DLMMJVS'[d.getDay()]}</div>${i+1}</th>`;}).join('');
+  const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.titulaire?0:1)-(b.titulaire?0:1)||a.nom.localeCompare(b.nom));
+  const dates=Array.from({length:nDays},(_,i)=>dISO(y,mo,i+1));
+  const we=dates.map((_,i)=>new Date(y,mo-1,i+1).getDay()%6===0);
+  const head=dates.map((dt,i)=>`<th class="dayh ${we[i]?'we':''} ${S.day===dt?'sel':''}" onclick="act.day('${dt}')"><div class="small muted" style="font-weight:500">${'DLMMJVS'[new Date(y,mo-1,i+1).getDay()]}</div>${i+1}</th>`).join('');
   const body=rows.map(m=>{
     let tot=0;
-    const tds=Array.from({length:nDays},(_,i)=>{const c=cells[m.id]?.[i+1]; const we=new Date(y,mo-1,i+1).getDay()%6===0; if(!c) return `<td class="${we?'we':''}"></td>`; tot+=c.h; return `<td class="c ${c.type} ${c.pending?'pending':''} num" title="${TYPES[c.type].label}${c.pending?' — heures non validées':''}">${c.h}</td>`;}).join('');
-    return `<tr><td class="nm ${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(m.nom)} ${esc(m.prenom)}</td>${tds}<td class="tot num">${tot||''}</td></tr>`;
+    const tds=dates.map((dt,i)=>{const c=cells[m.id]?.[i+1]; const mine=m.id===S.user&&dt>=today&&m.actif;
+      const cls=`${we[i]?'we':''} ${S.day===dt?'sel':''} ${mine?'mine':''}`; const click=`onclick="act.${mine?'cell':'day'}('${dt}')"`;
+      if(!c) return `<td class="${cls}" ${click}${mine?' title="Poser un renfort ce jour-là"':''}></td>`;
+      if(c.wait) return `<td class="wait num ${cls}" ${click} title="Renfort posé — en attente d’attribution">${c.h}</td>`;
+      tot+=c.h; return `<td class="c ${c.type} num ${cls}" ${click} title="${c.tit?'Titulaire présent':TYPES[c.type].label+' attribué'}">${c.h}</td>`;}).join('');
+    return `<tr><td class="nm ${m.actif?'':'name-inactive'}"><span class="lg">${m.grade?esc(m.grade)+' ':''}${esc(m.nom)} ${esc(m.prenom)}</span><span class="sm">${esc(shortName(m))}</span>${m.titulaire?' <span class="badge blue">Titulaire</span>':''}</td>${tds}<td class="tot num">${tot||''}</td></tr>`;
   }).join('');
-  return `<div class="gridwrap"><table class="pgrid"><thead><tr><th class="nm">PAX</th>${head}<th class="tot">Total</th></tr></thead><tbody>${body}</tbody></table></div>
-    <p class="small muted" style="margin:0">Même lecture que le fichier Excel : une ligne par PAX, une colonne par jour, les heures dans la case. Une case pâle = heures pas encore validées par l’encadrement.</p>`;
+  const pats=dates.map(patrouille);
+  const count=`<tr class="count"><td class="nm">Titulaires</td>${pats.map(p=>`<td class="num">${p.tit.length||''}</td>`).join('')}<td class="tot"></td></tr>
+    <tr class="count"><td class="nm">Validés / places</td>${pats.map(p=>p.vide?'<td></td>':`<td class="num ${p.etat}" title="${p.etat==='notit'?'Pas de titulaire':p.etat==='full'?'Patrouille complète':p.etat==='over'?'Sureffectif':p.libres+' place(s) libre(s)'}">${p.etat==='notit'?'–':p.att.length+'/'+p.cap}</td>`).join('')}<td class="tot"></td></tr>
+    <tr class="count"><td class="nm">En attente</td>${pats.map(p=>`<td class="num">${p.wait.length||''}</td>`).join('')}<td class="tot"></td></tr>`;
+  const sel=S.day&&S.day.startsWith(S.month);
+  return `<div class="gridwrap"><table class="pgrid"><thead><tr><th class="nm">PAX</th>${head}<th class="tot">Total</th></tr></thead><tbody>${body}${count}</tbody></table></div>
+    <p class="small muted" style="margin:0">Comme dans l’Excel : une ligne par PAX, une colonne par jour. ${me().id!=='m0'?'Touche une case de ta ligne pour poser un renfort. ':''}Touche un jour pour voir la patrouille. Les trois lignes du bas font le compte jour par jour : vert = complète, orange = il reste des places.</p>
+    ${sel?dayPanel(S.day):''}`;
 }
 
 function renderBesoins(){
-  const today=iso(TODAY);
-  const list=S.besoins.filter(b=>b.date>=today).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
+  const today=iso(TODAY); const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate();
+  const lead=(new Date(y,mo-1,1).getDay()+6)%7; // la semaine commence le lundi
+  const m=me();
+  const cells=Array.from({length:nDays},(_,i)=>{ const d=dISO(y,mo,i+1); const p=patrouille(d);
+    const mine=p.b&&S.demandes.find(x=>x.besoinId===p.b.id&&x.memberId===S.user&&x.statut!=='refusee');
+    const st=mine?(mine.statut==='attribuee'?(m.titulaire?'tit':'ok'):'wait'):'';
+    const cnt=p.vide?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:`+${p.wait.length}`):`${p.att.length}/${p.cap}`;
+    const lbl=`${fmtLong(d)}${st==='ok'?', renfort attribué':st==='wait'?', renfort posé en attente':st==='tit'?', présent':''}${p.vide?'':', '+(p.etat==='notit'?p.wait.length+' en attente, pas de titulaire':p.att.length+' attribués sur '+p.cap)}`;
+    return `<button class="cal-d ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.day===d?'sel':''}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.day===d}"><b class="num">${i+1}</b><span class="cnt ${p.etat} num">${cnt}</span></button>`; }).join('');
+  const sel=S.day&&S.day.startsWith(S.month);
+  const list=S.besoins.filter(b=>b.date>=today&&b.type!=='renfort').sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
   const mine=S.demandes.filter(d=>d.memberId===S.user);
   const cards=list.map(b=>{
     const at=attribs(b); const r=restantes(b); const d=mine.find(x=>x.besoinId===b.id);
+    const out=outBtn(d);
     let action;
-    if(d?.statut==='attribuee') action=`<span class="badge green">✓ Attribué</span>`;
-    else if(d?.statut==='demandee') action=`<span class="badge amber">Demande en attente</span> <button class="btn sm" onclick="act.retirer('${d.id}')">Retirer</button>`;
+    if(d?.statut==='attribuee') action=`<span class="badge ${TYPES[b.type].color}">✓ Validé</span>${out}`;
+    else if(d?.statut==='demandee') action=`<span class="badge grey">En attente</span>${out}`;
     else if(d?.statut==='refusee') action=`<span class="badge grey">Non retenu</span>`;
+    else if(m.id==='m0') action='';
     else if(r<=0) action=`<span class="badge grey">Complet</span>`;
-    else if(!me().actif) action=`<span class="badge red">Compte sans activité</span>`;
+    else if(!m.actif) action=`<span class="badge red">Compte sans activité</span>`;
     else action=`<button class="btn primary sm" onclick="act.demander('${b.id}')">Je suis disponible</button>`;
     return `<div class="card stripe ${b.type} stack" style="gap:8px">
       <div class="row between"><div><div class="eyebrow">${fmtDate(b.date)}</div><h3>${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</h3><div class="small muted">${esc(b.lieu)} · ${b.duree} h · ${at.length}/${b.places} attribué${at.length>1?'s':''}</div></div>${typeBadge(b)}</div>
       ${at.length?`<div class="row" style="gap:6px">${at.map(a=>chip(member(a.memberId))).join('')}</div>`:''}
-      <div class="row between"><span class="small ${r>0?'':'muted'}">${r>0?`${r} place${r>1?'s':''} libre${r>1?'s':''}`:'Aucune place libre'}</span><span class="row">${action}</span></div></div>`;
+      <div class="row between"><span class="small ${r>0?'':'muted'}">${r>0?`${r} place${r>1?'s':''} libre${r>1?'s':''}`:'Aucune place libre'}</span><span class="row" style="gap:6px">${action}</span></div></div>`;
   }).join('');
-  return `<div><h2>Besoins à pourvoir</h2><p class="small muted" style="margin:4px 0 0">Indique tes disponibilités ; l’encadrement attribue ensuite et le planning se met à jour pour tout le monde.</p></div>
-    ${cards||'<div class="empty">Aucun besoin à venir.</div>'}`;
+  return `<div><h2>Mes renforts</h2><p class="small muted" style="margin:4px 0 0">Touche un jour pour poser un renfort. Le responsable valide ensuite.</p></div>
+    <div class="toolbar">${monthNav()}</div>
+    <div class="card stack" style="padding:10px"><div class="cal">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
+      <div class="legend"><span><i class="hatch"></i>Posé, en attente</span><span><i style="background:var(--red)"></i>Validé</span><span><b class="num">3/5</b> validés / places</span><span><b class="num">+2</b> posés, pas de titulaire</span></div></div>
+    ${sel?dayPanel(S.day):'<div class="empty">Touche un jour du calendrier.</div>'}
+    ${cards?`<h3>Événements et formations</h3>${cards}`:''}`;
+}
+
+function monProfilCard(m){
+  return `<div class="card stack" id="mon-profil"><h3>Mon profil</h3><p class="small muted" style="margin:0">Tes coordonnées, visibles dans l’annuaire de l’équipe. Modifie un champ : c’est enregistré dès que tu en sors.</p>
+    <div class="grid2"><label class="field">Téléphone<input id="me-tel" type="tel" inputmode="tel" autocomplete="tel" value="${esc(m.tel||'')}" onchange="act.monProfil('tel',this.value)"></label>
+    <label class="field">Adresse email<input id="me-email" type="email" autocomplete="email" value="${esc(m.email||'')}" placeholder="prenom.nom@exemple.fr" onchange="act.monProfil('email',this.value)"></label></div>
+    <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’encadrement.</div></div>`;
+}
+function myBadges(m,k){ const s=dossierStatus(m.dossier[k]); return `<span class="badge ${s.cls}">${s.rank===0?'Valide':s.label}</span>${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’encadrement</span>':''}`; }
+function myManque(m){ const n=DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length; return n?`<span class="badge grey">${n} date${n>1?'s':''} à renseigner</span>`:'<span class="badge green">Complet</span>'; }
+function monDossierCard(m){
+  if(m.id==='m0') return '';
+  return `<div class="card stack" id="mon-dossier"><div class="row between"><h3>Mon dossier</h3><span id="my-manque">${myManque(m)}</span></div>
+    <p class="small muted" style="margin:0">Indique pour chaque élément la date de fin de validité. L’encadrement vérifie ensuite ce que tu as saisi. Seuls toi et l’encadrement voyez ce dossier.</p>
+    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><div style="min-width:0"><label for="my-${k}" style="font-weight:600">${l}</label><div class="row" id="bd-my-${k}" style="gap:4px;margin-top:2px">${myBadges(m,k)}</div></div><input type="date" id="my-${k}" class="dinput" value="${m.dossier[k]||''}" onchange="act.monDossier('${k}',this.value)"></div>`).join('')}</div></div>`;
+}
+function mesProchaines(){
+  const today=iso(TODAY);
+  const list=S.demandes.filter(d=>d.memberId===S.user&&d.statut!=='refusee').map(d=>({d,b:besoin(d.besoinId)})).filter(x=>x.b&&x.b.date>=today).sort((a,b)=>a.b.date.localeCompare(b.b.date));
+  return `<div class="card stack"><h3>Mes prochaines vacations</h3>${list.length?list.map(({d,b})=>{
+    const ok=d.statut==='attribuee'; const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));
+    return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge ${TYPES[b.type].color}">Validé</span>`:'<span class="badge grey">En attente d’attribution</span>'}${outBtn(d)}</span></div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div>${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
+  }).join(''):'<div class="small muted">Rien de prévu. Va dans « Dispos » pour poser un renfort.</div>'}</div>`;
 }
 
 function renderMoi(){
@@ -420,38 +643,53 @@ function renderMoi(){
   const hist=mineH.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   const stat={declaree:'<span class="badge amber">En attente</span>',validee:'<span class="badge green">Validé</span>',refusee:'<span class="badge red">Refusé</span>'};
   return `<div class="row" style="gap:12px"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div><h2 class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</h2><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · <b style="color:var(--red)">Plus d’activité à la BSTC</b>'}</div></div></div>
+    ${m.id!=='m0'&&DOSSIER_ITEMS.some(([k])=>!m.dossier[k])?`<div class="card todo row between"><span><b>Ton dossier est incomplet.</b> <span class="small">Il manque ${DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length} date(s) de validité.</span></span><button class="btn primary sm" onclick="document.getElementById('mon-dossier').scrollIntoView({block:'start'})">Compléter</button></div>`:''}
     <div class="card"><div class="eyebrow" style="margin-bottom:8px">Mes heures</div><div class="kpi"><div><b class="num">${valMois}</b><span>validées ce mois</span></div><div><b class="num">${attente}</b><span>en attente</span></div><div><b class="num">${valAn}</b><span>validées en ${y}</span></div></div></div>
     ${aDeclarer.length?`<div class="card stack"><h3>À déclarer</h3><p class="small muted" style="margin:0">Saisis le nombre d’heures réellement effectuées. L’encadrement (Richard, Didier ou le responsable) valide ensuite.</p>
       ${aDeclarer.map(b=>`<div class="row between stripe ${b.type}" style="padding-left:10px"><div><b>${fmtDate(b.date)}</b> · ${esc(b.libelle)}<div class="small muted">${hm(b.debut)} – ${hm(b.fin)}</div></div><div class="row" style="gap:6px"><input id="h-${b.id}" type="number" min="0.5" max="24" step="0.5" value="${b.duree}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures effectuées"> h <button class="btn primary sm" onclick="act.declarer('${b.id}')">Déclarer</button></div></div>`).join('')}</div>`:''}
-    <div class="card stack"><h3>Mes prochaines vacations</h3>${aVenir.length?aVenir.map(b=>{const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));return `<div class="stripe ${b.type}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b>${typeBadge(b)}</div><div class="small">${esc(b.libelle)} · ${esc(b.lieu)}</div><div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(chip).join(''):'<span>personne d’autre pour l’instant</span>'}</div></div>`;}).join(''):'<div class="small muted">Aucune vacation attribuée à venir. Va dans « Besoins » pour te positionner.</div>'}</div>
-    <div class="card stack"><h3>Mon dossier</h3><div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<div><span>${l}</span><span class="badge ${s.cls}">${s.label}</span></div>`;}).join('')}</div><p class="small muted" style="margin:0">Dates mises à jour par l’encadrement uniquement.</p></div>
+    ${mesProchaines()}
+    ${monProfilCard(m)}
+    ${monDossierCard(m)}
     <div class="card stack"><h3>Historique récent</h3><div class="dlist">${hist.length?hist.map(h=>{const b=besoin(h.besoinId);return `<div><span><b>${fmtDate(h.date)}</b> <span class="small muted">${esc(b?.libelle||'')}</span></span><span class="row" style="gap:8px"><span class="num">${h.heures} h</span>${stat[h.statut]}</span></div>`;}).join(''):'<div class="small muted">Rien pour l’instant.</div>'}</div></div>`;
 }
 
 function renderEquipe(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.role==='encadrement'?0:1)-(b.role==='encadrement'?0:1)||a.nom.localeCompare(b.nom));
-  return `<div><h2>Équipe</h2><p class="small muted" style="margin:4px 0 0">${rows.filter(m=>m.actif).length} réservistes actifs · appuie sur un numéro pour le copier.</p></div>
+  return `<div><h2>Équipe</h2><p class="small muted" style="margin:4px 0 0">${rows.filter(m=>m.actif).length} personnes actives · appuie sur un numéro pour le copier.</p></div>
     <div class="card" style="padding-block:4px">${rows.map(m=>`<div class="pax-item" style="cursor:default"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · plus d’activité'}</div></div><button class="btn sm phone" onclick="act.copy('${m.tel}')">${m.tel}</button></div>`).join('')}</div>`;
 }
 
 function renderGestion(){
-  const subs=[['demandes',`Demandes${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['besoins','Besoins'],['pax','Dossiers PAX']];
+  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['besoins','Événements'],['pax','Dossiers PAX']];
   return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.nouveau()">+ Nouveau besoin</button></div>
     <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
     ${({demandes:gDemandes,heures:gHeures,besoins:gBesoins,pax:gPax})[S.sub]()}`;
 }
 
 function gDemandes(){
-  const pend=S.demandes.filter(d=>d.statut==='demandee');
+  const today=iso(TODAY);
+  const pendR=S.demandes.filter(d=>d.statut==='demandee'&&besoin(d.besoinId)?.type==='renfort'&&besoin(d.besoinId).date>=today&&member(d.memberId))
+    .sort((a,b)=>besoin(a.besoinId).date.localeCompare(besoin(b.besoinId).date));
+  const rDates=[...new Set(S.besoins.filter(b=>b.type==='renfort'&&b.date>=today&&!patrouille(b.date).vide).map(b=>b.date))].sort();
+  const pend=S.demandes.filter(d=>d.statut==='demandee'&&besoin(d.besoinId)?.type!=='renfort');
   const byB={}; pend.forEach(d=>(byB[d.besoinId] ||= []).push(d));
   const ids=Object.keys(byB).sort((a,b)=>besoin(a).date.localeCompare(besoin(b).date));
-  if(!ids.length) return '<div class="empty">Aucune demande en attente. Tout est à jour.</div>';
-  return `<p class="small muted" style="margin:0">Attribue les collègues sur chaque créneau. Les alertes de dossier sont rappelées à côté du nom.</p>`+ids.map(bid=>{const b=besoin(bid); const r=restantes(b);
-    return `<div class="card stripe ${b.type} stack"><div class="row between"><div><div class="eyebrow">${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</div><h3>${esc(b.libelle)}</h3><div class="small muted">${attribs(b).length}/${b.places} attribués · <b>${r} place${r>1?'s':''} restante${r>1?'s':''}</b></div></div>${typeBadge(b)}</div>
-      ${attribs(b).length?`<div class="row" style="gap:6px">${attribs(b).map(a=>chip(member(a.memberId))).join('')}</div>`:''}
-      <div class="dlist">${byB[bid].map(d=>{const m=member(d.memberId); const al=alertes(m);
-        return `<div><div style="min-width:0"><div class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</div>${al.length?`<div class="row" style="gap:4px;margin-top:2px">${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div>`:'<div class="small muted">Dossier à jour</div>'}</div>
-          <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')" ${r<=0?'disabled':''}>Attribuer</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`;}).join('')}</div></div>`;}).join('');
+  const ret=(S.retraits||[]).filter(r=>member(r.memberId));
+  const rows=pendR.map(d=>{ const b=besoin(d.besoinId); const m=member(d.memberId); const p=patrouille(b.date); const al=alertes(m);
+    return `<div class="valrow"><div style="min-width:0"><div class="${m.actif?'':'name-inactive'}" style="font-weight:700">${esc(fullName(m))}</div>
+        <div><b>${fmtDate(b.date)}</b> <span class="small muted">· ${hm(b.debut)} – ${hm(b.fin)} · ${esc(b.libelle)}</span></div>
+        <div class="row" style="gap:4px;margin-top:4px">${patBadge(p)}${al.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<span class="badge ${s.cls}">${l} · ${s.label.toLowerCase()}</span>`;}).join('')}</div></div>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok" onclick="act.attribuer('${d.id}')">Valider</button><button class="btn danger" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`; }).join('');
+  const autres=ids.map(bid=>{const b=besoin(bid); const r=restantes(b);
+    return `<div class="card stripe ${b.type} stack"><div class="row between"><div><div class="eyebrow">${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</div><h3>${esc(b.libelle)}</h3><div class="small muted">${attribs(b).length}/${b.places} validés · <b>${r} place${r>1?'s':''} restante${r>1?'s':''}</b></div></div>${typeBadge(b)}</div>
+      <div class="dlist">${byB[bid].map(d=>`<div>${paxLine(member(d.memberId))}
+          <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')" ${r<=0?'disabled':''}>Valider</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`).join('')}</div></div>`;}).join('');
+  return `<div class="card stack" id="a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Renforts à valider</h3><span class="badge ${pendR.length?'red':'green'}">${pendR.length?pendR.length+' en attente':'Tout est validé'}</span></div>
+      <p class="small muted" style="margin:0">Dès qu’un agent pose un renfort, il arrive ici. Touche « Valider » : sa case passe en rouge sur le planning de tout le monde.</p>
+      ${rows?`<div class="dlist">${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
+    ${ret.length?`<div class="card stack"><h3>Retraits après validation</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est retiré</span><span class="small muted">${fmtDate(r.date)} · place libérée</span></div>`).join('')}</div></div>`:''}
+    ${rDates.length?`<div><h3>Détail par jour</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 5 renforts avec un titulaire, 8 avec deux. Le compteur se met à jour tout seul.</p></div>${rDates.map(dayPanel).join('')}`:''}
+    ${autres?`<h3>Événements et formations</h3>${autres}`:''}`;
 }
 
 function gHeures(){
@@ -465,16 +703,16 @@ function gHeures(){
 }
 
 function gBesoins(){
-  const list=S.besoins.filter(b=>b.date>=iso(TODAY)).sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
-  return `<div class="card stack" id="nb-form" style="border-color:var(--accent)"><h3>Nouveau besoin</h3><p class="small muted" style="margin:0">Une fois publié, le créneau apparaît dans « Besoins » pour tous les réservistes, qui peuvent s’y positionner.</p>
+  const list=S.besoins.filter(b=>b.date>=iso(TODAY)&&b.type!=='renfort').sort((a,b)=>a.date.localeCompare(b.date)||a.debut.localeCompare(b.debut));
+  return `<div class="card stack" id="nb-form" style="border-color:var(--accent)"><h3>Nouveau besoin</h3><p class="small muted" style="margin:0">Les renforts n’ont pas besoin d’être publiés : chacun les pose librement, jour par jour. Publie ici les événements, formations et permanences, avec un nombre de places.</p>
     <form class="stack" onsubmit="act.creerBesoin(event)">
       <div class="grid2"><label class="field">Date<input name="date" id="nb-date" type="date" required value="${addDays(iso(TODAY),7)}"></label>
-        <label class="field">Type<select name="type" id="nb-type">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}">${t.label}</option>`).join('')}</select></label>
+        <label class="field">Type<select name="type" id="nb-type">${Object.entries(TYPES).filter(([k])=>k!=='renfort').map(([k,t])=>`<option value="${k}">${t.label}</option>`).join('')}</select></label>
         <label class="field">Début<input name="debut" id="nb-debut" type="time" value="15:00" required></label><label class="field">Fin<input name="fin" id="nb-fin" type="time" value="22:00" required></label>
         <label class="field">Places<input name="places" id="nb-places" type="number" min="1" max="30" value="4"></label><label class="field">Lieu<input name="lieu" id="nb-lieu" placeholder="Paris"></label></div>
-      <label class="field">Libellé<input name="libelle" id="nb-libelle" placeholder="Ex. Renfort BSTC, Fête de l’Humanité, Formation risques électriques"></label>
+      <label class="field">Libellé<input name="libelle" id="nb-libelle" placeholder="Ex. Fête de l’Humanité, Formation risques électriques"></label>
       <div><button class="btn primary" type="submit">Publier le besoin</button></div></form></div>
-    <div class="card stack"><h3>Besoins à venir (${list.length})</h3><div class="dlist">${list.map(b=>`<div><div><b>${fmtDate(b.date)}</b> ${hm(b.debut)}–${hm(b.fin)} · ${esc(b.libelle)}<div class="small muted">${attribs(b).length}/${b.places} attribués · ${S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='demandee').length} en attente</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${typeBadge(b)}<button class="btn danger sm" onclick="act.supprBesoin('${b.id}')">Suppr.</button></div></div>`).join('')||'<div class="small muted">Aucun.</div>'}</div></div>`;
+    <div class="card stack"><h3>Événements à venir (${list.length})</h3><div class="dlist">${list.map(b=>`<div><div><b>${fmtDate(b.date)}</b> ${hm(b.debut)}–${hm(b.fin)} · ${esc(b.libelle)}<div class="small muted">${attribs(b).length}/${b.places} attribués · ${S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='demandee').length} en attente</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${typeBadge(b)}<button class="btn danger sm" onclick="act.supprBesoin('${b.id}')">Suppr.</button></div></div>`).join('')||'<div class="small muted">Aucun.</div>'}</div></div>`;
 }
 
 function gPax(){
@@ -483,15 +721,18 @@ function gPax(){
   return `<div class="row between"><div><h3>${rows.length} PAX</h3><div class="small muted">${rows.filter(m=>!m.actif).length} sans activité · ${nAl} dossier${nAl>1?'s':''} avec alerte</div></div><button class="btn sm" onclick="act.reset()">Réinitialiser la démo</button></div>
     <div class="card" style="padding-block:4px">${rows.map(m=>{const al=alertes(m); const open=S.paxOpen===m.id;
       return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · plus d’activité à la BSTC'}</div></div>
-        ${!m.actif?'':al.length?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)?'red':'amber'}">${al.length} alerte${al.length>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}<span class="muted">${open?'▾':'▸'}</span></div>
-        ${open?`<div class="stack" style="padding:6px 0 14px 46px" onclick="event.stopPropagation()">
-          <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></label>
+        ${!m.actif?'':al.length?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)?'red':'amber'}">${al.length} alerte${al.length>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}${Object.values(m.aVerifier||{}).filter(Boolean).length?`<span class="badge blue">${Object.values(m.aVerifier).filter(Boolean).length} à vérifier</span>`:''}<span class="muted">${open?'▾':'▸'}</span></div>
+        ${open?`<div class="stack paxdetail" style="padding:6px 0 14px 46px" onclick="event.stopPropagation()">
+          <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
+          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la patrouille : 5 renforts à un, 8 à deux)</span></span></label>
           <div class="grid2"><label class="field">Rôle<select id="role-${m.id}" onchange="act.paxField('${m.id}','role',this.value)">${['reserviste','encadrement','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}</select></label>
           <label class="field">Téléphone<input id="tel-${m.id}" value="${esc(m.tel)}" onchange="act.paxField('${m.id}','tel',this.value)"></label></div>
+          <div class="small muted">Email : ${esc(m.email||'non renseigné')}. Téléphone et email sont aussi modifiables par l’agent lui-même, ainsi que ses dates (à confirmer ici).</div>
           <div class="eyebrow">Dates de validité</div>
-          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="field">${l} <span class="badge ${s.cls}" style="font-weight:500">${s.label}</span><input type="date" id="${k}-${m.id}" value="${m.dossier[k]||''}" onchange="act.paxField('${m.id}','${k}',this.value)"></label>`;}).join('')}</div>
+          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="field">${l} <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span><input type="date" id="${k}-${m.id}" value="${m.dossier[k]||''}" onchange="act.paxField('${m.id}','${k}',this.value)">${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Confirmer la date saisie par l’agent</button>`:''}</label>`;}).join('')}</div>
         </div>`:''}`;}).join('')}</div>`;
 }
 
 render();
 </script>
+</body></html>
