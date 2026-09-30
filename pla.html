@@ -496,7 +496,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="lg">Brigade des transports · </span>v12</small></div>
+      <div class="brand">Planning BSTC<small><span class="lg">Brigade des transports · </span>v13</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       <button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -529,7 +529,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 12</b> · 30/09/2026 · tirs, habilitations, gestion des réservistes</p>
+    <p class="small muted" style="margin:0"><b>Version 13</b> · 30/09/2026 · tirs, habilitations, gestion des réservistes</p>
   </div></div>`;
 }
 
@@ -697,7 +697,8 @@ function monProfilCard(m){
   return `<div class="card stack" id="mon-profil"><h3>Mon profil</h3><p class="small muted" style="margin:0">Tes coordonnées, visibles dans l’annuaire de l’équipe. Modifie un champ : c’est enregistré dès que tu en sors.</p>
     <div class="grid2"><label class="field">Téléphone<input id="me-tel" type="tel" inputmode="tel" autocomplete="tel" value="${esc(m.tel||'')}" onchange="act.monProfil('tel',this.value)"></label>
     <label class="field">Adresse email<input id="me-email" type="email" autocomplete="email" value="${esc(m.email||'')}" placeholder="prenom.nom@exemple.fr" onchange="act.monProfil('email',this.value)"></label></div>
-    <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’admin.</div></div>`;
+    <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’admin.</div>
+    ${REMOTE?`<div class="row" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><label class="field" style="flex:1 1 160px">Nouveau mot de passe<input id="me-pwd" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.changePwd()">Changer mon mot de passe</button></div>`:''}</div>`;
 }
 function myBadges(m,k){ const s=dossierStatus(m.dossier[k]); return `<span class="badge ${s.cls}">${s.rank===0?'Valide':s.label}</span>${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’admin</span>':''}`; }
 function myManque(m){ const n=DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length; return n?`<span class="badge grey">${n} date${n>1?'s':''} à renseigner</span>`:'<span class="badge green">Complet</span>'; }
@@ -920,7 +921,7 @@ function renderAuth(){
       <button class="btn primary" type="submit">Se connecter</button></form>
     <button class="linkbtn" onclick="act.authMode('up')">Créer mon compte</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 12</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 13</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -941,6 +942,8 @@ const RA = {
   async forgot(){ const e=document.getElementById('au-email')?.value.trim(); if(!e){ toast('Écris d’abord ton adresse email'); return; } const r=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.href.split('#')[0]}); toast(r.error?'Erreur : '+errMsg(r.error):'Email de réinitialisation envoyé'); },
   async recheck(){ await enter(); if(!S.user) toast('Pas encore accepté'); },
   async logout(){ try{ await sb.auth.signOut(); }catch(e){} AUTHU=null; MEROW=null; S.user=null; S.auth='in'; S.authErr=''; render(); },
+  async changePwd(){ const el=document.getElementById('me-pwd'); const v=el?el.value:''; if(v.length<6){ toast('6 caractères au moins'); return; }
+    const r=await sb.auth.updateUser({password:v}); if(r.error){ toast('Erreur : '+errMsg(r.error)); return; } el.value=''; toast('Mot de passe changé'); },
   login(){}, reset(){},
   approuver(id){ return run(()=>sb.from('members').update({approuve:true}).eq('id',id),'Compte accepté'); },
   refuserCompte(id){ return run(()=>sb.from('members').delete().eq('id',id),'Compte refusé'); },
