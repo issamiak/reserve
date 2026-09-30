@@ -1,4 +1,10 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>Planning BSTC</title>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="author" content="Issam AKEZDAW"><meta name="copyright" content="© 2026 Issam AKEZDAW — Tous droits réservés"></head><body><title>Planning BSTC</title>
+<!--
+  Planning BSTC — gestion des vacations de la réserve (brigade des transports)
+  Auteur : Issam AKEZDAW
+  © 2026 Issam AKEZDAW — Tous droits réservés.
+  Toute copie, réutilisation ou diffusion, même partielle, est interdite sans l'accord écrit de l'auteur.
+-->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: one-screen app shell — sticky top bar, scrolling content, bottom tab bar on phones (side rail on desktop). */
@@ -267,6 +273,7 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 
 <script>
 /* ---------------- données de démonstration (issues du fichier Planning_BSTC.xlsx) ---------------- */
+/* Planning BSTC — Auteur : Issam AKEZDAW — © 2026 Issam AKEZDAW — Tous droits réservés */
 /* ================= CONFIGURATION =================
    Pour passer en mode réel, colle ici les deux valeurs de ton projet Supabase
    (Project Settings > API : « Project URL » et clé « anon public »).
@@ -509,7 +516,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v18</small></div>
+      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v19</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -542,7 +549,8 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 18</b> · 30/09/2026 · vacations créées par l’admin</p>
+    <p class="small muted" style="margin:0"><b>Version 19</b> · 01/10/2026</p>
+    <p class="small muted" style="margin:0">© 2026 Issam AKEZDAW — Tous droits réservés</p>
   </div></div>`;
 }
 
@@ -765,10 +773,12 @@ function renderMoi(){
     <div class="card stack"><h3>Historique récent</h3><div class="dlist">${hist.length?hist.map(h=>{const b=besoin(h.besoinId);return `<div><span><b>${fmtDate(h.date)}</b> <span class="small muted">${esc(b?.libelle||'')}</span></span><span class="row" style="gap:8px"><span class="num">${h.heures} h</span>${stat[h.statut]}</span></div>`;}).join(''):'<div class="small muted">Rien pour l’instant.</div>'}</div></div>`;
 }
 
+const SIGNATURE = '<p class="small muted" style="margin:0;text-align:center">Planning BSTC · © 2026 Issam AKEZDAW — Tous droits réservés</p>';
 function renderEquipe(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.role==='admin'?0:1)-(b.role==='admin'?0:1)||a.nom.localeCompare(b.nom));
   return `<div><h2>Équipe</h2><p class="small muted" style="margin:4px 0 0">${rows.filter(m=>m.actif).length} personnes actives · appuie sur un numéro pour le copier.</p></div>
-    <div class="card" style="padding-block:4px">${rows.map(m=>`<div class="pax-item" style="cursor:default"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · plus d’activité'}</div></div><button class="btn sm phone" onclick="act.copy('${m.tel}')">${m.tel}</button></div>`).join('')}</div>`;
+    <div class="card" style="padding-block:4px">${rows.map(m=>`<div class="pax-item" style="cursor:default"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · plus d’activité'}</div></div><button class="btn sm phone" onclick="act.copy('${m.tel}')">${m.tel}</button></div>`).join('')}</div>
+    ${SIGNATURE}`;
 }
 
 function renderGestion(){
@@ -936,7 +946,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     <button class="linkbtn" onclick="act.authMode('up')">Première installation</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 18</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 19 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
