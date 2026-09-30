@@ -232,6 +232,9 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .vacedit{border-top:1px solid var(--line);padding-top:10px}
 .vacedit summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--accent)}
 @media (min-width:760px){ .wrap{max-width:980px} .cal-d{min-height:64px} .actbar{position:static;box-shadow:none} .tabbar{width:120px} }
+.cal-d.pick{outline:3px solid var(--accent);outline-offset:1px;background:var(--accent-soft);color:var(--fg);border-color:var(--accent)}
+.cal.multi .cal-d.off{border:1px dashed var(--muted)}
+.cal.multi .cal-d.vac,.cal.multi .cal-d.mat{opacity:.5}
 .todo{border-color:var(--accent);background:var(--accent-soft)}
 @media (max-width:600px){ .pgrid .nm{min-width:118px;padding:0 6px} .pgrid .nm .badge{display:none} .pgrid .tot{position:static} }
 .rule{background:var(--accent-soft);border-radius:8px;padding:8px 12px;font-size:13px}
@@ -405,7 +408,8 @@ window.act = {
   view(v){ S.view=v; save(); render(); },
   month(n){ shiftMonth(n); },
   thisMonth(){ S.month=iso(TODAY).slice(0,7); S.day=iso(TODAY); save(); render(); },
-  pick(date){ S.day=date; S.confirm=null; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest',behavior:'smooth'}); },
+  pick(date){ if(S.multi){ if(vacOf(date)){ toast('Ce jour a déjà une vacation'); return; } const i=S.multi.indexOf(date); if(i>=0) S.multi.splice(i,1); else S.multi.push(date); render(); return; }
+    S.day=date; S.confirm=null; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest',behavior:'smooth'}); },
   reset,
   day(date){ S.day = S.day===date?null:date; save(); render(); },
   cell(date){ S.day=date; const b=vacOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(b&&!d&&me().actif&&date>=iso(TODAY)) act.dispo(date); else { save(); render(); } },
@@ -467,6 +471,11 @@ window.act = {
   go(id,focus){ const el=document.getElementById(id); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1400); if(focus) setTimeout(()=>document.getElementById(focus)?.focus({preventScroll:true}),450); },
   copy(txt,msg){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(msg||'Numéro copié'),()=>toast(txt)); } else toast(txt); },
   credOk(){ S.cred=null; render(); },
+  multi(){ S.multi=S.multi?null:[]; S.confirm=null; render(); },
+  multiSemaine(){ if(!S.multi) return; const [y,mo]=S.month.split('-').map(Number); const n=new Date(y,mo,0).getDate(); const today=iso(TODAY);
+    S.multi=Array.from({length:n},(_,i)=>dISO(y,mo,i+1)).filter(d=>d>=today&&!vacOf(d)&&![0,6].includes(new Date(d+'T00:00:00').getDay())); render(); if(!S.multi.length) toast('Aucun jour libre du lundi au vendredi ce mois-ci'); },
+  multiCreer(type){ if(!isEnc()||!S.multi) return; const t=TYPES[type]||TYPES.vacation; const ds=S.multi.filter(d=>!vacOf(d)); if(!ds.length) return;
+    ds.forEach(d=>S.besoins.push({id:nid('b'),date:d,debut:t.debut,fin:t.fin,type,libelle:t.label,lieu:'Paris',places:0,duree:7})); S.multi=null; save(); render(); toast(`${ds.length} vacation${ds.length>1?'s':''} créée${ds.length>1?'s':''}`); },
   alerte(id){ S.alertOpen=S.alertOpen===id?null:id; render(); },
   delNotif(id){ if(!isEnc()) return; S.notifs=(S.notifs||[]).filter(n=>n.id!==id); save(); render(); toast('Message supprimé'); },
   // Export du mois, comme la feuille Excel : une ligne par personne, une colonne par jour, heures et total.
@@ -500,7 +509,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v17</small></div>
+      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v18</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -533,7 +542,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 17</b> · 30/09/2026 · vacations créées par l’admin</p>
+    <p class="small muted" style="margin:0"><b>Version 18</b> · 30/09/2026 · vacations créées par l’admin</p>
   </div></div>`;
 }
 
@@ -564,6 +573,7 @@ function myAction(date){
   return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent':m.role==='admin'?'Je me mets dessus':'Je suis dispo'}</button>`;
 }
 function alertBadge(m){ const al=alertes(m); const t=tirInfo(m); const n=al.length+(t.ok?0:1); if(!n) return '';
+  if(!DOSSIER_ITEMS.some(([k])=>m.dossier[k])&&!(m.tirs||[]).length) return `<span class="badge grey" title="Aucune date ni tir saisi">Dossier vide</span>`;
   const red=al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)||t.n===0;
   return `<button class="badge ${red?'red':'amber'} abtn" onclick="event.stopPropagation();act.alerte('${m.id}')" aria-expanded="${S.alertOpen===m.id}" title="Voir les alertes du dossier">⚠ ${n}</button>`; }
 function alertDetail(m){ if(S.alertOpen!==m.id) return ''; const l=alertes(m).map(([k,lab])=>`${lab} : ${dossierStatus(m.dossier[k]).label.toLowerCase()}`); const t=tirInfo(m); if(!t.ok) l.push('Tirs : '+t.label);
@@ -665,6 +675,9 @@ function renderGrille(list){
     ${sel?dayPanel(S.day):''}`;
 }
 
+function multiBar(){ const n=S.multi.length;
+  return `<div class="actbar" style="flex-wrap:wrap"><div style="min-width:0;flex:1 1 170px"><b>${n?`${n} jour${n>1?'s':''} sélectionné${n>1?'s':''}`:'Touche les jours à créer'}</b><div><button class="linkbtn" style="padding:0;font-size:13px" onclick="act.multiSemaine()">Tous les lundis au vendredis du mois</button></div></div>
+    <div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" ${n?'':'disabled'} onclick="act.multiCreer('${k}')">+ ${t.label}</button>`).join('')}</div></div>`; }
 // Onglet « Vacations » : le calendrier du mois. L'admin crée les vacations, le réserviste se propose dessus.
 function renderBesoins(){
   const today=iso(TODAY); const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate(); const adm=isEnc(); const m=me();
@@ -677,18 +690,19 @@ function renderBesoins(){
     const st=mine?(mine.statut==='attribuee'?(m.titulaire?'tit':'ok'):'wait'):'';
     const cnt=!b?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:p.wait.length?`+${p.wait.length}`:typeOf(b).court):`${p.att.length}/${p.cap}`;
     const lbl=`${fmtLong(d)}${b?', '+typeOf(b).label:', pas de vacation'}${st==='ok'?', validé':st==='wait'?', dispo en attente':st==='tit'?', présent':''}`;
-    return `<button class="cal-d ${b?(b.type==='matin'?'mat':'vac'):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.day===d?'sel':''}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
+    return `<button class="cal-d ${b?(b.type==='matin'?'mat':'vac'):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.multi?(S.multi.includes(d)?'pick':''):(S.day===d?'sel':'')}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.multi?S.multi.includes(d):S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
   const sel=S.day&&S.day.startsWith(S.month); const b=sel&&vacOf(S.day); const my=sel?myAction(S.day):'';
   let bar='';
-  if(sel&&b&&my) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${my}</div></div>`;
+  if(adm&&S.multi) bar=multiBar();
+  else if(sel&&b&&my) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${my}</div></div>`;
   else if(sel&&!b&&adm) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation. Créer :</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" onclick="act.creerVac('${S.day}','${k}')">+ ${t.label}</button>`).join('')}</div></div>`;
   else if(sel&&!b) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation ce jour</div></div></div>`;
   return `<div><h2>Vacations du mois</h2><p class="small muted" style="margin:4px 0 0">${adm?'Touche un jour : crée la vacation (Vacation 15h–22h ou Matin 10h–17h), puis gère qui est dessus.':'Touche un jour coloré, puis « Je suis dispo ». L’admin valide : le jour passe en vert.'}</p></div>
-    <div class="toolbar">${monthNav()}</div>
-    <div class="card stack" style="padding:10px"><div class="cal">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
+    <div class="toolbar between">${monthNav()}${adm?`<button class="btn sm" onclick="act.multi()">${S.multi?'Terminer':'Créer plusieurs jours'}</button>`:''}</div>
+    <div class="card stack" style="padding:10px"><div class="cal ${adm&&S.multi?'multi':''}">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
       <div class="legend"><span><i style="background:var(--accent)"></i>Vacation</span><span><i style="background:var(--amber)"></i>Matin</span><span><i class="hatch"></i>Ma dispo en attente</span><span><i style="background:var(--green)"></i>Je suis validé</span><span><b class="num">3/5</b> validés / places</span></div></div>
     ${bar}
-    ${sel&&b?dayPanel(S.day,true):''}`;
+    ${sel&&b&&!(adm&&S.multi)?dayPanel(S.day,true):''}`;
 }
 
 function tirMeter(i){ return `<span class="meter" role="img" aria-label="${i.n} tirs sur 3">${[0,1,2].map(k=>`<i class="${k<i.n?'on':''}"></i>`).join('')}</span>`; }
@@ -922,7 +936,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     <button class="linkbtn" onclick="act.authMode('up')">Première installation</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 17</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 18</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -963,6 +977,8 @@ const RA = {
   titPresence(date,mid,on){ const b=vacOf(date); if(!b) return; const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
     return run(()=>on?(ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user})):(ex?sb.from('demandes').delete().eq('id',ex.id):null),
       ()=>{ const p=patrouille(date); return p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} réservistes possibles`:'Plus de titulaire ce jour-là'; }); },
+  multiCreer(type){ if(!S.multi) return; const t=TYPES[type]||TYPES.vacation; const ds=S.multi.filter(d=>!vacOf(d)); if(!ds.length) return; S.multi=null;
+    return run(()=>Promise.all(ds.map(d=>sb.from('besoins').insert({date:d,type,debut:t.debut,fin:t.fin,libelle:t.label,lieu:'Paris',places:0,duree:7}))),`${ds.length} vacation${ds.length>1?'s':''} créée${ds.length>1?'s':''}`); },
   // ---- dispos
   dispo(date){ const m=me(); const b=vacOf(date); if(!b){ toast('Pas de vacation ce jour'); return; } if(!m.actif) return; const direct=m.role==='admin';
     const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===m.id);
