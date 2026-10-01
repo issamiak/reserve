@@ -335,6 +335,11 @@ const DOSSIER_ITEMS = [
   ['visite_medicale','Visite médicale'],['habilitation','Habilitation'],
   ['pie','PIE'],['grenades','Grenades'],['baton','Bâton'],
 ];
+// Les types d'habilitation sont gérés par l'admin (Gestion > Habilitations). La liste ci-dessus n'est que celle de départ.
+const HAB_FIXES = ['visite_medicale','habilitation','pie','grenades','baton'];   // types historiques : une colonne chacun dans la base
+let HAB_DYN = false;   // vrai quand la base sait gérer les types (script SQL v22 lancé)
+const habNom = v => String(v||'').replace(/[<>&"'`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,40);
+function setHab(list){ DOSSIER_ITEMS.length=0; (list||[]).forEach(([k,l])=>{ if(/^[a-z0-9_]+$/.test(k)&&habNom(l)) DOSSIER_ITEMS.push([k,habNom(l)]); }); }
 // Règle de la patrouille : nombre de réservistes selon le nombre de titulaires présents
 const CAP = {0:0, 1:5, 2:8};
 
@@ -488,11 +493,11 @@ window.act = {
   validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
   refuserH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='refusee'; h.validePar=S.user; save(); render(); toast('Déclaration refusée'); },
   pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
-  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Enregistré'); return; } save(); render(); },
+  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email','matricule'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Enregistré'); return; } save(); render(); },
   monProfil(k,v){ const m=me(); v=v.trim();
     if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; }
     if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
-    m[k]=v; save(); render(); toast(k==='tel'?'Téléphone mis à jour':'Email mis à jour'); },
+    if(k==='matricule'&&!/^[A-Za-z0-9 .\-]{0,20}$/.test(v)){ render(); toast('Matricule invalide : lettres et chiffres uniquement'); return; } m[k]=v; save(); render(); toast(k==='tel'?'Téléphone mis à jour':k==='matricule'?'Matricule enregistré':'Email mis à jour'); },
   monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const m=me(); m.dossier[k]=v; (m.aVerifier = m.aVerifier || {})[k]=!!v; save(); const el=document.getElementById('bd-my-'+k); if(el) el.innerHTML=myBadges(m,k); const mq=document.getElementById('my-manque'); if(mq) mq.innerHTML=myManque(m); toast(v?'Noté « fait » — l’admin va vérifier':'Décoché'); },
   confirmer(id,k){ const m=member(id); if(m.aVerifier) delete m.aVerifier[k]; save(); render(); toast('Validé'); },
   addTir(mid){ const adm=!!mid; const m=adm?member(mid):me(); if(adm&&!isEnc()) return; const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
@@ -506,7 +511,7 @@ window.act = {
   addPax(ev){ ev.preventDefault(); if(!isEnc()) return; const f=ev.target; const nom=f.nom.value.trim().toUpperCase(), prenom=f.prenom.value.trim();
     if(!nom||!prenom){ toast('Nom et prénom obligatoires'); return; }
     if(S.members.some(m=>m.nom===nom&&m.prenom.toLowerCase()===prenom.toLowerCase())){ toast('Cette personne existe déjà'); return; }
-    const m={id:nid('m'),nom,prenom,grade:f.grade.value.trim(),role:f.role.value,actif:true,titulaire:false,tel:f.tel.value.trim(),email:f.email.value.trim(),aVerifier:{},tirs:[],dossier:{}};
+    const m={id:nid('m'),nom,prenom,grade:f.grade.value.trim(),role:f.role.value,actif:true,titulaire:false,tel:f.tel.value.trim(),email:f.email.value.trim(),matricule:f.matricule?f.matricule.value.trim():'',aVerifier:{},tirs:[],dossier:{}};
     S.members.push(m); S.paxOpen=m.id; S.addOpen=false; save(); render(); toast(`${prenom} ${nom} ajouté·e`); },
   delPax(id){ if(!isEnc()||id===S.user||id==='m0') return; if(S.confirm!=='del-'+id){ S.confirm='del-'+id; render(); toast('Touche « Confirmer la suppression »'); return; }
     S.confirm=null; S.members=S.members.filter(m=>m.id!==id); S.demandes=S.demandes.filter(d=>d.memberId!==id); S.heures=S.heures.filter(h=>h.memberId!==id); S.paxOpen=null; save(); render(); toast('Réserviste supprimé'); },
@@ -515,6 +520,13 @@ window.act = {
   go(id,focus){ const el=document.getElementById(id); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1400); if(focus) setTimeout(()=>document.getElementById(focus)?.focus({preventScroll:true}),450); },
   copy(txt,msg){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(msg||'Numéro copié'),()=>toast(txt)); } else toast(txt); },
   credOk(){ S.cred=null; render(); },
+  exporter(){ if(!isEnc()) return; const ym=moisExport(); if(!ym) return; const bs=S.besoins.filter(b=>b.date.startsWith(ym));
+    exportCsv(ym,{besoins:bs,demandes:S.demandes,heures:S.heures.filter(h=>h.date.startsWith(ym))}); toast('Export téléchargé'); },
+  refuserHab(id,k){ if(!isEnc()) return; const m=member(id); m.dossier[k]=''; if(m.aVerifier) delete m.aVerifier[k]; save(); render(); toast('Refusé — la case est décochée'); },
+  addHab(){ if(!isEnc()) return; const v=habNom(document.getElementById('hab-new')?.value); if(!v){ toast('Écris le nom de l’habilitation'); return; } if(DOSSIER_ITEMS.some(([,l])=>l.toLowerCase()===v.toLowerCase())){ toast('Ce type existe déjà'); return; }
+    DOSSIER_ITEMS.push(['h_'+Math.random().toString(36).slice(2,10),v]); S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Type ajouté'); },
+  renHab(k,v){ if(!isEnc()) return; v=habNom(v); const it=DOSSIER_ITEMS.find(x=>x[0]===k); if(!it) return; if(!v){ render(); toast('Le nom ne peut pas être vide'); return; } it[1]=v; S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Nom modifié'); },
+  delHab(k){ if(!isEnc()) return; if(S.confirm!=='hab-'+k){ S.confirm='hab-'+k; render(); toast('Touche « Confirmer »'); return; } S.confirm=null; setHab(DOSSIER_ITEMS.filter(x=>x[0]!==k)); S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Type supprimé'); },
   multi(){ S.multi=S.multi?null:[]; S.confirm=null; render(); },
   multiSemaine(){ if(!S.multi) return; const [y,mo]=S.month.split('-').map(Number); const n=new Date(y,mo,0).getDate(); const today=iso(TODAY);
     S.multi=Array.from({length:n},(_,i)=>dISO(y,mo,i+1)).filter(d=>d>=today&&!vacOf(d)&&![0,6].includes(new Date(d+'T00:00:00').getDay())); render(); if(!S.multi.length) toast('Aucun jour libre du lundi au vendredi ce mois-ci'); },
@@ -553,7 +565,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v21</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v23</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -766,7 +778,9 @@ function mesTirsCard(m){
 function monProfilCard(m){
   return `<div class="card stack" id="mon-profil"><h3>Mon profil</h3><p class="small muted" style="margin:0">Tes coordonnées, visibles dans l’annuaire de l’équipe. Modifie un champ : c’est enregistré dès que tu en sors.</p>
     <div class="grid2"><label class="field">Téléphone<input id="me-tel" type="tel" inputmode="tel" autocomplete="tel" value="${esc(m.tel||'')}" onchange="act.monProfil('tel',this.value)"></label>
-    <label class="field">Adresse email<input id="me-email" type="email" autocomplete="email" value="${esc(m.email||'')}" placeholder="prenom.nom@exemple.fr" onchange="act.monProfil('email',this.value)"></label></div>
+    <label class="field">Adresse email<input id="me-email" type="email" autocomplete="email" value="${esc(m.email||'')}" placeholder="prenom.nom@exemple.fr" ${REMOTE?'readonly title="C’est ton identifiant de connexion"':''} onchange="act.monProfil('email',this.value)"></label>
+    ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="me-mat" maxlength="20" autocomplete="off" value="${esc(m.matricule||'')}" onchange="act.monProfil('matricule',this.value)"></label>`}</div>
+    ${REMOTE?'<div class="small muted">Ton adresse email est ton identifiant de connexion : pour la changer, demande à un admin.</div>':''}
     <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’admin.</div>
     ${REMOTE?`<div class="row" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><label class="field" style="flex:1 1 160px">Nouveau mot de passe<input id="me-pwd" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.changePwd()">Changer mon mot de passe</button></div>`:''}</div>`;
 }
@@ -851,29 +865,56 @@ function gHeures(){
   const enc=S.members.filter(m=>m.role==='admin').map(m=>m.prenom).join(', ');
   const recent=S.heures.filter(h=>h.statut==='validee'&&h.validePar).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   return `<p class="small muted" style="margin:0">Seules les heures validées ici comptent dans les compteurs. Valideurs : ${esc(enc)}.</p>
-    ${pend.length?`<div class="card stack"><h3>${pend.length} déclaration${pend.length>1?'s':''} en attente</h3><div class="dlist">${pend.map(h=>{const m=member(h.memberId); const b=besoin(h.besoinId); const diff=h.heures!==b.duree;
+    ${pend.length?`<div class="card stack"><h3>${pend.length} déclaration${pend.length>1?'s':''} en attente</h3><div class="dlist">${pend.map(h=>{const m=member(h.memberId); const b=besoin(h.besoinId)||{libelle:'',debut:'',fin:'',duree:h.heures}; const diff=h.heures!==b.duree;
       return `<div><div><b>${esc(fullName(m))}</b><div class="small muted">${fmtDate(h.date)} · ${esc(b.libelle)} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><span class="num" style="font-weight:700">${h.heures} h</span>${diff?`<span class="badge amber" title="Différent de la durée prévue">≠ ${b.duree} h</span>`:''}<button class="btn ok sm" onclick="act.validerH('${h.id}')">Valider</button><button class="btn danger sm" onclick="act.refuserH('${h.id}')">Refuser</button></div></div>`;}).join('')}</div></div>`:'<div class="empty">Aucune déclaration d’heures en attente.</div>'}
-    <div class="card stack"><h3>Dernières validations</h3><div class="dlist">${recent.map(h=>`<div><span>${esc(fullName(member(h.memberId)))} <span class="small muted">· ${fmtDate(h.date)}</span></span><span class="small muted"><span class="num" style="color:var(--fg);font-weight:600">${h.heures} h</span> · validé par ${esc(member(h.validePar)?.prenom||'')}</span></div>`).join('')}</div></div>`;
+    <div class="card stack"><h3>Dernières validations</h3><div class="dlist">${recent.map(h=>`<div><span>${esc(fullName(member(h.memberId)))} <span class="small muted">· ${fmtDate(h.date)}</span></span><span class="small muted"><span class="num" style="color:var(--fg);font-weight:600">${h.heures} h</span> · validé par ${esc(member(h.validePar)?.prenom||'')}</span></div>`).join('')}</div></div>
+    <div class="card stack" id="export-card"><h3>Export Excel</h3><p class="small muted" style="margin:0">Le planning du mois et les heures de chacun, dans un fichier qui s’ouvre avec Excel. Pense à en faire un par mois : c’est aussi ta sauvegarde.</p>
+      <div class="row" style="gap:8px"><input type="month" id="exp-mois" class="dinput" value="${S.month}" aria-label="Mois à exporter"><button class="btn primary" onclick="act.exporter()">Télécharger le mois</button></div></div>`;
 }
 
 function gHabil(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom));
   const pend=[];
   rows.forEach(m=>{
-    DOSSIER_ITEMS.forEach(([k,l])=>{ if(m.aVerifier?.[k]&&m.dossier[k]) pend.push({m,html:`<b>${l}</b> <span class="small muted">· coché « fait » par l’agent</span>`,on:`act.confirmer('${m.id}','${k}')`}); });
-    (m.tirs||[]).filter(t=>!t.ok).forEach(t=>pend.push({m,html:`<b>Tir</b> <span class="small muted">· séance du ${frDate(t.date)}</span>`,on:`act.okTir('${m.id}','${t.id}')`}));
+    DOSSIER_ITEMS.forEach(([k,l])=>{ if(m.aVerifier?.[k]&&m.dossier[k]) pend.push({m,html:`<b>${l}</b> <span class="small muted">· coché « fait » par l’agent</span>`,on:`act.confirmer('${m.id}','${k}')`,no:`act.refuserHab('${m.id}','${k}')`}); });
+    (m.tirs||[]).filter(t=>!t.ok).forEach(t=>pend.push({m,html:`<b>Tir</b> <span class="small muted">· séance du ${frDate(t.date)}</span>`,on:`act.okTir('${m.id}','${t.id}')`,no:`act.delTir('${m.id}','${t.id}')`}));
   });
   const d2=v=>v?new Date(v+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
   const cell=(m,k)=>{ const s=dossierStatus(m.dossier[k]); return `<td class="hb ${s.cls} num" title="${s.label}">${m.dossier[k]?'✓':'—'}${m.aVerifier?.[k]?' ●':''}</td>`; };
   return `<div class="card stack" id="habil-a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Habilitations à valider</h3><span class="badge ${pend.length?'red':'green'}">${pend.length?pend.length+' en attente':'Tout est validé'}</span></div>
       <p class="small muted" style="margin:0">Chaque élément coché ou tir saisi par un agent arrive ici. Vérifie, puis valide.</p>
-      ${pend.length?`<div class="dlist">${pend.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc(fullName(x.m))}</div><div>${x.html}</div></div><button class="btn ok" onclick="${x.on}">Valider</button></div>`).join('')}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
+      ${pend.length?`<div class="dlist">${pend.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc(fullName(x.m))}</div><div>${x.html}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok" onclick="${x.on}">Valider</button><button class="btn danger" onclick="${x.no}">Refuser</button></div></div>`).join('')}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
     <div><h3>Habilitations de chacun</h3><p class="small muted" style="margin:4px 0 0">✓ = fait. Rien n’expire, sauf les tirs (3 sur 365 jours). Touche un nom pour ouvrir son dossier.</p></div>
     <div class="gridwrap"><table class="pgrid htab"><thead><tr><th class="nm">PAX</th>${DOSSIER_ITEMS.map(([k,l])=>`<th class="hb">${l}</th>`).join('')}<th class="hb">Tirs / 365 j</th></tr></thead>
       <tbody>${rows.map(m=>{ const i=tirInfo(m); return `<tr><td class="nm ${m.actif?'':'name-inactive'}" style="cursor:pointer" onclick="act.openPax('${m.id}')"><span class="w-lg">${esc(fullName(m))}</span><span class="w-sm">${esc(shortName(m))}</span></td>${DOSSIER_ITEMS.map(([k])=>cell(m,k)).join('')}<td class="hb ${i.cls} num" title="${i.label}">${i.n}/3${i.aval?' ●':''}</td></tr>`; }).join('')}</tbody></table></div>
-    <div class="legend"><span><i style="background:var(--green)"></i>Fait</span><span><i style="background:var(--amber)"></i>Tirs à compléter</span><span><i style="background:var(--red)"></i>Aucun tir</span><span>— pas fait</span><span>● saisi par l’agent, à valider</span></div>`;
+    <div class="legend"><span><i style="background:var(--green)"></i>Fait</span><span><i style="background:var(--amber)"></i>Tirs à compléter</span><span><i style="background:var(--red)"></i>Aucun tir</span><span>— pas fait</span><span>● saisi par l’agent, à valider</span></div>
+    ${habTypesCard()}`;
 }
 
+function habTypesCard(){
+  if(REMOTE&&!HAB_DYN) return `<div class="card stack"><h3>Types d’habilitation</h3><p class="small muted" style="margin:0">Pour ajouter, renommer ou supprimer un type, lance d’abord le fichier « mise-a-jour-v22.sql » dans Supabase (une seule fois).</p></div>`;
+  return `<div class="card stack" id="hab-types"><div class="row between"><h3>Types d’habilitation</h3><span class="badge grey">${DOSSIER_ITEMS.length}</span></div>
+    <p class="small muted" style="margin:0">La liste que chacun voit dans « Mon dossier ». Change un nom : c’est enregistré dès que tu sors du champ.</p>
+    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><input id="habn-${k}" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" value="${esc(l)}" aria-label="Nom du type" onchange="act.renHab('${k}',this.value)"><button class="btn danger sm" onclick="act.delHab('${k}')">${S.confirm==='hab-'+k?'Confirmer':'Supprimer'}</button></div>`).join('')||'<div class="small muted">Aucun type pour l’instant.</div>'}</div>
+    <div class="row" style="gap:8px"><input id="hab-new" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" placeholder="Nouveau type, ex. Taser" aria-label="Nom du nouveau type"><button class="btn primary" onclick="act.addHab()">Ajouter</button></div>
+    <p class="small muted" style="margin:0">Supprimer un type le retire du dossier de tout le monde.</p></div>`; }
+// ---- export du mois (fichier CSV lisible par Excel)
+function exportCsv(ym,D){
+  const q=v=>{ v=String(v==null?'':v); if(/^[=+\-@]/.test(v)) v="'"+v; return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const nb=n=>String(Math.round(n*100)/100).replace('.',',');
+  const L=[]; const row=(...c)=>L.push(c.map(q).join(';'));
+  row('Planning BSTC',monthLabel(ym)); row();
+  row('PLANNING'); row('Date','Type','Horaires','Titulaires','Réservistes validés','En attente');
+  D.besoins.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(b=>{ const ds=D.demandes.filter(d=>d.besoinId===b.id&&member(d.memberId)); const nm=f=>ds.filter(f).map(d=>fullName(member(d.memberId))).join(', ');
+    row(frDate(b.date),b.libelle,hm(b.debut)+' – '+hm(b.fin),nm(d=>d.statut==='attribuee'&&member(d.memberId).titulaire),nm(d=>d.statut==='attribuee'&&!member(d.memberId).titulaire),nm(d=>d.statut==='demandee')); });
+  row(); row('HEURES DU MOIS'); row('Nom','Prénom','Grade','Matricule','Vacations validées','Heures validées','Heures en attente');
+  const ids=new Set(D.besoins.map(b=>b.id)); const sum=a=>a.reduce((t,h)=>t+h.heures,0);
+  S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom)).forEach(m=>{ const vac=D.demandes.filter(d=>d.memberId===m.id&&d.statut==='attribuee'&&ids.has(d.besoinId)).length; const hs=D.heures.filter(h=>h.memberId===m.id);
+    const hv=sum(hs.filter(h=>h.statut==='validee')), ha=sum(hs.filter(h=>h.statut==='declaree')); if(!m.actif&&!vac&&!hv&&!ha) return;
+    row(m.nom,m.prenom,m.grade||'',m.matricule||'',vac,nb(hv),nb(ha)); });
+  const blob=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='planning-bstc-'+ym+'.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  window.__lastCsv=L.join('\n'); }
+const moisExport = ()=>{ const v=(document.getElementById('exp-mois')?.value||'').trim(); if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(v)){ toast('Choisis un mois (ex. 2026-10)'); return null; } return v; };
 function credCard(){ const c=S.cred; if(!c) return '';
   const txt=`Planning BSTC\n${location.href.split('#')[0]}\nEmail : ${c.email}\nMot de passe : ${c.pwd}`;
   return `<div class="card stack todo" id="cred-card"><div class="row between"><h3>À transmettre à ${esc(c.nom)}</h3><button class="btn sm" onclick="act.credOk()">OK, c’est noté</button></div>
@@ -885,7 +926,7 @@ function gPax(){
   const form=S.addOpen?`<form class="card stack" id="np-form" style="border-color:var(--accent)" onsubmit="act.addPax(event)"><h3>Nouveau compte</h3>
       <div class="grid2"><label class="field">Nom<input name="nom" id="np-nom" required autocomplete="off"></label><label class="field">Prénom<input name="prenom" id="np-prenom" required autocomplete="off"></label>
         <label class="field">Grade<input name="grade" id="np-grade" placeholder="facultatif"></label><label class="field">Profil<select name="role" id="np-role"><option value="reserviste">Réserviste</option><option value="admin">Admin</option></select></label>
-        <label class="field">Téléphone<input name="tel" id="np-tel" type="tel" inputmode="tel"></label><label class="field">Adresse email (son identifiant)<input name="email" id="np-email" type="email" autocomplete="off" ${REMOTE?'required':''}></label>
+        <label class="field">Téléphone<input name="tel" id="np-tel" type="tel" inputmode="tel"></label>${REMOTE&&!MAT_OK?'':'<label class="field">Matricule<input name="matricule" id="np-mat" maxlength="20" placeholder="facultatif"></label>'}<label class="field">Adresse email (son identifiant)<input name="email" id="np-email" type="email" autocomplete="off" ${REMOTE?'required':''}></label>
         ${REMOTE?`<label class="field">Mot de passe (à lui transmettre)<input name="pwd" id="np-pwd" required minlength="6" autocomplete="off" value="${esc(S.pwdSug||'')}"></label>`:''}</div>
       ${REMOTE?'<p class="small muted" style="margin:0">Tu crées le compte complet. La personne se connecte avec cet email et ce mot de passe, puis peut le changer dans « Moi ».</p>':''}
       <div class="row" style="gap:8px"><button class="btn primary" type="submit">Créer le compte</button><button class="btn" type="button" onclick="act.toggleAdd()">Annuler</button></div></form>`:'';
@@ -894,12 +935,13 @@ function gPax(){
     ${form}
     ${REMOTE?pendingCard():''}
     <div class="card" style="padding-block:4px">${rows.map(m=>{const al=alertes(m); const open=S.paxOpen===m.id; const ti=tirInfo(m); const nv=Object.values(m.aVerifier||{}).filter(Boolean).length+(m.tirs||[]).filter(t=>!t.ok).length;
-      return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.titulaire?' · titulaire':''}${m.actif?'':' · plus d’activité à la BSTC'}${REMOTE&&!m.lie?' · <b>pas encore de compte</b>':''}</div></div>
+      return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.matricule?' · '+esc(m.matricule):''}${m.titulaire?' · titulaire':''}${m.actif?'':' · plus d’activité à la BSTC'}${REMOTE&&!m.lie?' · <b>pas encore de compte</b>':''}</div></div>
         ${!m.actif?'':(al.length||!ti.ok)?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)||ti.n===0?'red':'amber'}">${al.length+(ti.ok?0:1)} alerte${al.length+(ti.ok?0:1)>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}${nv?`<span class="badge blue">${nv} à valider</span>`:''}<span class="muted">${open?'▾':'▸'}</span></div>
         ${open?`<div class="stack paxdetail" style="padding:6px 0 14px 46px" onclick="event.stopPropagation()">
           <div class="grid2"><label class="field">Nom<input id="nom-${m.id}" value="${esc(m.nom)}" onchange="act.paxField('${m.id}','nom',this.value)"></label><label class="field">Prénom<input id="prenom-${m.id}" value="${esc(m.prenom)}" onchange="act.paxField('${m.id}','prenom',this.value)"></label>
           <label class="field">Grade<input id="grade-${m.id}" value="${esc(m.grade||'')}" onchange="act.paxField('${m.id}','grade',this.value)"></label><label class="field">Profil<select id="role-${m.id}" ${m.id===S.user?'disabled':''} onchange="act.paxField('${m.id}','role',this.value)">${['reserviste','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}</select></label>
-          <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" ${REMOTE&&m.lie?'readonly title="Identifiant de connexion"':''} onchange="act.paxField('${m.id}','email',this.value)"></label></div>
+          <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" ${REMOTE&&m.lie?'readonly title="Identifiant de connexion"':''} onchange="act.paxField('${m.id}','email',this.value)"></label>
+          ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="mat-${m.id}" maxlength="20" value="${esc(m.matricule||'')}" onchange="act.paxField('${m.id}','matricule',this.value)"></label>`}</div>
           ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="6" autocomplete="off" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
           <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation : 5 réservistes à un, 8 à deux)</span></span></label>
           <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
@@ -923,22 +965,35 @@ const LOCAL = Object.assign({}, act);   // versions « démo » des actions, ré
 const errMsg = e => { const m=(e&&e.message)||String(e); if(/row-level security|permission denied/i.test(m)) return 'Action non autorisée pour ton profil'; if(/Invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect'; if(/already registered/i.test(m)) return 'Un compte existe déjà avec cet email'; if(/duplicate key/i.test(m)) return 'Déjà enregistré'; if(/Failed to fetch|NetworkError/i.test(m)) return 'Pas de connexion internet'; return m; };
 function setBusy(b){ BUSY=b; document.getElementById('app').classList.toggle('busy',b); }
 
-let LOADSEQ=0;
+let LOADSEQ=0, HAB_ROWS=[], MAT_OK=false, LOADED_FROM='';
+const mapB = x=>({id:x.id,date:x.date,debut:String(x.debut).slice(0,5),fin:String(x.fin).slice(0,5),type:x.type,libelle:x.libelle,lieu:x.lieu,places:x.places,duree:Number(x.duree)});
+const mapD = x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,statut:x.statut,par:x.par});
+const mapH = x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,heures:Number(x.heures),statut:x.statut,validePar:x.valide_par,date:x.date});
+// Pour rester léger (quota gratuit), on ne charge pas tout l'historique : les vacations des 2 derniers mois (ou depuis le mois affiché s'il est plus ancien),
+// et les heures depuis le 1er janvier. Rien n'est supprimé de la base ; l'export Excel va chercher n'importe quel mois.
+function fenetre(){ const t=iso(TODAY); let b=addDays(t,-62); const m=(S.month||t.slice(0,7))+'-01'; if(m<b) b=m; const jan=t.slice(0,4)+'-01-01';
+  return {b, d:addDays(b,-200)+'T00:00:00', h:jan<b?jan:b}; }
+const lire = (n,win)=>{ const q=sb.from(n).select('*'); return n==='besoins'?q.gte('date',win.b):n==='demandes'?q.gte('created_at',win.d):n==='heures'?q.gte('date',win.h):q; };
 async function loadAll(){
   const seq=++LOADSEQ;
   const names=['members','dossiers','tirs','besoins','demandes','heures','notifs','notif_lus'];
-  const res=await Promise.all(names.map(n=>sb.from(n).select('*')));
-  if(seq!==LOADSEQ) return MEROW;   // une lecture plus récente est partie entre-temps : on ne l'écrase pas avec des données plus anciennes
+  const win=fenetre();
+  const [hr,...res]=await Promise.all([sb.from('habilitations').select('*'),...names.map(n=>lire(n,win))]);
+  if(seq!==LOADSEQ) return MEROW;
+  // types d'habilitation : lus dans la base si elle les gère, sinon la liste de départ reste en place
+  if(!hr.error&&Array.isArray(hr.data)){ HAB_DYN=true; HAB_ROWS=hr.data.slice().sort((a,b)=>(a.ordre-b.ordre)||String(a.libelle).localeCompare(String(b.libelle))); setHab(HAB_ROWS.map(r=>[r.cle,r.libelle])); } else HAB_DYN=false;   // une lecture plus récente est partie entre-temps : on ne l'écrase pas avec des données plus anciennes
   const T={}; res.forEach((r,i)=>{ if(r.error) throw r.error; T[names[i]]=r.data||[]; });
   const mine=T.members.find(x=>x.user_id===AUTHU.id)||null;
+  MAT_OK=!!(T.members[0]&&('matricule' in T.members[0]));   // vrai quand la base a la colonne matricule (script SQL v23 lancé)
   const dos=Object.fromEntries(T.dossiers.map(x=>[x.member_id,x]));
-  S.members=T.members.filter(x=>x.approuve).map(x=>{ const dd=dos[x.id]||{}; const dossier={}; DOSSIER_ITEMS.forEach(([k])=>dossier[k]=dd[k]||'');
-    return {id:x.id,nom:x.nom,prenom:x.prenom,grade:x.grade||'',role:x.role,actif:x.actif,titulaire:x.titulaire,tel:x.tel||'',email:x.email||'',lie:!!x.user_id,dossier,aVerifier:dd.a_verifier||{},
+  S.members=T.members.filter(x=>x.approuve).map(x=>{ const dd=dos[x.id]||{}; const dossier={}; DOSSIER_ITEMS.forEach(([k])=>dossier[k]=(HAB_FIXES.includes(k)?dd[k]:(dd.extra||{})[k])||'');
+    return {id:x.id,nom:x.nom,prenom:x.prenom,grade:x.grade||'',role:x.role,actif:x.actif,titulaire:x.titulaire,tel:x.tel||'',email:x.email||'',matricule:x.matricule||'',lie:!!x.user_id,dossier,extra:dd.extra||{},aVerifier:dd.a_verifier||{},
       tirs:T.tirs.filter(t=>t.member_id===x.id).map(t=>({id:t.id,date:t.date,ok:t.ok}))}; });
   S.pending=T.members.filter(x=>!x.approuve);
-  S.besoins=T.besoins.map(x=>({id:x.id,date:x.date,debut:String(x.debut).slice(0,5),fin:String(x.fin).slice(0,5),type:x.type,libelle:x.libelle,lieu:x.lieu,places:x.places,duree:Number(x.duree)}));
-  S.demandes=T.demandes.map(x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,statut:x.statut,par:x.par}));
-  S.heures=T.heures.map(x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,heures:Number(x.heures),statut:x.statut,validePar:x.valide_par,date:x.date}));
+  S.besoins=T.besoins.map(mapB); const vus=new Set(S.besoins.map(b=>b.id));
+  S.demandes=T.demandes.map(mapD).filter(d=>vus.has(d.besoinId));
+  S.heures=T.heures.map(mapH);
+  LOADED_FROM=win.b;
   const lus=new Set(T.notif_lus.map(x=>x.notif_id));
   S.notifs=T.notifs.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).map(x=>({id:x.id,memberId:x.member_id,date:x.date,lu:(mine&&(lus.has(x.id)||x.member_id===mine.id))?{[mine.id]:true}:{}}));
   S.retraits=S.notifs.slice(0,8).map(x=>({memberId:x.memberId,date:x.date}));
@@ -993,9 +1048,9 @@ function renderAuth(){
       <label class="field">Mot de passe<input name="pwd" id="au-pwd" type="password" required autocomplete="current-password"></label>
       <button class="btn primary" type="submit">Se connecter</button></form>
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
-    <button class="linkbtn" onclick="act.authMode('up')">Première installation</button>
-    <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 21 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
+    <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
+    <p class="small muted" style="margin:0">Version 23 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -1021,6 +1076,7 @@ const RA = {
   login(){}, reset(){},
   async refreshNow(){ await refresh(true); toast('À jour'); },
   tab(t){ S.tab=t; S.confirm=null; render(); refresh(); },
+  month(n){ LOCAL.month(n); if(S.month+'-01'<LOADED_FROM) refresh(true); },   // mois plus ancien que ce qui est chargé : on va le chercher
   sub(t){ S.sub=t; S.paxOpen=null; render(); refresh(); },
   approuver(id){ return run(()=>sb.from('members').update({approuve:true}).eq('id',id),'Compte accepté'); },
   refuserCompte(id){ return run(()=>supprCompte(id),'Compte refusé'); },
@@ -1057,14 +1113,18 @@ const RA = {
   refuserH(hid){ return run(()=>sb.from('heures').update({statut:'refusee',valide_par:S.user}).eq('id',hid),'Déclaration refusée'); },
   // ---- profil, dossier, tirs
   monProfil(k,v){ v=v.trim(); if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; } if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
-    return run(()=>sb.rpc('maj_mon_profil',{p_tel:k==='tel'?v:null,p_email:k==='email'?v:null}),k==='tel'?'Téléphone mis à jour':'Email mis à jour'); },
+    if(k==='email'){ render(); return; }   // l'email est l'identifiant de connexion : seul l'admin le gère
+    if(k==='matricule'&&!/^[A-Za-z0-9 .\-]{0,20}$/.test(v)){ render(); toast('Matricule invalide : lettres et chiffres uniquement'); return; } if(k==='matricule') return run(()=>sb.rpc('maj_mon_matricule',{p:v}),'Matricule enregistré');
+    return run(()=>sb.rpc('maj_mon_profil',{p_tel:k==='tel'?v:null,p_email:null}),'Téléphone mis à jour'); },
   monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } LOCAL.monDossier(k,v); sb.rpc('maj_mon_dossier',{k,v:v||null}).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
   confirmer(id,k){ const av=Object.assign({},member(id).aVerifier); delete av[k]; return run(()=>sb.from('dossiers').update({a_verifier:av}).eq('member_id',id),'Validé'); },
   paxField(id,k,v){ const m=member(id);
-    if(['actif','role','titulaire','tel','nom','prenom','grade','email'].includes(k)){ if(typeof v==='string') v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } if(k==='nom') v=v.toUpperCase(); if(k==='email'&&!v) v=null;
+    if(['actif','role','titulaire','tel','nom','prenom','grade','email','matricule'].includes(k)){ if(typeof v==='string') v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } if(k==='nom') v=v.toUpperCase(); if(k==='email'&&!v) v=null;
       return run(()=>sb.from('members').update({[k]:v}).eq('id',id), k==='actif'?(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'):'Enregistré'); }
     if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const av=Object.assign({},m.aVerifier); delete av[k]; LOCAL.paxField(id,k,v);   // date du dossier : pas de rechargement pendant la saisie
-    sb.from('dossiers').update({[k]:v||null,a_verifier:av}).eq('member_id',id).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
+    let patch={[k]:v||null,a_verifier:av};
+    if(!HAB_FIXES.includes(k)){ const ex=Object.assign({},m.extra); if(v) ex[k]=v; else delete ex[k]; m.extra=ex; patch={extra:ex,a_verifier:av}; }   // type ajouté par l'admin : rangé dans « extra »
+    sb.from('dossiers').update(patch).eq('member_id',id).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
   addTir(mid){ majToday(); const adm=!!mid; const m=adm?member(mid):me(); const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
     if(!v){ toast('Choisis la date du tir'); return; } if(v>today){ toast('La date du tir ne peut pas être dans le futur'); return; } if((m.tirs||[]).some(t=>t.date===v)){ toast('Ce tir est déjà noté'); return; }
     const ok=adm||isEnc();   // un admin n'a pas à valider son propre tir
@@ -1077,7 +1137,7 @@ const RA = {
     if(!nom||!prenom||!email){ toast('Nom, prénom et email obligatoires'); return; } if(pwd.length<6){ toast('Mot de passe : 6 caractères au moins'); return; }
     if(S.members.some(m=>(m.email||'').toLowerCase()===email)||(S.pending||[]).some(x=>(x.email||'').toLowerCase()===email)){ toast('Un compte existe déjà avec cet email'); return; }
     if(BUSY) return; setBusy(true);
-    try{ let r=await sb.from('members').insert({nom,prenom,grade:f.grade.value.trim(),role:f.role.value,tel:f.tel.value.trim(),email,approuve:true}); if(r.error) throw r.error;
+    try{ let r=await sb.from('members').insert({nom,prenom,grade:f.grade.value.trim(),role:f.role.value,tel:f.tel.value.trim(),email,approuve:true,...(MAT_OK&&f.matricule?{matricule:f.matricule.value.trim()}:{})}); if(r.error) throw r.error;
       r=await tmpClient().auth.signUp({email,password:pwd,options:{data:{nom,prenom}}}); if(r.error) throw r.error;
       S.addOpen=false; S.cred={nom:prenom+' '+nom,email,pwd}; await loadAll(); syncMe(); const n=S.members.find(m=>(m.email||'').toLowerCase()===email); if(n) S.paxOpen=n.id;
       setBusy(false); render(); toast('Compte créé'); }
@@ -1089,6 +1149,22 @@ const RA = {
     catch(e){ setBusy(false); render(); toast('Erreur : '+errMsg(e)); } },
   delPax(id){ if(id===S.user) return; if(S.confirm!=='del-'+id){ S.confirm='del-'+id; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.paxOpen=null;
     return run(()=>supprCompte(id),'Compte supprimé'); },
+  async exporter(){ const ym=moisExport(); if(!ym||BUSY) return; setBusy(true);
+    try{ const a=ym+'-01', z=ym+'-'+String(new Date(+ym.slice(0,4),+ym.slice(5,7),0).getDate()).padStart(2,'0');
+      const rb=await sb.from('besoins').select('*').gte('date',a).lte('date',z); if(rb.error) throw rb.error; const ids=(rb.data||[]).map(x=>x.id);
+      const rd=ids.length?await sb.from('demandes').select('*').in('besoin_id',ids):{data:[]}; if(rd.error) throw rd.error;
+      const rh=await sb.from('heures').select('*').gte('date',a).lte('date',z); if(rh.error) throw rh.error;
+      exportCsv(ym,{besoins:(rb.data||[]).map(mapB),demandes:(rd.data||[]).map(mapD),heures:(rh.data||[]).map(mapH)}); setBusy(false); toast('Export téléchargé'); }
+    catch(e){ setBusy(false); toast('Erreur : '+errMsg(e)); } },
+  refuserHab(id,k){ const m=member(id); const av=Object.assign({},m.aVerifier); delete av[k]; let patch={[k]:null,a_verifier:av};
+    if(!HAB_FIXES.includes(k)){ const ex=Object.assign({},m.extra); delete ex[k]; patch={extra:ex,a_verifier:av}; }
+    return run(()=>sb.from('dossiers').update(patch).eq('member_id',id),'Refusé — la case est décochée'); },
+  // ---- types d'habilitation (admin)
+  addHab(){ const v=habNom(document.getElementById('hab-new')?.value); if(!v){ toast('Écris le nom de l’habilitation'); return; } if(DOSSIER_ITEMS.some(([,l])=>l.toLowerCase()===v.toLowerCase())){ toast('Ce type existe déjà'); return; }
+    const ordre=HAB_ROWS.reduce((n,r)=>Math.max(n,r.ordre||0),0)+1;
+    return run(()=>sb.from('habilitations').insert({cle:'h_'+Math.random().toString(36).slice(2,10),libelle:v,ordre}),'Type ajouté'); },
+  renHab(k,v){ v=habNom(v); if(!v){ render(); toast('Le nom ne peut pas être vide'); return; } return run(()=>sb.from('habilitations').update({libelle:v}).eq('cle',k),'Nom modifié'); },
+  delHab(k){ if(S.confirm!=='hab-'+k){ S.confirm='hab-'+k; render(); toast('Touche « Confirmer »'); return; } S.confirm=null; return run(()=>sb.from('habilitations').delete().eq('cle',k),'Type supprimé'); },
   // ---- notifications
   delNotif(id){ return run(()=>sb.from('notifs').delete().eq('id',id),'Message supprimé'); },
   lu(id){ const n=(S.notifs||[]).find(x=>x.id===id); if(n) n.lu={[S.user]:true}; render(); sb.from('notif_lus').insert({notif_id:id,member_id:S.user}).then(()=>{}); },
@@ -1103,12 +1179,12 @@ async function supprCompte(id){ const r=await sb.rpc('admin_supprimer_compte',{m
 function tmpClient(){ return window.supabase.createClient(CFG.url, CFG.key, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bstc-creation-compte'}}); }
 
 async function boot(){
-  if(!REMOTE){ render(); return; }
+  if(!REMOTE){ if(Array.isArray(S.habTypes)) setHab(S.habTypes); render(); return; }
   Object.assign(act, RA);
   sb=window.supabase.createClient(CFG.url, CFG.key);
   render();
   try{ const r=await sb.auth.getSession(); if(r.data&&r.data.session){ AUTHU=r.data.session.user; await enter(); } }catch(e){ S.authErr=errMsg(e); render(); }
-  setInterval(refresh, 10000);
+  setInterval(refresh, 30000);
   document.addEventListener('visibilitychange', refresh);
 }
 boot();
