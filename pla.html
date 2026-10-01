@@ -105,7 +105,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 .segment{display:inline-flex;background:var(--surface2);border-radius:8px;padding:3px;gap:2px}
 .segment button{border:0;background:transparent;border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:var(--muted)}
 .segment button.active{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
-.subtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.subtabs{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:2px}
 .subtabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--muted)}
 .subtabs button.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
@@ -303,7 +303,7 @@ const CAP = {0:0, 1:5, 2:8};
 function seedState(){
   let seq=1; const id=p=>p+(seq++); const today=iso(TODAY);
   const T=(d,ok)=>({id:'t'+(seq++),date:addDays(today,d),ok:!!ok}); // une séance de tir, il y a d jours
-  const mk=(i,nom,prenom,grade,role,tit,tirs)=>{ const dossier={}; DOSSIER_ITEMS.forEach(([k],j)=>{ dossier[k]=addDays(today,120+((i*53+j*37)%300)); });
+  const mk=(i,nom,prenom,grade,role,tit,tirs)=>{ const dossier={}; DOSSIER_ITEMS.forEach(([k],j)=>{ dossier[k]=addDays(today,-(120+((i*53+j*37)%300))); });
     return {id:'m'+i,nom,prenom,grade,role,titulaire:tit,actif:true,tel:`06 00 00 ${10+i} ${String((i*37)%90+10)}`,email:`${prenom}.${nom}@exemple.fr`.toLowerCase(),aVerifier:{},tirs,dossier}; };
   const members=[
     {id:'m0',nom:'BSTC',prenom:'Responsable',grade:'',role:'admin',titulaire:false,actif:true,tel:'06 00 00 00 00',email:'',tirs:[],aVerifier:{},dossier:{}},
@@ -380,10 +380,9 @@ function vacPatch(b,k,v){   // modification d'une vacation par l'admin
 const roleLabel = r => r==='admin'?'Admin':'Réserviste';
 function dossierStatus(v){
   if(!v) return {cls:'grey',label:'Non renseigné',rank:2};
-  const days = Math.round((new Date(v+'T00:00:00')-TODAY)/86400000);
-  if(days<0) return {cls:'red',label:`Expiré depuis ${-days} j`,rank:3};
-  if(days<=30) return {cls:'amber',label:`Expire dans ${days} j`,rank:1};
-  return {cls:'green',label:`Valide jusqu'au ${new Date(v+'T00:00:00').toLocaleDateString('fr-FR')}`,rank:0};
+  // Le dossier n'expire pas : on note la date à laquelle c'est fait. Seuls les tirs se renouvellent (3 sur 365 jours).
+  if(v>iso(TODAY)) return {cls:'amber',label:'Date à corriger',rank:1};
+  return {cls:'green',label:`Fait le ${new Date(v+'T00:00:00').toLocaleDateString('fr-FR')}`,rank:0};
 }
 const frDate = s => new Date(s+'T00:00:00').toLocaleDateString('fr-FR');
 const TIRS_REQ = 3; // règle : 3 tirs sur 365 jours glissants
@@ -451,17 +450,17 @@ window.act = {
   validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
   refuserH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='refusee'; h.validePar=S.user; save(); render(); toast('Déclaration refusée'); },
   pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
-  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Date enregistrée'); return; } save(); render(); },
+  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Date enregistrée'); return; } save(); render(); },
   monProfil(k,v){ const m=me(); v=v.trim();
     if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; }
     if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
     m[k]=v; save(); render(); toast(k==='tel'?'Téléphone mis à jour':'Email mis à jour'); },
-  monDossier(k,v){ if(v&&v<'2000-01-01') return; const m=me(); m.dossier[k]=v; (m.aVerifier = m.aVerifier || {})[k]=!!v; save(); const el=document.getElementById('bd-my-'+k); if(el) el.innerHTML=myBadges(m,k); const mq=document.getElementById('my-manque'); if(mq) mq.innerHTML=myManque(m); toast(v?'Date enregistrée — l’admin va la vérifier':'Date effacée'); },
+  monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const m=me(); m.dossier[k]=v; (m.aVerifier = m.aVerifier || {})[k]=!!v; save(); const el=document.getElementById('bd-my-'+k); if(el) el.innerHTML=myBadges(m,k); const mq=document.getElementById('my-manque'); if(mq) mq.innerHTML=myManque(m); toast(v?'Date enregistrée — l’admin va la vérifier':'Date effacée'); },
   confirmer(id,k){ const m=member(id); if(m.aVerifier) delete m.aVerifier[k]; save(); render(); toast('Date validée'); },
   addTir(mid){ const adm=!!mid; const m=adm?member(mid):me(); if(adm&&!isEnc()) return; const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
     if(!v){ toast('Choisis la date du tir'); return; } if(v>today){ toast('La date du tir ne peut pas être dans le futur'); return; }
     if((m.tirs||[]).some(t=>t.date===v)){ toast('Ce tir est déjà noté'); return; }
-    (m.tirs = m.tirs || []).push({id:nid('t'),date:v,ok:adm}); save(); render(); toast(adm?'Tir ajouté':'Tir ajouté — l’admin va le valider'); },
+    const ok=adm||isEnc(); (m.tirs = m.tirs || []).push({id:nid('t'),date:v,ok}); save(); render(); toast(ok?'Tir ajouté':'Tir ajouté — l’admin va le valider'); },
   delTir(mid,tid){ const m=member(mid); if(mid!==S.user&&!isEnc()) return; m.tirs=(m.tirs||[]).filter(t=>t.id!==tid); save(); render(); toast('Tir supprimé'); },
   okTir(mid,tid){ if(!isEnc()) return; const t=(member(mid).tirs||[]).find(t=>t.id===tid); if(t) t.ok=true; save(); render(); toast('Tir validé'); },
   toggleAdd(){ S.addOpen=!S.addOpen; save(); render(); },
@@ -516,7 +515,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v19</small></div>
+      <div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v20</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -731,13 +730,13 @@ function monProfilCard(m){
     <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’admin.</div>
     ${REMOTE?`<div class="row" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><label class="field" style="flex:1 1 160px">Nouveau mot de passe<input id="me-pwd" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.changePwd()">Changer mon mot de passe</button></div>`:''}</div>`;
 }
-function myBadges(m,k){ const s=dossierStatus(m.dossier[k]); return `<span class="badge ${s.cls}">${s.rank===0?'Valide':s.label}</span>${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’admin</span>':''}`; }
+function myBadges(m,k){ const s=dossierStatus(m.dossier[k]); return `<span class="badge ${s.cls}">${s.label}</span>${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’admin</span>':''}`; }
 function myManque(m){ const n=DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length; return n?`<span class="badge grey">${n} date${n>1?'s':''} à renseigner</span>`:'<span class="badge green">Complet</span>'; }
 function monDossierCard(m){
   if(m.id==='m0') return '';
   return `<div class="card stack" id="mon-dossier"><div class="row between"><h3>Mon dossier</h3><span id="my-manque">${myManque(m)}</span></div>
-    <p class="small muted" style="margin:0">Indique pour chaque élément la date de fin de validité. L’admin vérifie ensuite ce que tu as saisi. Seuls toi et l’admin voyez ce dossier.</p>
-    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><div style="min-width:0"><label for="my-${k}" style="font-weight:600">${l}</label><div class="row" id="bd-my-${k}" style="gap:4px;margin-top:2px">${myBadges(m,k)}</div></div><input type="date" id="my-${k}" class="dinput" value="${m.dossier[k]||''}" onchange="act.monDossier('${k}',this.value)"></div>`).join('')}</div></div>`;
+    <p class="small muted" style="margin:0">Indique pour chaque élément la date à laquelle tu l’as passé. Rien n’expire ici : seuls les tirs sont à refaire. L’admin vérifie ensuite ce que tu as saisi. Seuls toi et l’admin voyez ce dossier.</p>
+    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><div style="min-width:0"><label for="my-${k}" style="font-weight:600">${l}</label><div class="row" id="bd-my-${k}" style="gap:4px;margin-top:2px">${myBadges(m,k)}</div></div><input type="date" id="my-${k}" class="dinput" max="${iso(TODAY)}" value="${m.dossier[k]||''}" onchange="act.monDossier('${k}',this.value)"></div>`).join('')}</div></div>`;
 }
 function mesProchaines(){
   const today=iso(TODAY);
@@ -762,7 +761,7 @@ function renderMoi(){
   const stat={declaree:'<span class="badge amber">En attente</span>',validee:'<span class="badge green">Validé</span>',refusee:'<span class="badge red">Refusé</span>'};
   return `<div class="row" style="gap:12px"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div><h2 class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</h2><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · <b style="color:var(--red)">Plus d’activité à la BSTC</b>'}</div></div></div>
     <div class="quick">${m.id==='m0'?'':`<button class="btn" onclick="act.go('mes-tirs','tir-date')">+ Ajouter un tir</button><button class="btn" onclick="act.go('mon-dossier')">Mon dossier</button>`}<button class="btn" onclick="act.go('mon-profil','me-tel')">Modifier mon profil</button></div>
-    ${m.id!=='m0'&&DOSSIER_ITEMS.some(([k])=>!m.dossier[k])?`<div class="card todo row between"><span><b>Ton dossier est incomplet.</b> <span class="small">Il manque ${DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length} date(s) de validité.</span></span><button class="btn primary sm" onclick="act.go('mon-dossier')">Compléter</button></div>`:''}
+    ${m.id!=='m0'&&DOSSIER_ITEMS.some(([k])=>!m.dossier[k])?`<div class="card todo row between"><span><b>Ton dossier est incomplet.</b> <span class="small">Il manque ${DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length} date(s) dans ton dossier.</span></span><button class="btn primary sm" onclick="act.go('mon-dossier')">Compléter</button></div>`:''}
     <div class="card"><div class="eyebrow" style="margin-bottom:8px">Mes heures</div><div class="kpi"><div><b class="num">${valMois}</b><span>validées ce mois</span></div><div><b class="num">${attente}</b><span>en attente</span></div><div><b class="num">${valAn}</b><span>validées en ${y}</span></div></div></div>
     ${aDeclarer.length?`<div class="card stack"><h3>À déclarer</h3><p class="small muted" style="margin:0">Saisis le nombre d’heures réellement effectuées. L’admin valide ensuite.</p>
       ${aDeclarer.map(b=>`<div class="row between stripe ${b.type}" style="padding-left:10px"><div><b>${fmtDate(b.date)}</b> · ${esc(b.libelle)}<div class="small muted">${hm(b.debut)} – ${hm(b.fin)}</div></div><div class="row" style="gap:6px"><input id="h-${b.id}" type="number" min="0.5" max="24" step="0.5" value="${b.duree}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures effectuées"> h <button class="btn primary sm" onclick="act.declarer('${b.id}')">Déclarer</button></div></div>`).join('')}</div>`:''}
@@ -782,7 +781,7 @@ function renderEquipe(){
 }
 
 function renderGestion(){
-  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Réservistes']];
+  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Comptes']];
   if(!subs.some(([k])=>k===S.sub)) S.sub='demandes';
   return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.tab('besoins')">+ Créer une vacation</button></div>
     <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
@@ -821,7 +820,7 @@ function gHabil(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom));
   const pend=[];
   rows.forEach(m=>{
-    DOSSIER_ITEMS.forEach(([k,l])=>{ if(m.aVerifier?.[k]&&m.dossier[k]) pend.push({m,html:`<b>${l}</b> <span class="small muted">· valide jusqu’au ${frDate(m.dossier[k])}</span>`,on:`act.confirmer('${m.id}','${k}')`}); });
+    DOSSIER_ITEMS.forEach(([k,l])=>{ if(m.aVerifier?.[k]&&m.dossier[k]) pend.push({m,html:`<b>${l}</b> <span class="small muted">· fait le ${frDate(m.dossier[k])}</span>`,on:`act.confirmer('${m.id}','${k}')`}); });
     (m.tirs||[]).filter(t=>!t.ok).forEach(t=>pend.push({m,html:`<b>Tir</b> <span class="small muted">· séance du ${frDate(t.date)}</span>`,on:`act.okTir('${m.id}','${t.id}')`}));
   });
   const d2=v=>v?new Date(v+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
@@ -829,10 +828,10 @@ function gHabil(){
   return `<div class="card stack" id="habil-a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Habilitations à valider</h3><span class="badge ${pend.length?'red':'green'}">${pend.length?pend.length+' en attente':'Tout est validé'}</span></div>
       <p class="small muted" style="margin:0">Chaque date ou tir saisi par un agent arrive ici. Vérifie, puis valide.</p>
       ${pend.length?`<div class="dlist">${pend.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc(fullName(x.m))}</div><div>${x.html}</div></div><button class="btn ok" onclick="${x.on}">Valider</button></div>`).join('')}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
-    <div><h3>Habilitations de chacun</h3><p class="small muted" style="margin:4px 0 0">Date de fin de validité par personne. Touche un nom pour ouvrir son dossier.</p></div>
+    <div><h3>Habilitations de chacun</h3><p class="small muted" style="margin:4px 0 0">Date à laquelle chaque élément a été passé — rien n’expire, sauf les tirs (3 sur 365 jours). Touche un nom pour ouvrir son dossier.</p></div>
     <div class="gridwrap"><table class="pgrid htab"><thead><tr><th class="nm">PAX</th>${DOSSIER_ITEMS.map(([k,l])=>`<th class="hb">${l}</th>`).join('')}<th class="hb">Tirs / 365 j</th></tr></thead>
       <tbody>${rows.map(m=>{ const i=tirInfo(m); return `<tr><td class="nm ${m.actif?'':'name-inactive'}" style="cursor:pointer" onclick="act.openPax('${m.id}')"><span class="w-lg">${esc(fullName(m))}</span><span class="w-sm">${esc(shortName(m))}</span></td>${DOSSIER_ITEMS.map(([k])=>cell(m,k)).join('')}<td class="hb ${i.cls} num" title="${i.label}">${i.n}/3${i.aval?' ●':''}</td></tr>`; }).join('')}</tbody></table></div>
-    <div class="legend"><span><i style="background:var(--green)"></i>Valide</span><span><i style="background:var(--amber)"></i>Expire dans 30 j ou moins</span><span><i style="background:var(--red)"></i>Expiré</span><span>— non renseigné</span><span>● saisi par l’agent, à valider</span></div>`;
+    <div class="legend"><span><i style="background:var(--green)"></i>Fait</span><span><i style="background:var(--amber)"></i>Date à corriger · tirs à compléter</span><span><i style="background:var(--red)"></i>Aucun tir</span><span>— non renseigné</span><span>● saisi par l’agent, à valider</span></div>`;
 }
 
 function credCard(){ const c=S.cred; if(!c) return '';
@@ -864,8 +863,8 @@ function gPax(){
           ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="6" autocomplete="off" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
           <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation : 5 réservistes à un, 8 à deux)</span></span></label>
           <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
-          <div class="eyebrow">Dates de validité</div>
-          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="field">${l} <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span><input type="date" id="${k}-${m.id}" value="${m.dossier[k]||''}" onchange="act.paxField('${m.id}','${k}',this.value)">${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Valider la date saisie par l’agent</button>`:''}</label>`;}).join('')}</div>
+          <div class="eyebrow">Dossier · date à laquelle c’est fait</div>
+          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="field">${l} <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span><input type="date" id="${k}-${m.id}" max="${iso(TODAY)}" value="${m.dossier[k]||''}" onchange="act.paxField('${m.id}','${k}',this.value)">${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Valider la date saisie par l’agent</button>`:''}</label>`;}).join('')}</div>
           <div class="row between"><span class="eyebrow">Tirs · 3 sur 365 jours</span><span class="badge ${ti.cls}">${ti.label}</span></div>
           <div class="dlist">${ti.win.map(t=>`<div><span><b>${frDate(t.date)}</b></span><span class="row" style="gap:6px;flex-wrap:nowrap">${t.ok?'<span class="badge green">Validé</span>':`<button class="btn ok sm" onclick="act.okTir('${m.id}','${t.id}')">Valider</button>`}<button class="btn sm" onclick="act.delTir('${m.id}','${t.id}')">Supprimer</button></span></div>`).join('')||'<div class="small muted">Aucun tir sur les 365 derniers jours.</div>'}</div>
           <div class="row" style="gap:8px"><input type="date" id="tir-${m.id}" class="dinput" max="${iso(TODAY)}" aria-label="Date du tir"><button class="btn sm" onclick="act.addTir('${m.id}')">Ajouter un tir</button></div>
@@ -884,9 +883,12 @@ const LOCAL = Object.assign({}, act);   // versions « démo » des actions, ré
 const errMsg = e => { const m=(e&&e.message)||String(e); if(/row-level security|permission denied/i.test(m)) return 'Action non autorisée pour ton profil'; if(/Invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect'; if(/already registered/i.test(m)) return 'Un compte existe déjà avec cet email'; if(/duplicate key/i.test(m)) return 'Déjà enregistré'; if(/Failed to fetch|NetworkError/i.test(m)) return 'Pas de connexion internet'; return m; };
 function setBusy(b){ BUSY=b; document.getElementById('app').classList.toggle('busy',b); }
 
+let LOADSEQ=0;
 async function loadAll(){
+  const seq=++LOADSEQ;
   const names=['members','dossiers','tirs','besoins','demandes','heures','notifs','notif_lus'];
   const res=await Promise.all(names.map(n=>sb.from(n).select('*')));
+  if(seq!==LOADSEQ) return MEROW;   // une lecture plus récente est partie entre-temps : on ne l'écrase pas avec des données plus anciennes
   const T={}; res.forEach((r,i)=>{ if(r.error) throw r.error; T[names[i]]=r.data||[]; });
   const mine=T.members.find(x=>x.user_id===AUTHU.id)||null;
   const dos=Object.fromEntries(T.dossiers.map(x=>[x.member_id,x]));
@@ -920,7 +922,14 @@ async function enter(){
 }
 function syncMe(){ if(!MEROW||!MEROW.approuve){ S.user=null; S.auth='wait'; return; } if(S.user!==MEROW.id){ S.user=MEROW.id; } if(MEROW.role!=='admin'&&S.tab==='gestion') S.tab='planning'; }
 let LOADING=false;
-async function refresh(force){ if(!S.user||BUSY||LOADING) return; if(force!==true){ if(document.visibilityState!=='visible') return; const a=document.activeElement; if(a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return; }
+let LASTEDIT=0; ['input','focusin','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ LASTEDIT=Date.now(); },true));
+// Vrai tant que quelqu'un est en train de saisir : on ne réaffiche pas l'écran sous ses doigts. Un champ resté sélectionné sans saisie ne bloque plus les mises à jour.
+function editing(){ const a=document.activeElement; if(!a||!/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return false; const age=Date.now()-LASTEDIT;
+  if(a.type==='date'&&/^tir-/.test(a.id)&&a.value) return true;   // date de tir choisie, pas encore ajoutée
+  if(a.tagName==='SELECT'||a.type==='checkbox'||a.type==='date') return age<8000; return age<60000; }
+function majToday(){ const n=new Date(); n.setHours(0,0,0,0); if(n.getTime()!==TODAY.getTime()){ TODAY.setTime(n.getTime()); return true; } return false; }
+async function refresh(force){ if(!S.user||BUSY||LOADING) return; if(force!==true){ if(document.visibilityState!=='visible') return; if(editing()) return; }
+  if(majToday()) force=true;   // l'appli est restée ouverte après minuit
   LOADING=true; try{ const before=JSON.stringify([S.members,S.besoins,S.demandes,S.heures,S.notifs,S.pending,S.user]); await loadAll(); syncMe();
     if(force===true||JSON.stringify([S.members,S.besoins,S.demandes,S.heures,S.notifs,S.pending,S.user])!==before) render(); }catch(e){ if(force===true) toast('Erreur : '+errMsg(e)); } LOADING=false; }
 
@@ -946,7 +955,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     <button class="linkbtn" onclick="act.authMode('up')">Première installation</button>
     <button class="linkbtn" onclick="act.forgot()">Mot de passe oublié</button>
-    <p class="small muted" style="margin:0">Version 19 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 20 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -974,7 +983,7 @@ const RA = {
   tab(t){ S.tab=t; S.confirm=null; render(); refresh(); },
   sub(t){ S.sub=t; S.paxOpen=null; render(); refresh(); },
   approuver(id){ return run(()=>sb.from('members').update({approuve:true}).eq('id',id),'Compte accepté'); },
-  refuserCompte(id){ return run(()=>sb.from('members').delete().eq('id',id),'Compte refusé'); },
+  refuserCompte(id){ return run(()=>supprCompte(id),'Compte refusé'); },
   // ---- vacations (admin)
   creerVac(date,type){ if(vacOf(date)) return; const t=TYPES[type]||TYPES.vacation; S.day=date;
     return run(()=>sb.from('besoins').insert({date,type,debut:t.debut,fin:t.fin,libelle:t.label,lieu:'Paris',places:0,duree:7}),`${t.label} créée — les réservistes peuvent se proposer`); },
@@ -1009,16 +1018,17 @@ const RA = {
   // ---- profil, dossier, tirs
   monProfil(k,v){ v=v.trim(); if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; } if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
     return run(()=>sb.rpc('maj_mon_profil',{p_tel:k==='tel'?v:null,p_email:k==='email'?v:null}),k==='tel'?'Téléphone mis à jour':'Email mis à jour'); },
-  monDossier(k,v){ if(v&&v<'2000-01-01') return; LOCAL.monDossier(k,v); sb.rpc('maj_mon_dossier',{k,v:v||null}).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
+  monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } LOCAL.monDossier(k,v); sb.rpc('maj_mon_dossier',{k,v:v||null}).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
   confirmer(id,k){ const av=Object.assign({},member(id).aVerifier); delete av[k]; return run(()=>sb.from('dossiers').update({a_verifier:av}).eq('member_id',id),'Date validée'); },
   paxField(id,k,v){ const m=member(id);
     if(['actif','role','titulaire','tel','nom','prenom','grade','email'].includes(k)){ if(typeof v==='string') v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } if(k==='nom') v=v.toUpperCase(); if(k==='email'&&!v) v=null;
       return run(()=>sb.from('members').update({[k]:v}).eq('id',id), k==='actif'?(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'):'Enregistré'); }
-    if(v&&v<'2000-01-01') return; const av=Object.assign({},m.aVerifier); delete av[k]; LOCAL.paxField(id,k,v);   // date du dossier : pas de rechargement pendant la saisie
+    if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const av=Object.assign({},m.aVerifier); delete av[k]; LOCAL.paxField(id,k,v);   // date du dossier : pas de rechargement pendant la saisie
     sb.from('dossiers').update({[k]:v||null,a_verifier:av}).eq('member_id',id).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
-  addTir(mid){ const adm=!!mid; const m=adm?member(mid):me(); const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
+  addTir(mid){ majToday(); const adm=!!mid; const m=adm?member(mid):me(); const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
     if(!v){ toast('Choisis la date du tir'); return; } if(v>today){ toast('La date du tir ne peut pas être dans le futur'); return; } if((m.tirs||[]).some(t=>t.date===v)){ toast('Ce tir est déjà noté'); return; }
-    return run(()=>sb.from('tirs').insert({member_id:m.id,date:v,ok:adm}),adm?'Tir ajouté':'Tir ajouté — l’admin va le valider'); },
+    const ok=adm||isEnc();   // un admin n'a pas à valider son propre tir
+    return run(async()=>{ const r=await sb.from('tirs').insert({member_id:m.id,date:v,ok}).select(); if(!r.error&&!(r.data&&r.data.length)) return {error:{message:'le tir n’a pas été enregistré par la base'}}; return r; },ok?'Tir ajouté':'Tir ajouté — l’admin va le valider'); },
   delTir(mid,tid){ return run(()=>sb.from('tirs').delete().eq('id',tid),'Tir supprimé'); },
   okTir(mid,tid){ return run(()=>sb.from('tirs').update({ok:true}).eq('id',tid),'Tir validé'); },
   // ---- comptes : l'admin crée tout (fiche + compte de connexion avec mot de passe)
@@ -1038,13 +1048,17 @@ const RA = {
       S.cred={nom:m.prenom+' '+m.nom,email:m.email,pwd:v}; await loadAll(); syncMe(); setBusy(false); render(); toast(m.lie?'Mot de passe remplacé':'Compte créé'); document.querySelector('.content').scrollTo({top:0,behavior:'smooth'}); }
     catch(e){ setBusy(false); render(); toast('Erreur : '+errMsg(e)); } },
   delPax(id){ if(id===S.user) return; if(S.confirm!=='del-'+id){ S.confirm='del-'+id; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.paxOpen=null;
-    return run(()=>sb.from('members').delete().eq('id',id),'Compte supprimé'); },
+    return run(()=>supprCompte(id),'Compte supprimé'); },
   // ---- notifications
   delNotif(id){ return run(()=>sb.from('notifs').delete().eq('id',id),'Message supprimé'); },
   lu(id){ const n=(S.notifs||[]).find(x=>x.id===id); if(n) n.lu={[S.user]:true}; render(); sb.from('notif_lus').insert({notif_id:id,member_id:S.user}).then(()=>{}); },
   voir(id,date){ S.tab='besoins'; S.month=date.slice(0,7); S.day=date; RA.lu(id); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest'}); },
 };
 
+// Supprime la fiche ET le compte de connexion (fonction SQL v20). Si la fonction n'existe pas encore dans la base, on supprime la fiche comme avant.
+async function supprCompte(id){ const r=await sb.rpc('admin_supprimer_compte',{m:id});
+  if(r.error&&(r.error.code==='PGRST202'||/admin_supprimer_compte|Could not find the function/i.test(r.error.message||''))) return sb.from('members').delete().eq('id',id);
+  return r; }
 // Second client, sans session enregistrée : sert à créer le compte d'un collègue sans déconnecter l'admin.
 function tmpClient(){ return window.supabase.createClient(CFG.url, CFG.key, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bstc-creation-compte'}}); }
 
