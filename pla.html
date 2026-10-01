@@ -445,7 +445,8 @@ const pendingHabil = ()=>S.members.reduce((s,m)=>s+Object.values(m.aVerifier||{}
 const alertes = m => DOSSIER_ITEMS.filter(([k])=>dossierStatus(m.dossier[k]).rank>=1);
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); }
 function shiftMonth(n){ const d=new Date(S.month+'-01T00:00:00'); d.setMonth(d.getMonth()+n); S.month=iso(d).slice(0,7); save(); render(); }
-const pendingDemandes = ()=>S.demandes.filter(d=>d.statut==='demandee').length;
+// même règle que la liste « Dispos à valider » : seulement les vacations à venir (une dispo restée en attente sur un jour passé ne compte plus)
+const pendingDemandes = ()=>{ const t=iso(TODAY); return S.demandes.filter(d=>d.statut==='demandee'&&member(d.memberId)&&besoin(d.besoinId)&&besoin(d.besoinId).date>=t).length; };
 const pendingHeures = ()=>S.heures.filter(h=>h.statut==='declaree').length;
 
 /* ---------------- actions ---------------- */
@@ -565,7 +566,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v23</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v25</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -629,7 +630,7 @@ function myAction(date){
   if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${outBtn(d)}`;
   if(!m.actif) return `<span class="badge red">Compte sans activité</span>`;
   if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
-  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent':m.role==='admin'?'Je me mets dessus':'Je suis dispo'}</button>`;
+  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent':m.role==='admin'?'M’ajouter comme réserviste':'Je suis dispo'}</button>`;
 }
 function alertBadge(m){ const al=alertes(m); const t=tirInfo(m); const n=al.length+(t.ok?0:1); if(!n) return '';
   if(!DOSSIER_ITEMS.some(([k])=>m.dossier[k])&&!(m.tirs||[]).length) return `<span class="badge grey" title="Rien de coché, aucun tir">Dossier vide</span>`;
@@ -641,7 +642,7 @@ function paxLine(m){ return `<div class="pl" style="min-width:0"><span class="${
 // Fiche de la vacation d'un jour : titulaires, compteur, validés, en attente, et les actions selon le profil
 function dayPanel(date,noAct){
   const b=vacOf(date); if(!b) return '';
-  const p=patrouille(date); const adm=isEnc(); const my=myAction(date);
+  const p=patrouille(date); const adm=isEnc(); const my=(adm&&me().titulaire)?'':myAction(date);   // un titulaire admin se coche dans « Titulaires » : pas de second bouton
   const titRow = adm
     ? titulaires().map(t=>{const on=p.tit.some(d=>d.memberId===t.id); return `<label class="check"><input type="checkbox" id="tit-${date}-${t.id}" ${on?'checked':''} onchange="act.titPresence('${date}','${t.id}',this.checked)"> ${esc(shortName(t))}</label>`;}).join('')||'<span class="small muted">Aucun titulaire déclaré (Gestion › Réservistes)</span>'
     : (p.tit.length?p.tit.map(d=>chip(member(d.memberId),'tit')).join(''):'<span class="small muted">Aucun titulaire indiqué</span>');
@@ -750,7 +751,7 @@ function renderBesoins(){
     const cnt=!b?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:p.wait.length?`+${p.wait.length}`:typeOf(b).court):`${p.att.length}/${p.cap}`;
     const lbl=`${fmtLong(d)}${b?', '+typeOf(b).label:', pas de vacation'}${st==='ok'?', validé':st==='wait'?', dispo en attente':st==='tit'?', présent':''}`;
     return `<button class="cal-d ${b?(b.type==='matin'?'mat':'vac'):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.multi?(S.multi.includes(d)?'pick':''):(S.day===d?'sel':'')}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.multi?S.multi.includes(d):S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
-  const sel=S.day&&S.day.startsWith(S.month); const b=sel&&vacOf(S.day); const my=sel?myAction(S.day):'';
+  const sel=S.day&&S.day.startsWith(S.month); const b=sel&&vacOf(S.day); const my=(sel&&!(isEnc()&&me().titulaire))?myAction(S.day):'';
   let bar='';
   if(adm&&S.multi) bar=multiBar();
   else if(sel&&b&&my) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${my}</div></div>`;
@@ -1050,7 +1051,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 23 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 25 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
