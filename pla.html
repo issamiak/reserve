@@ -342,7 +342,7 @@ let HAB_DYN = false;   // vrai quand la base sait gérer les types (script SQL v
 const habNom = v => String(v||'').replace(/[<>&"'`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,40);
 function setHab(list){ DOSSIER_ITEMS.length=0; (list||[]).forEach(([k,l])=>{ if(/^[a-z0-9_]+$/.test(k)&&habNom(l)) DOSSIER_ITEMS.push([k,habNom(l)]); }); }
 // Règle de la patrouille : nombre de réservistes selon le nombre de titulaires présents
-const CAP = {0:0, 1:5, 2:8};
+const CAP = {0:0, 1:8, 2:8};   // 8 personnes au total dès qu'un titulaire est présent : 1 titulaire + 7 réservistes, ou 2 titulaires + 6 réservistes
 
 function seedState(){
   let seq=1; const id=p=>p+(seq++); const today=iso(TODAY);
@@ -399,14 +399,14 @@ const hm = t => t.replace(':','h').replace(/h00$/,'h');
 const attribs = b => S.demandes.filter(d=>d.besoinId===b.id&&d.statut==='attribuee');
 const titulaires = ()=>S.members.filter(m=>m.titulaire);
 const vacOf = date => S.besoins.find(b=>b.date===date);   // la vacation du jour (une seule par jour)
-// Comptabilité d'un jour : titulaires présents, réservistes validés, en attente, capacité (5 ou 8)
+// Comptabilité d'un jour : titulaires présents, réservistes validés, en attente, capacité (8 au total, titulaires compris)
 function patrouille(date){
   const b=vacOf(date); const ds=b?S.demandes.filter(d=>d.besoinId===b.id&&member(d.memberId)):[];
   const tit=ds.filter(d=>member(d.memberId).titulaire&&d.statut==='attribuee');
   const att=ds.filter(d=>!member(d.memberId).titulaire&&d.statut==='attribuee');
   const wait=ds.filter(d=>d.statut==='demandee');
   const fixe=!!(b&&b.places>0);   // l'admin peut fixer lui-même le nombre de places d'une vacation
-  // Règle : 5 personnes AU TOTAL avec un titulaire, 8 avec deux — titulaires compris. « max » = total, « cap » = places de réservistes.
+  // Règle : 8 personnes AU TOTAL, titulaires compris (7 réservistes avec un titulaire, 6 avec deux). « max » = total, « cap » = places de réservistes.
   const max=fixe?b.places:CAP[Math.min(tit.length,2)]; const cap=Math.max(0,max-tit.length); const n=tit.length+att.length;
   const etat=(!tit.length&&!fixe)?'notit':att.length>cap?'over':att.length===cap?'full':'open';
   return {b,tit,att,wait,cap,max,n,fixe,etat,libres:Math.max(0,cap-att.length),vide:!ds.filter(d=>d.statut!=='refusee').length};
@@ -569,7 +569,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v27</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v28</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -670,7 +670,7 @@ function dayPanel(date,noAct){
         <label class="field">Début<input type="time" id="vd-${b.id}" value="${b.debut}" onchange="act.majVac('${b.id}','debut',this.value)"></label>
         <label class="field">Fin<input type="time" id="vf-${b.id}" value="${b.fin}" onchange="act.majVac('${b.id}','fin',this.value)"></label>
         <label class="field">Nombre de places<input type="number" min="0" max="40" inputmode="numeric" id="vp-${b.id}" value="${b.places>0?b.places:''}" placeholder="automatique : 5 ou 8" onchange="act.majVac('${b.id}','places',this.value)"></label></div>
-      <div class="small muted">Laisse « places » vide pour la règle habituelle (5 personnes au total avec un titulaire, 8 avec deux, titulaires compris). Mets un nombre total pour en prendre plus ou moins ce jour-là.</div>
+      <div class="small muted">Laisse « places » vide pour la règle habituelle (8 personnes au total, titulaires compris : 7 réservistes avec un titulaire, 6 avec deux). Mets un nombre total pour en prendre plus ou moins ce jour-là.</div>
       <div><button class="btn danger sm" onclick="act.supprVac('${b.id}')">${S.confirm==='vac-'+b.id?'Confirmer la suppression':'Supprimer la vacation'}</button></div></div></details>`:'';
   return `<div class="card stripe ${b.type} stack fiche" id="fiche-jour">
     <div class="row between"><div><div class="eyebrow">${typeOf(b).label} du</div><h3>${fmtLong(date)}</h3><div class="small muted">${vacTitle(b)} · ${esc(b.lieu||'Paris')}</div></div>${patBadge(p)}</div>
@@ -866,7 +866,7 @@ function gDemandes(){
       <p class="small muted" style="margin:0">Dès qu’un réserviste se propose sur une vacation, il arrive ici. Touche « Valider » : il passe en vert sur le planning de tout le monde.</p>
       ${rows?`<div class="dlist">${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
     ${ret.length?`<div class="card stack"><h3>Désistements</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est désisté <span class="small muted">· ${fmtDate(r.date)}</span></span><button class="btn sm" onclick="act.delNotif('${r.id}')">Supprimer</button></div>`).join('')}</div></div>`:''}
-    ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 5 personnes au total avec un titulaire, 8 avec deux (titulaires compris). Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
+    ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 8 personnes au total, titulaires compris (7 réservistes avec un titulaire, 6 avec deux). Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
 }
 
 function gHeures(){
@@ -952,7 +952,7 @@ function gPax(){
           <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" ${REMOTE&&m.lie?'readonly title="Identifiant de connexion"':''} onchange="act.paxField('${m.id}','email',this.value)"></label>
           ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="mat-${m.id}" maxlength="20" value="${esc(m.matricule||'')}" onchange="act.paxField('${m.id}','matricule',this.value)"></label>`}</div>
           ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="6" autocomplete="off" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
-          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation : 5 personnes au total à un, 8 à deux, titulaires compris)</span></span></label>
+          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation : 8 personnes au total, titulaires compris)</span></span></label>
           <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
           <div class="eyebrow">Dossier · coche ce qui est fait</div>
           <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="check" style="flex-wrap:wrap"><input type="checkbox" id="${k}-${m.id}" ${m.dossier[k]?'checked':''} onchange="act.paxField('${m.id}','${k}',this.checked?iso(TODAY):'')"> <span style="font-weight:600">${l}</span> <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span>${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Valider (coché par l’agent)</button>`:''}</label>`;}).join('')}</div>
@@ -1059,7 +1059,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 27 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 28 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
