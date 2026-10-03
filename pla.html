@@ -333,16 +333,23 @@ const TYPES = {
 };
 const typeOf = b => TYPES[b&&b.type] || TYPES.vacation;
 const DOSSIER_ITEMS = [
-  ['visite_medicale','Visite médicale'],['habilitation','Habilitation'],
+  ['visite_medicale','Visite médicale',true],['habilitation','Habilitation'],
   ['pie','PIE'],['grenades','Grenades'],['baton','Bâton'],
 ];
 // Les types d'habilitation sont gérés par l'admin (Gestion > Habilitations). La liste ci-dessus n'est que celle de départ.
 const HAB_FIXES = ['visite_medicale','habilitation','pie','grenades','baton'];   // types historiques : une colonne chacun dans la base
 let HAB_DYN = false;   // vrai quand la base sait gérer les types (script SQL v22 lancé)
 const habNom = v => String(v||'').replace(/[<>&"'`\\]/g,'').replace(/\s+/g,' ').trim().slice(0,40);
-function setHab(list){ DOSSIER_ITEMS.length=0; (list||[]).forEach(([k,l])=>{ if(/^[a-z0-9_]+$/.test(k)&&habNom(l)) DOSSIER_ITEMS.push([k,habNom(l)]); }); }
+function setHab(list){ DOSSIER_ITEMS.length=0; (list||[]).forEach(([k,l,o])=>{ if(/^[a-z0-9_]+$/.test(k)&&habNom(l)) DOSSIER_ITEMS.push([k,habNom(l),o==null?k==='visite_medicale':!!o]); }); }
+const habOblig = k => { const it=DOSSIER_ITEMS.find(x=>x[0]===k); return !!(it&&it[2]); };   // obligatoire = crée une alerte quand ça manque (réglé par l'admin)
+let OBL_OK = false;   // vrai quand la base sait enregistrer « obligatoire » (script SQL v24 lancé)
 // Règle de la patrouille : nombre de réservistes selon le nombre de titulaires présents
-const CAP = {0:0, 1:8, 2:8};   // 8 personnes au total dès qu'un titulaire est présent : 1 titulaire + 7 réservistes, ou 2 titulaires + 6 réservistes
+// Réglages de l'admin (Gestion > Réglages) : total de personnes, titulaires compris, avec 1 ou 2 titulaires ; « limite » décoché = pas de limite de places.
+let REG = {cap1:6, cap2:10, limite:true}; let REG_OK = false;   // REG_OK : la base sait enregistrer les réglages (script SQL v24 lancé)
+const regNum = (v,d)=>{ v=parseInt(v); return v>=1&&v<=40?v:d; };
+function setReg(o){ o=o||{}; REG={cap1:regNum(o.cap1,6), cap2:regNum(o.cap2,10), limite:o.limite!==false}; }
+const regleTxt = ()=> REG.limite?`${REG.cap1} personnes au total avec un titulaire, ${REG.cap2} avec deux, titulaires compris`:'pas de limite de places';
+const pCnt = p => p.illim?String(p.n):p.n+'/'+p.max;   // compteur affiché : « 7/10 », ou juste « 7 » quand il n'y a pas de limite
 
 function seedState(){
   let seq=1; const id=p=>p+(seq++); const today=iso(TODAY);
@@ -406,10 +413,11 @@ function patrouille(date){
   const att=ds.filter(d=>!member(d.memberId).titulaire&&d.statut==='attribuee');
   const wait=ds.filter(d=>d.statut==='demandee');
   const fixe=!!(b&&b.places>0);   // l'admin peut fixer lui-même le nombre de places d'une vacation
-  // Règle : 8 personnes AU TOTAL, titulaires compris (7 réservistes avec un titulaire, 6 avec deux). « max » = total, « cap » = places de réservistes.
-  const max=fixe?b.places:CAP[Math.min(tit.length,2)]; const cap=Math.max(0,max-tit.length); const n=tit.length+att.length;
-  const etat=(!tit.length&&!fixe)?'notit':att.length>cap?'over':att.length===cap?'full':'open';
-  return {b,tit,att,wait,cap,max,n,fixe,etat,libres:Math.max(0,cap-att.length),vide:!ds.filter(d=>d.statut!=='refusee').length};
+  // Règle : un total de personnes, titulaires compris, selon le nombre de titulaires (voir REG). « max » = total, « cap » = places de réservistes.
+  const n=tit.length+att.length; const illim=!fixe&&!REG.limite&&tit.length>0;   // pas de limite : réglage de l'admin
+  const max=fixe?b.places:illim?n:tit.length>=2?REG.cap2:tit.length?REG.cap1:0; const cap=illim?999:Math.max(0,max-tit.length);
+  const etat=(!tit.length&&!fixe)?'notit':illim?'open':att.length>cap?'over':att.length===cap?'full':'open';
+  return {b,tit,att,wait,cap,max,n,fixe,illim,etat,libres:illim?999:Math.max(0,cap-att.length),vide:!ds.filter(d=>d.statut!=='refusee').length};
 }
 const restantes = b => patrouille(b.date).libres;
 function vacPatch(b,k,v){   // modification d'une vacation par l'admin
@@ -423,9 +431,9 @@ function vacPatch(b,k,v){   // modification d'une vacation par l'admin
   return o;
 }
 const roleLabel = r => r==='admin'?'Admin':'Réserviste';
-function dossierStatus(v){
-  if(!v) return {cls:'grey',label:'Pas fait',rank:2};
-  return {cls:'green',label:'Fait',rank:0};
+function dossierStatus(v,k){
+  if(v) return {cls:'green',label:'OK',rank:0};
+  return habOblig(k)?{cls:'red',label:'Obligatoire · manquant',rank:2}:{cls:'grey',label:'—',rank:0};   // seul ce qui est obligatoire compte comme une alerte
   // Le dossier n'expire pas : on note la date à laquelle c'est fait. Seuls les tirs se renouvellent (3 sur 365 jours).
 
 }
@@ -444,7 +452,7 @@ function tirInfo(m){
 }
 function tirBadge(m){ const i=tirInfo(m); return `<span class="badge ${i.cls}">Tirs ${i.label}</span>`; }
 const pendingHabil = ()=>S.members.reduce((s,m)=>s+Object.values(m.aVerifier||{}).filter(Boolean).length+(m.tirs||[]).filter(t=>!t.ok).length,0);
-const alertes = m => DOSSIER_ITEMS.filter(([k])=>dossierStatus(m.dossier[k]).rank>=1);
+const alertes = m => DOSSIER_ITEMS.filter(([k])=>dossierStatus(m.dossier[k],k).rank>=1);
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); }
 function shiftMonth(n){ const d=new Date(S.month+'-01T00:00:00'); d.setMonth(d.getMonth()+n); S.month=iso(d).slice(0,7); save(); render(); }
 // même règle que la liste « Dispos à valider » : seulement les vacations à venir (une dispo restée en attente sur un jour passé ne compte plus)
@@ -476,7 +484,7 @@ window.act = {
   titPresence(date,mid,on){ if(!isEnc()) return; const b=vacOf(date); if(!b) return;
     S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===mid));
     if(on) S.demandes.push({id:nid('d'),besoinId:b.id,memberId:mid,statut:'attribuee',par:S.user});
-    save(); render(); const p=patrouille(date); toast(p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} réservistes possibles`:'Plus de titulaire ce jour-là'); },
+    save(); render(); const p=patrouille(date); toast(p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.illim?'pas de limite de places':p.cap+' réservistes possibles'}`:'Plus de titulaire ce jour-là'); },
   // ---- dispos
   dispo(date){ const m=me(); const b=vacOf(date); if(!b){ toast('Pas de vacation ce jour'); return; } if(!m.actif||m.id==='m0') return;
     S.demandes=S.demandes.filter(x=>!(x.besoinId===b.id&&x.memberId===m.id)); const direct=m.role==='admin';
@@ -490,18 +498,18 @@ window.act = {
     S.demandes=S.demandes.filter(x=>x.id!==did); save(); render(); toast(!self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
   attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
     d.statut='attribuee'; d.par=S.user; save(); render(); const p=patrouille(b.date);
-    toast(`${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${p.n}/${p.max}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`); },
+    toast(`${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${pCnt(p)}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`); },
   refuser(did){ const d=S.demandes.find(x=>x.id===did); d.statut='refusee'; d.par=S.user; save(); render(); toast('Demande refusée'); },
   declarer(bid){ const inp=document.getElementById('h-'+bid); const v=parseFloat(inp.value); if(!(v>0&&v<=24)){toast('Indique un nombre d’heures valide');return;} const b=besoin(bid); S.heures.push({id:nid('h'),besoinId:bid,memberId:S.user,heures:v,statut:'declaree',validePar:null,date:b.date}); save(); render(); toast('Heures déclarées, en attente de validation'); },
   validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
   refuserH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='refusee'; h.validePar=S.user; save(); render(); toast('Déclaration refusée'); },
   pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
-  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email','matricule'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Enregistré'); return; } save(); render(); },
+  paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email','matricule'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v,k), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Enregistré'); return; } save(); render(); },
   monProfil(k,v){ const m=me(); v=v.trim();
     if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; }
     if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
     if(k==='matricule'&&!/^[A-Za-z0-9 .\-]{0,20}$/.test(v)){ render(); toast('Matricule invalide : lettres et chiffres uniquement'); return; } m[k]=v; save(); render(); toast(k==='tel'?'Téléphone mis à jour':k==='matricule'?'Matricule enregistré':'Email mis à jour'); },
-  monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const m=me(); m.dossier[k]=v; (m.aVerifier = m.aVerifier || {})[k]=!!v; save(); const el=document.getElementById('bd-my-'+k); if(el) el.innerHTML=myBadges(m,k); const mq=document.getElementById('my-manque'); if(mq) mq.innerHTML=myManque(m); toast(v?'Noté « fait » — l’admin va vérifier':'Décoché'); },
+  monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const m=me(); m.dossier[k]=v; (m.aVerifier = m.aVerifier || {})[k]=!!v; save(); const el=document.getElementById('bd-my-'+k); if(el) el.innerHTML=myBadges(m,k); const mq=document.getElementById('my-manque'); if(mq) mq.innerHTML=myManque(m); toast(v?'Noté — l’admin va vérifier':'Décoché'); },
   confirmer(id,k){ const m=member(id); if(m.aVerifier) delete m.aVerifier[k]; save(); render(); toast('Validé'); },
   addTir(mid){ const adm=!!mid; const m=adm?member(mid):me(); if(adm&&!isEnc()) return; const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
     if(!v){ toast('Choisis la date du tir'); return; } if(v>today){ toast('La date du tir ne peut pas être dans le futur'); return; }
@@ -528,9 +536,11 @@ window.act = {
     exportCsv(ym,{besoins:bs,demandes:S.demandes,heures:S.heures.filter(h=>h.date.startsWith(ym))}); toast('Export téléchargé'); },
   refuserHab(id,k){ if(!isEnc()) return; const m=member(id); m.dossier[k]=''; if(m.aVerifier) delete m.aVerifier[k]; save(); render(); toast('Refusé — la case est décochée'); },
   addHab(){ if(!isEnc()) return; const v=habNom(document.getElementById('hab-new')?.value); if(!v){ toast('Écris le nom de l’habilitation'); return; } if(DOSSIER_ITEMS.some(([,l])=>l.toLowerCase()===v.toLowerCase())){ toast('Ce type existe déjà'); return; }
-    DOSSIER_ITEMS.push(['h_'+Math.random().toString(36).slice(2,10),v]); S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Type ajouté'); },
+    DOSSIER_ITEMS.push(['h_'+Math.random().toString(36).slice(2,10),v,false]); S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Type ajouté'); },
   renHab(k,v){ if(!isEnc()) return; v=habNom(v); const it=DOSSIER_ITEMS.find(x=>x[0]===k); if(!it) return; if(!v){ render(); toast('Le nom ne peut pas être vide'); return; } it[1]=v; S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Nom modifié'); },
   delHab(k){ if(!isEnc()) return; if(S.confirm!=='hab-'+k){ S.confirm='hab-'+k; render(); toast('Touche « Confirmer »'); return; } S.confirm=null; setHab(DOSSIER_ITEMS.filter(x=>x[0]!==k)); S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast('Type supprimé'); },
+  oblHab(k,v){ if(!isEnc()) return; const it=DOSSIER_ITEMS.find(x=>x[0]===k); if(!it) return; it[2]=!!v; S.habTypes=DOSSIER_ITEMS.map(x=>x.slice()); save(); render(); toast(v?'Marqué obligatoire':'N’est plus obligatoire'); },
+  reg(k,v){ if(!isEnc()) return; const o=regNew(k,v); if(!o){ render(); toast('Mets un nombre entre 1 et 40'); return; } setReg(o); S.reglages=Object.assign({},REG); save(); render(); toast('Réglage enregistré'); },
   multi(){ S.multi=S.multi?null:[]; S.confirm=null; render(); },
   multiSemaine(){ if(!S.multi) return; const [y,mo]=S.month.split('-').map(Number); const n=new Date(y,mo,0).getDate(); const today=iso(TODAY);
     S.multi=Array.from({length:n},(_,i)=>dISO(y,mo,i+1)).filter(d=>d>=today&&!vacOf(d)&&![0,6].includes(new Date(d+'T00:00:00').getDay())); render(); if(!S.multi.length) toast('Aucun jour libre du lundi au vendredi ce mois-ci'); },
@@ -585,7 +595,7 @@ function notifBanner(){
   const list=(S.notifs||[]).filter(n=>!n.lu?.[S.user]&&n.date>=today&&member(n.memberId)).slice(0,3);
   return list.map(n=>{ const p=patrouille(n.date); const who=esc(fullName(member(n.memberId)));
     return `<div class="card notif" role="status"><div style="min-width:0"><b>${adm?`${who} s’est désisté`:'Une place s’est libérée'}</b>
-      <div class="small">${fmtDate(n.date)}${adm?'':` · ${who} s’est désisté`} · ${p.tit.length?`${p.n}/${p.max} présents, ${p.libres} place${p.libres>1?'s':''}`:'titulaire à indiquer'}</div></div>
+      <div class="small">${fmtDate(n.date)}${adm?'':` · ${who} s’est désisté`} · ${p.tit.length?`${p.illim?p.n+' présents':`${p.n}/${p.max} présents, ${p.libres} place${p.libres>1?'s':''}`}`:'titulaire à indiquer'}</div></div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn primary sm" onclick="act.voir('${n.id}','${n.date}')">${adm?'Voir le jour':'Je me positionne'}</button><button class="btn sm" onclick="act.lu('${n.id}')">OK</button></div></div>`; }).join('');
 }
 
@@ -626,6 +636,7 @@ function patBadge(p){
     : `<span class="badge grey">${p.wait.length} en attente</span>`;
   const main = p.etat==='full' ? `<span class="badge green">${p.n}/${p.max} · complet</span>`
     : p.etat==='over' ? `<span class="badge red">${p.n}/${p.max} · sureffectif</span>`
+    : p.illim ? `<span class="badge amber">${p.n} présent${p.n>1?'s':''} · ouvert</span>`
     : `<span class="badge amber">${p.n}/${p.max} · ${p.libres} place${p.libres>1?'s':''}</span>`;
   return `<span class="row" style="gap:4px;justify-content:flex-end">${av}${main}</span>`;
 }
@@ -642,9 +653,9 @@ function myAction(date){
 }
 function alertBadge(m){ const al=alertes(m); const t=tirInfo(m); const n=al.length+(t.ok?0:1); if(!n) return '';
   if(!DOSSIER_ITEMS.some(([k])=>m.dossier[k])&&!(m.tirs||[]).length) return `<span class="badge grey" title="Rien de coché, aucun tir">Dossier vide</span>`;
-  const red=al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)||t.n===0;
+  const red=al.some(([k])=>dossierStatus(m.dossier[k],k).rank===3)||t.n===0;
   return `<button class="badge ${red?'red':'amber'} abtn" onclick="event.stopPropagation();act.alerte('${m.id}')" aria-expanded="${S.alertOpen===m.id}" title="Voir les alertes du dossier">⚠ ${n}</button>`; }
-function alertDetail(m){ if(S.alertOpen!==m.id) return ''; const l=alertes(m).map(([k,lab])=>`${lab} : ${dossierStatus(m.dossier[k]).label.toLowerCase()}`); const t=tirInfo(m); if(!t.ok) l.push('Tirs : '+t.label);
+function alertDetail(m){ if(S.alertOpen!==m.id) return ''; const l=alertes(m).map(([k,lab])=>`${lab} : ${dossierStatus(m.dossier[k],k).label.toLowerCase()}`); const t=tirInfo(m); if(!t.ok) l.push('Tirs : '+t.label);
   return `<div class="small muted adet">${l.map(esc).join('<br>')}</div>`; }
 function paxLine(m){ return `<div class="pl" style="min-width:0"><span class="${m.actif?'':'name-inactive'}">${esc(fullName(m))}</span> ${alertBadge(m)}${alertDetail(m)}</div>`; }
 // Fiche de la vacation d'un jour : titulaires, compteur, validés, en attente, et les actions selon le profil
@@ -654,7 +665,7 @@ function dayPanel(date,noAct){
   const titRow = adm
     ? titulaires().map(t=>{const on=p.tit.some(d=>d.memberId===t.id); return `<label class="check"><input type="checkbox" id="tit-${date}-${t.id}" ${on?'checked':''} onchange="act.titPresence('${date}','${t.id}',this.checked)"> ${esc(shortName(t))}</label>`;}).join('')||'<span class="small muted">Aucun titulaire déclaré (Gestion › Réservistes)</span>'
     : (p.tit.length?p.tit.map(d=>chip(member(d.memberId),'tit')).join(''):'<span class="small muted">Aucun titulaire indiqué</span>');
-  const capTxt = p.fixe?`${p.max} places au total fixées par l’admin${p.tit.length?'':' · aucun titulaire indiqué'}`:p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.max} personnes au total, donc ${p.cap} réserviste${p.cap>1?'s':''}`:'Aucun titulaire indiqué pour ce jour';
+  const capTxt = p.fixe?`${p.max} places au total fixées par l’admin${p.tit.length?'':' · aucun titulaire indiqué'}`:p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} présent${p.tit.length>1?'s':''} : ${p.illim?'pas de limite de places':`${p.max} personnes au total, donc ${p.cap} réserviste${p.cap>1?'s':''}`}`:'Aucun titulaire indiqué pour ce jour';
   const att = !p.att.length?'<span class="small muted">Personne pour l’instant</span>'
     : adm?`<div class="dlist">${p.att.map(d=>`<div>${paxLine(member(d.memberId))}<button class="btn sm" onclick="act.retirer('${d.id}')">${d.memberId===S.user&&S.confirm===d.id?'Confirmer le retrait':'Retirer'}</button></div>`).join('')}</div>`
     : `<div class="row" style="gap:6px">${p.att.map(d=>chip(member(d.memberId),'ok')).join('')}</div>`;
@@ -669,8 +680,8 @@ function dayPanel(date,noAct){
         <label class="field">Libellé<input id="vl-${b.id}" value="${esc(b.libelle)}" placeholder="ex. Fête de l’Humanité" onchange="act.majVac('${b.id}','libelle',this.value)"></label>
         <label class="field">Début<input type="time" id="vd-${b.id}" value="${b.debut}" onchange="act.majVac('${b.id}','debut',this.value)"></label>
         <label class="field">Fin<input type="time" id="vf-${b.id}" value="${b.fin}" onchange="act.majVac('${b.id}','fin',this.value)"></label>
-        <label class="field">Nombre de places<input type="number" min="0" max="40" inputmode="numeric" id="vp-${b.id}" value="${b.places>0?b.places:''}" placeholder="automatique : 5 ou 8" onchange="act.majVac('${b.id}','places',this.value)"></label></div>
-      <div class="small muted">Laisse « places » vide pour la règle habituelle (8 personnes au total, titulaires compris : 7 réservistes avec un titulaire, 6 avec deux). Mets un nombre total pour en prendre plus ou moins ce jour-là.</div>
+        <label class="field">Nombre de places<input type="number" min="0" max="40" inputmode="numeric" id="vp-${b.id}" value="${b.places>0?b.places:''}" placeholder="automatique : ${REG.limite?REG.cap1+' ou '+REG.cap2:'sans limite'}" onchange="act.majVac('${b.id}','places',this.value)"></label></div>
+      <div class="small muted">Laisse « places » vide pour la règle habituelle (${regleTxt()}). Mets un nombre total pour en prendre plus ou moins ce jour-là.</div>
       <div><button class="btn danger sm" onclick="act.supprVac('${b.id}')">${S.confirm==='vac-'+b.id?'Confirmer la suppression':'Supprimer la vacation'}</button></div></div></details>`:'';
   return `<div class="card stripe ${b.type} stack fiche" id="fiche-jour">
     <div class="row between"><div><div class="eyebrow">${typeOf(b).label} du</div><h3>${fmtLong(date)}</h3><div class="small muted">${vacTitle(b)} · ${esc(b.lieu||'Paris')}</div></div>${patBadge(p)}</div>
@@ -678,7 +689,7 @@ function dayPanel(date,noAct){
     <div class="row" style="gap:6px 14px"><span class="eyebrow">Titulaires</span>${titRow}</div>
     <div class="row small muted" style="gap:8px">${meter(p)}<span>${capTxt}</span></div>
     ${adm&&(p.etat==='full'||p.etat==='over')?'<div class="small muted">Besoin de plus de monde ? Ouvre « Modifier ou supprimer cette vacation » et change le nombre de places.</div>':''}
-    <div class="stack" style="gap:4px"><div class="eyebrow">Réservistes validés · ${p.att.length}${p.etat==='notit'?'':'/'+p.cap}</div>${att}</div>
+    <div class="stack" style="gap:4px"><div class="eyebrow">Réservistes validés · ${p.att.length}${p.etat==='notit'||p.illim?'':'/'+p.cap}</div>${att}</div>
     <div class="stack" style="gap:4px"><div class="eyebrow">Dispos en attente · ${p.wait.length}</div>${wait}</div>
     ${add}${edit}
   </div>`;
@@ -735,7 +746,7 @@ function renderGrille(list){
   }).join('');
   const pats=dates.map(patrouille);
   const count=`<tr class="count"><td class="nm">Titulaires</td>${pats.map(p=>`<td class="num">${p.tit.length||''}</td>`).join('')}<td class="tot"></td></tr>
-    <tr class="count"><td class="nm">Validés / places</td>${pats.map(p=>(!p.b||p.vide)?'<td></td>':`<td class="num ${p.etat}" title="${p.etat==='notit'?'Pas de titulaire':p.etat==='full'?'Complète':p.etat==='over'?'Sureffectif':p.libres+' place(s) libre(s)'}">${p.etat==='notit'?'–':p.n+'/'+p.max}</td>`).join('')}<td class="tot"></td></tr>
+    <tr class="count"><td class="nm">Validés / places</td>${pats.map(p=>(!p.b||p.vide)?'<td></td>':`<td class="num ${p.etat}" title="${p.etat==='notit'?'Pas de titulaire':p.etat==='full'?'Complète':p.etat==='over'?'Sureffectif':(p.illim?'Pas de limite':p.libres+' place(s) libre(s)')}">${p.etat==='notit'?'–':pCnt(p)}</td>`).join('')}<td class="tot"></td></tr>
     <tr class="count"><td class="nm">En attente</td>${pats.map(p=>`<td class="num">${p.wait.length||''}</td>`).join('')}<td class="tot"></td></tr>`;
   const sel=S.day&&S.day.startsWith(S.month)&&vacOf(S.day);
   return `<div class="gridwrap"><table class="pgrid"><thead><tr><th class="nm">PAX</th>${head}<th class="tot">Total</th></tr></thead><tbody>${vacRow}${body}${count}</tbody></table></div>
@@ -756,7 +767,7 @@ function renderBesoins(){
   const cells=Array.from({length:nDays},(_,i)=>{ const d=dISO(y,mo,i+1); const b=vacOf(d); const p=patrouille(d);
     const mine=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user&&x.statut!=='refusee');
     const st=mine?(mine.statut==='attribuee'?(m.titulaire?'tit':'ok'):'wait'):'';
-    const cnt=!b?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:p.wait.length?`+${p.wait.length}`:typeOf(b).court):`${p.n}/${p.max}`;
+    const cnt=!b?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:p.wait.length?`+${p.wait.length}`:typeOf(b).court):pCnt(p);
     const lbl=`${fmtLong(d)}${b?', '+typeOf(b).label:', pas de vacation'}${st==='ok'?', validé':st==='wait'?', dispo en attente':st==='tit'?', présent':''}`;
     return `<button class="cal-d ${b?(b.type==='matin'?'mat':'vac'):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.multi?(S.multi.includes(d)?'pick':''):(S.day===d?'sel':'')}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.multi?S.multi.includes(d):S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
   const sel=S.day&&S.day.startsWith(S.month); const b=sel&&vacOf(S.day); const my=(sel&&!(isEnc()&&me().titulaire))?myAction(S.day):'';
@@ -787,19 +798,19 @@ function mesTirsCard(m){
 function monProfilCard(m){
   return `<div class="card stack" id="mon-profil"><h3>Mon profil</h3><p class="small muted" style="margin:0">Tes coordonnées, visibles dans l’annuaire de l’équipe. Modifie un champ : c’est enregistré dès que tu en sors.</p>
     <div class="grid2"><label class="field">Téléphone<input id="me-tel" type="tel" inputmode="tel" autocomplete="tel" value="${esc(m.tel||'')}" onchange="act.monProfil('tel',this.value)"></label>
-    <label class="field">Adresse email<input id="me-email" type="email" autocomplete="email" value="${esc(m.email||'')}" placeholder="prenom.nom@exemple.fr" ${REMOTE?'readonly title="C’est ton identifiant de connexion"':''} onchange="act.monProfil('email',this.value)"></label>
+    <label class="field">Adresse email<input id="me-email" type="email" autocomplete="email" value="${esc(m.email||'')}" placeholder="prenom.nom@exemple.fr" ${REMOTE&&!isEnc()?'readonly title="C’est ton identifiant de connexion"':''} onchange="act.monProfil('email',this.value)"></label>
     ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="me-mat" maxlength="20" autocomplete="off" value="${esc(m.matricule||'')}" onchange="act.monProfil('matricule',this.value)"></label>`}</div>
-    ${REMOTE?'<div class="small muted">Ton adresse email est ton identifiant de connexion : pour la changer, demande à un admin.</div>':''}
+    ${REMOTE?(isEnc()?'<div class="small muted">Ton adresse email est ton identifiant de connexion : si tu la changes, connecte-toi ensuite avec la nouvelle.</div>':'<div class="small muted">Ton adresse email est ton identifiant de connexion : pour la changer, demande à un admin.</div>'):''}
     <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’admin.</div>
     ${REMOTE?`<div class="row" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><label class="field" style="flex:1 1 160px">Nouveau mot de passe<input id="me-pwd" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.changePwd()">Changer mon mot de passe</button></div>`:''}</div>`;
 }
-function myBadges(m,k){ const s=dossierStatus(m.dossier[k]); return `<span class="badge ${s.cls}">${s.label}</span>${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’admin</span>':''}`; }
-function myManque(m){ const n=DOSSIER_ITEMS.filter(([k])=>!m.dossier[k]).length; return n?`<span class="badge grey">${n} pas fait${n>1?'s':''}</span>`:'<span class="badge green">Complet</span>'; }
+function myBadges(m,k){ const s=dossierStatus(m.dossier[k],k); return `${s.label==='—'?'':`<span class="badge ${s.cls}">${s.label}</span>`}${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’admin</span>':''}`; }
+function myManque(m){ const n=DOSSIER_ITEMS.filter(([k,,o])=>o&&!m.dossier[k]).length; return n?`<span class="badge red">${n} obligatoire${n>1?'s':''} manquant${n>1?'s':''}</span>`:'<span class="badge green">À jour</span>'; }
 function monDossierCard(m){
   if(m.id==='m0') return '';
   return `<div class="card stack" id="mon-dossier"><div class="row between"><h3>Mon dossier</h3><span id="my-manque">${myManque(m)}</span></div>
-    <p class="small muted" style="margin:0">Coche ce qui est fait. Rien n’expire ici : seuls les tirs sont à refaire. L’admin vérifie ensuite ce que tu as coché. Seuls toi et l’admin voyez ce dossier.</p>
-    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><div style="min-width:0"><label for="my-${k}" style="font-weight:600">${l}</label><div class="row" id="bd-my-${k}" style="gap:4px;margin-top:2px">${myBadges(m,k)}</div></div><label class="check" style="flex:0 0 auto"><input type="checkbox" id="my-${k}" ${m.dossier[k]?'checked':''} onchange="act.monDossier('${k}',this.checked?iso(TODAY):'')"> <span style="font-weight:600">Fait</span></label></div>`).join('')}</div></div>`;
+    <p class="small muted" style="margin:0">Coche ce que tu as. Seuls les éléments marqués « Obligatoire » et les tirs sont exigés ; rien n’expire, sauf les tirs. L’admin vérifie ensuite ce que tu as coché. Seuls toi et l’admin voyez ce dossier.</p>
+    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><div style="min-width:0"><label for="my-${k}" style="font-weight:600">${l}</label>${habOblig(k)?' <span class="badge amber">Obligatoire</span>':''}<div class="row" id="bd-my-${k}" style="gap:4px;margin-top:2px">${myBadges(m,k)}</div></div><label class="check" style="flex:0 0 auto"><input type="checkbox" id="my-${k}" ${m.dossier[k]?'checked':''} onchange="act.monDossier('${k}',this.checked?iso(TODAY):'')"> <span style="font-weight:600">Oui</span></label></div>`).join('')}</div></div>`;
 }
 function mesProchaines(){
   const today=iso(TODAY);
@@ -844,11 +855,11 @@ function renderEquipe(){
 }
 
 function renderGestion(){
-  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Comptes']];
+  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Comptes'],['reglages','Réglages']];
   if(!subs.some(([k])=>k===S.sub)) S.sub='demandes';
   return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.tab('besoins')">+ Créer une vacation</button></div>
     <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
-    ${({demandes:gDemandes,heures:gHeures,habil:gHabil,pax:gPax})[S.sub]()}`;
+    ${({demandes:gDemandes,heures:gHeures,habil:gHabil,pax:gPax,reglages:gReglages})[S.sub]()}`;
 }
 
 function gDemandes(){
@@ -866,7 +877,7 @@ function gDemandes(){
       <p class="small muted" style="margin:0">Dès qu’un réserviste se propose sur une vacation, il arrive ici. Touche « Valider » : il passe en vert sur le planning de tout le monde.</p>
       ${rows?`<div class="dlist">${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
     ${ret.length?`<div class="card stack"><h3>Désistements</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est désisté <span class="small muted">· ${fmtDate(r.date)}</span></span><button class="btn sm" onclick="act.delNotif('${r.id}')">Supprimer</button></div>`).join('')}</div></div>`:''}
-    ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : 8 personnes au total, titulaires compris (7 réservistes avec un titulaire, 6 avec deux). Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
+    ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : ${regleTxt()}. Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
 }
 
 function gHeures(){
@@ -885,27 +896,40 @@ function gHabil(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom));
   const pend=[];
   rows.forEach(m=>{
-    DOSSIER_ITEMS.forEach(([k,l])=>{ if(m.aVerifier?.[k]&&m.dossier[k]) pend.push({m,html:`<b>${l}</b> <span class="small muted">· coché « fait » par l’agent</span>`,on:`act.confirmer('${m.id}','${k}')`,no:`act.refuserHab('${m.id}','${k}')`}); });
+    DOSSIER_ITEMS.forEach(([k,l])=>{ if(m.aVerifier?.[k]&&m.dossier[k]) pend.push({m,html:`<b>${l}</b> <span class="small muted">· déclaré par l’agent</span>`,on:`act.confirmer('${m.id}','${k}')`,no:`act.refuserHab('${m.id}','${k}')`}); });
     (m.tirs||[]).filter(t=>!t.ok).forEach(t=>pend.push({m,html:`<b>Tir</b> <span class="small muted">· séance du ${frDate(t.date)}</span>`,on:`act.okTir('${m.id}','${t.id}')`,no:`act.delTir('${m.id}','${t.id}')`}));
   });
   const d2=v=>v?new Date(v+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-  const cell=(m,k)=>{ const s=dossierStatus(m.dossier[k]); return `<td class="hb ${s.cls} num" title="${s.label}">${m.dossier[k]?'✓':'—'}${m.aVerifier?.[k]?' ●':''}</td>`; };
+  const cell=(m,k)=>{ const s=dossierStatus(m.dossier[k],k); return `<td class="hb ${s.cls} num" title="${s.label}">${m.dossier[k]?'✓':'—'}${m.aVerifier?.[k]?' ●':''}</td>`; };
   return `<div class="card stack" id="habil-a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Habilitations à valider</h3><span class="badge ${pend.length?'red':'green'}">${pend.length?pend.length+' en attente':'Tout est validé'}</span></div>
       <p class="small muted" style="margin:0">Chaque élément coché ou tir saisi par un agent arrive ici. Vérifie, puis valide.</p>
       ${pend.length?`<div class="dlist">${pend.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc(fullName(x.m))}</div><div>${x.html}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok" onclick="${x.on}">Valider</button><button class="btn danger" onclick="${x.no}">Refuser</button></div></div>`).join('')}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
-    <div><h3>Habilitations de chacun</h3><p class="small muted" style="margin:4px 0 0">✓ = fait. Rien n’expire, sauf les tirs (3 sur 365 jours). Touche un nom pour ouvrir son dossier.</p></div>
-    <div class="gridwrap"><table class="pgrid htab"><thead><tr><th class="nm">PAX</th>${DOSSIER_ITEMS.map(([k,l])=>`<th class="hb">${l}</th>`).join('')}<th class="hb">Tirs / 365 j</th></tr></thead>
+    <div><h3>Habilitations de chacun</h3><p class="small muted" style="margin:4px 0 0">✓ = acquis, * = obligatoire. Seuls les éléments obligatoires et les tirs (3 sur 365 jours) créent une alerte. Touche un nom pour ouvrir son dossier.</p></div>
+    <div class="gridwrap"><table class="pgrid htab"><thead><tr><th class="nm">PAX</th>${DOSSIER_ITEMS.map(([k,l,o])=>`<th class="hb">${l}${o?' *':''}</th>`).join('')}<th class="hb">Tirs / 365 j</th></tr></thead>
       <tbody>${rows.map(m=>{ const i=tirInfo(m); return `<tr><td class="nm ${m.actif?'':'name-inactive'}" style="cursor:pointer" onclick="act.openPax('${m.id}')"><span class="w-lg">${esc(fullName(m))}</span><span class="w-sm">${esc(shortName(m))}</span></td>${DOSSIER_ITEMS.map(([k])=>cell(m,k)).join('')}<td class="hb ${i.cls} num" title="${i.label}">${i.n}/3${i.aval?' ●':''}</td></tr>`; }).join('')}</tbody></table></div>
-    <div class="legend"><span><i style="background:var(--green)"></i>Fait</span><span><i style="background:var(--amber)"></i>Tirs à compléter</span><span><i style="background:var(--red)"></i>Aucun tir</span><span>— pas fait</span><span>● saisi par l’agent, à valider</span></div>
+    <div class="legend"><span><i style="background:var(--green)"></i>Acquis</span><span><i style="background:var(--amber)"></i>Tirs à compléter</span><span><i style="background:var(--red)"></i>Obligatoire manquant / aucun tir</span><span>— non</span><span>● saisi par l’agent, à valider</span></div>
     ${habTypesCard()}`;
 }
+
+function gReglages(){
+  const off=REMOTE&&!REG_OK;
+  return `<div class="card stack" id="reglages"><h3>Places par patrouille</h3>
+    <p class="small muted" style="margin:0">Le nombre de personnes sur une vacation, titulaires compris. Ça s’applique à toutes les vacations, sauf celles où tu as fixé toi-même un nombre de places.</p>
+    ${off?'<p class="small" style="margin:0"><b>Pour changer ces réglages, lance d’abord le fichier « mise-a-jour-v24.sql » dans Supabase (une seule fois).</b></p>':''}
+    <label class="check"><input type="checkbox" id="reg-limite" ${REG.limite?'checked':''} ${off?'disabled':''} onchange="act.reg('limite',this.checked)"> <span><span style="font-weight:600">Limiter le nombre de places par patrouille</span> <span class="small muted">(décoché : pas de limite, chacun peut se proposer)</span></span></label>
+    <div class="grid2"><label class="field">Total avec 1 titulaire<input type="number" min="1" max="40" inputmode="numeric" id="reg-cap1" value="${REG.cap1}" ${off||!REG.limite?'disabled':''} onchange="act.reg('cap1',this.value)"></label>
+      <label class="field">Total avec 2 titulaires<input type="number" min="1" max="40" inputmode="numeric" id="reg-cap2" value="${REG.cap2}" ${off||!REG.limite?'disabled':''} onchange="act.reg('cap2',this.value)"></label></div>
+    <div class="small muted">Règle appliquée : ${regleTxt()}.</div></div>`;
+}
+function regNew(k,v){ const o=Object.assign({},REG); if(k==='limite') o.limite=!!v; else { const n=parseInt(v); if(!(n>=1&&n<=40)) return null; o[k]=n; } return o; }
 
 function habTypesCard(){
   if(REMOTE&&!HAB_DYN) return `<div class="card stack"><h3>Types d’habilitation</h3><p class="small muted" style="margin:0">Pour ajouter, renommer ou supprimer un type, lance d’abord le fichier « mise-a-jour-v22.sql » dans Supabase (une seule fois).</p></div>`;
   return `<div class="card stack" id="hab-types"><div class="row between"><h3>Types d’habilitation</h3><span class="badge grey">${DOSSIER_ITEMS.length}</span></div>
     <p class="small muted" style="margin:0">La liste que chacun voit dans « Mon dossier ». Change un nom : c’est enregistré dès que tu sors du champ.</p>
-    <div class="dlist">${DOSSIER_ITEMS.map(([k,l])=>`<div><input id="habn-${k}" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" value="${esc(l)}" aria-label="Nom du type" onchange="act.renHab('${k}',this.value)"><button class="btn danger sm" onclick="act.delHab('${k}')">${S.confirm==='hab-'+k?'Confirmer':'Supprimer'}</button></div>`).join('')||'<div class="small muted">Aucun type pour l’instant.</div>'}</div>
+    <div class="dlist">${DOSSIER_ITEMS.map(([k,l,o])=>`<div><input id="habn-${k}" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" value="${esc(l)}" aria-label="Nom du type" onchange="act.renHab('${k}',this.value)"><label class="check" style="flex:0 0 auto"><input type="checkbox" id="habo-${k}" ${o?'checked':''} ${REMOTE&&!OBL_OK?'disabled':''} onchange="act.oblHab('${k}',this.checked)"> <span class="small" style="font-weight:600">Obligatoire</span></label><button class="btn danger sm" onclick="act.delHab('${k}')">${S.confirm==='hab-'+k?'Confirmer':'Supprimer'}</button></div>`).join('')||'<div class="small muted">Aucun type pour l’instant.</div>'}</div>
     <div class="row" style="gap:8px"><input id="hab-new" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" placeholder="Nouveau type, ex. Taser" aria-label="Nom du nouveau type"><button class="btn primary" onclick="act.addHab()">Ajouter</button></div>
+    <p class="small muted" style="margin:0">Coche « Obligatoire » pour ce que tout le monde doit avoir : une alerte apparaît quand ça manque. Le reste est noté sans alerte. Les tirs (3 sur 365 jours) sont toujours obligatoires.${REMOTE&&!OBL_OK?' <b>Pour changer « Obligatoire », lance d’abord le fichier « mise-a-jour-v24.sql » dans Supabase (une seule fois).</b>':''}</p>
     <p class="small muted" style="margin:0">Supprimer un type le retire du dossier de tout le monde.</p></div>`; }
 // ---- export du mois (fichier CSV lisible par Excel)
 function exportCsv(ym,D){
@@ -945,17 +969,17 @@ function gPax(){
     ${REMOTE?pendingCard():''}
     <div class="card" style="padding-block:4px">${rows.map(m=>{const al=alertes(m); const open=S.paxOpen===m.id; const ti=tirInfo(m); const nv=Object.values(m.aVerifier||{}).filter(Boolean).length+(m.tirs||[]).filter(t=>!t.ok).length;
       return `<div class="pax-item" onclick="act.pax('${m.id}')"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.matricule?' · '+esc(m.matricule):''}${m.titulaire?' · titulaire':''}${m.actif?'':' · plus d’activité à la BSTC'}${REMOTE&&!m.lie?' · <b>pas encore de compte</b>':''}</div></div>
-        ${!m.actif?'':(al.length||!ti.ok)?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k]).rank===3)||ti.n===0?'red':'amber'}">${al.length+(ti.ok?0:1)} alerte${al.length+(ti.ok?0:1)>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}${nv?`<span class="badge blue">${nv} à valider</span>`:''}<span class="muted">${open?'▾':'▸'}</span></div>
+        ${!m.actif?'':(al.length||!ti.ok)?`<span class="badge ${al.some(([k])=>dossierStatus(m.dossier[k],k).rank===3)||ti.n===0?'red':'amber'}">${al.length+(ti.ok?0:1)} alerte${al.length+(ti.ok?0:1)>1?'s':''}</span>`:'<span class="badge green">À jour</span>'}${nv?`<span class="badge blue">${nv} à valider</span>`:''}<span class="muted">${open?'▾':'▸'}</span></div>
         ${open?`<div class="stack paxdetail" style="padding:6px 0 14px 46px" onclick="event.stopPropagation()">
           <div class="grid2"><label class="field">Nom<input id="nom-${m.id}" value="${esc(m.nom)}" onchange="act.paxField('${m.id}','nom',this.value)"></label><label class="field">Prénom<input id="prenom-${m.id}" value="${esc(m.prenom)}" onchange="act.paxField('${m.id}','prenom',this.value)"></label>
           <label class="field">Grade<input id="grade-${m.id}" value="${esc(m.grade||'')}" onchange="act.paxField('${m.id}','grade',this.value)"></label><label class="field">Profil<select id="role-${m.id}" ${m.id===S.user?'disabled':''} onchange="act.paxField('${m.id}','role',this.value)">${['reserviste','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}</select></label>
-          <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" ${REMOTE&&m.lie?'readonly title="Identifiant de connexion"':''} onchange="act.paxField('${m.id}','email',this.value)"></label>
+          <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" onchange="act.paxField('${m.id}','email',this.value)"></label>
           ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="mat-${m.id}" maxlength="20" value="${esc(m.matricule||'')}" onchange="act.paxField('${m.id}','matricule',this.value)"></label>`}</div>
           ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="6" autocomplete="off" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
-          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation : 8 personnes au total, titulaires compris)</span></span></label>
+          <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation)</span></span></label>
           <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
-          <div class="eyebrow">Dossier · coche ce qui est fait</div>
-          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k]);return `<label class="check" style="flex-wrap:wrap"><input type="checkbox" id="${k}-${m.id}" ${m.dossier[k]?'checked':''} onchange="act.paxField('${m.id}','${k}',this.checked?iso(TODAY):'')"> <span style="font-weight:600">${l}</span> <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span>${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Valider (coché par l’agent)</button>`:''}</label>`;}).join('')}</div>
+          <div class="eyebrow">Dossier · coche ce qu’il a (* = obligatoire)</div>
+          <div class="grid2">${DOSSIER_ITEMS.map(([k,l])=>{const s=dossierStatus(m.dossier[k],k);return `<label class="check" style="flex-wrap:wrap"><input type="checkbox" id="${k}-${m.id}" ${m.dossier[k]?'checked':''} onchange="act.paxField('${m.id}','${k}',this.checked?iso(TODAY):'')"> <span style="font-weight:600">${l}${habOblig(k)?' *':''}</span> <span class="badge ${s.cls}" id="bd-${m.id}-${k}" style="font-weight:500">${s.label}</span>${m.aVerifier?.[k]?`<button type="button" id="cf-${m.id}-${k}" class="btn ok sm" onclick="event.preventDefault();act.confirmer('${m.id}','${k}')">Valider (coché par l’agent)</button>`:''}</label>`;}).join('')}</div>
           <div class="row between"><span class="eyebrow">Tirs · 3 sur 365 jours</span><span class="badge ${ti.cls}">${ti.label}</span></div>
           <div class="dlist">${ti.win.map(t=>`<div><span><b>${frDate(t.date)}</b></span><span class="row" style="gap:6px;flex-wrap:nowrap">${t.ok?'<span class="badge green">Validé</span>':`<button class="btn ok sm" onclick="act.okTir('${m.id}','${t.id}')">Valider</button>`}<button class="btn sm" onclick="act.delTir('${m.id}','${t.id}')">Supprimer</button></span></div>`).join('')||'<div class="small muted">Aucun tir sur les 365 derniers jours.</div>'}</div>
           <div class="row" style="gap:8px"><input type="date" id="tir-${m.id}" class="dinput" max="${iso(TODAY)}" aria-label="Date du tir"><button class="btn sm" onclick="act.addTir('${m.id}')">Ajouter un tir</button></div>
@@ -971,7 +995,7 @@ function gPax(){
    =================================================================== */
 let sb=null, AUTHU=null, MEROW=null, BUSY=false;
 const LOCAL = Object.assign({}, act);   // versions « démo » des actions, réutilisées pour la mise à jour à l'écran
-const errMsg = e => { const m=(e&&e.message)||String(e); if(/row-level security|permission denied/i.test(m)) return 'Action non autorisée pour ton profil'; if(/Invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect'; if(/already registered/i.test(m)) return 'Un compte existe déjà avec cet email'; if(/duplicate key/i.test(m)) return 'Déjà enregistré'; if(/Failed to fetch|NetworkError/i.test(m)) return 'Pas de connexion internet'; return m; };
+const errMsg = e => { const m=(e&&e.message)||String(e); if(/row-level security|permission denied/i.test(m)) return 'Action non autorisée pour ton profil'; if(/Invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect'; if(/already registered/i.test(m)) return 'Un compte existe déjà avec cet email'; if(/duplicate key/i.test(m)) return 'Déjà enregistré'; if(/Failed to fetch|NetworkError/i.test(m)) return 'Pas de connexion internet'; if((e&&e.code==='PGRST202')||/Could not find the function/i.test(m)) return 'Lance d’abord le fichier « mise-a-jour-v24.sql » dans Supabase (une seule fois)'; return m; };
 function setBusy(b){ BUSY=b; document.getElementById('app').classList.toggle('busy',b); }
 
 let LOADSEQ=0, HAB_ROWS=[], MAT_OK=false, LOADED_FROM='';
@@ -987,10 +1011,11 @@ async function loadAll(){
   const seq=++LOADSEQ;
   const names=['members','dossiers','tirs','besoins','demandes','heures','notifs','notif_lus'];
   const win=fenetre();
-  const [hr,...res]=await Promise.all([sb.from('habilitations').select('*'),...names.map(n=>lire(n,win))]);
+  const [hr,rg,...res]=await Promise.all([sb.from('habilitations').select('*'),sb.from('reglages').select('*'),...names.map(n=>lire(n,win))]);
   if(seq!==LOADSEQ) return MEROW;
+  REG_OK=!rg.error&&Array.isArray(rg.data); if(REG_OK) setReg(rg.data[0]);   // réglages des places : lus dans la base si elle les gère, sinon la règle par défaut (6 / 10)
   // types d'habilitation : lus dans la base si elle les gère, sinon la liste de départ reste en place
-  if(!hr.error&&Array.isArray(hr.data)){ HAB_DYN=true; HAB_ROWS=hr.data.slice().sort((a,b)=>(a.ordre-b.ordre)||String(a.libelle).localeCompare(String(b.libelle))); setHab(HAB_ROWS.map(r=>[r.cle,r.libelle])); } else HAB_DYN=false;   // une lecture plus récente est partie entre-temps : on ne l'écrase pas avec des données plus anciennes
+  if(!hr.error&&Array.isArray(hr.data)){ HAB_DYN=true; HAB_ROWS=hr.data.slice().sort((a,b)=>(a.ordre-b.ordre)||String(a.libelle).localeCompare(String(b.libelle))); setHab(HAB_ROWS.map(r=>[r.cle,r.libelle,r.obligatoire])); OBL_OK=!!(HAB_ROWS[0]&&('obligatoire' in HAB_ROWS[0])); } else { HAB_DYN=false; OBL_OK=false; }   // une lecture plus récente est partie entre-temps : on ne l'écrase pas avec des données plus anciennes
   const T={}; res.forEach((r,i)=>{ if(r.error) throw r.error; T[names[i]]=r.data||[]; });
   const mine=T.members.find(x=>x.user_id===AUTHU.id)||null;
   MAT_OK=!!(T.members[0]&&('matricule' in T.members[0]));   // vrai quand la base a la colonne matricule (script SQL v23 lancé)
@@ -1100,7 +1125,7 @@ const RA = {
     return run(()=>ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user}),()=>`${shortName(member(mid))} ajouté·e à la vacation`); },
   titPresence(date,mid,on){ const b=vacOf(date); if(!b) return; const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
     return run(()=>on?(ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user})):(ex?sb.from('demandes').delete().eq('id',ex.id):null),
-      ()=>{ const p=patrouille(date); return p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.cap} réservistes possibles`:'Plus de titulaire ce jour-là'; }); },
+      ()=>{ const p=patrouille(date); return p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.illim?'pas de limite de places':p.cap+' réservistes possibles'}`:'Plus de titulaire ce jour-là'; }); },
   multiCreer(type){ if(!S.multi) return; const t=TYPES[type]||TYPES.vacation; const ds=S.multi.filter(d=>!vacOf(d)); if(!ds.length) return; S.multi=null;
     return run(()=>Promise.all(ds.map(d=>sb.from('besoins').insert({date:d,type,debut:t.debut,fin:t.fin,libelle:t.label,lieu:'Paris',places:0,duree:7}))),`${ds.length} vacation${ds.length>1?'s':''} créée${ds.length>1?'s':''}`); },
   // ---- dispos
@@ -1113,7 +1138,7 @@ const RA = {
     if(self&&val&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
     S.confirm=null; return run(()=>sb.from('demandes').delete().eq('id',did), !self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
   attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
-    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=patrouille(b.date); return `${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${p.n}/${p.max}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`; }); },
+    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=patrouille(b.date); return `${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${pCnt(p)}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`; }); },
   refuser(did){ return run(()=>sb.from('demandes').update({statut:'refusee',par:S.user}).eq('id',did),'Demande refusée'); },
   // ---- heures
   declarer(bid){ const v=parseFloat(document.getElementById('h-'+bid).value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; } const b=besoin(bid);
@@ -1122,12 +1147,16 @@ const RA = {
   refuserH(hid){ return run(()=>sb.from('heures').update({statut:'refusee',valide_par:S.user}).eq('id',hid),'Déclaration refusée'); },
   // ---- profil, dossier, tirs
   monProfil(k,v){ v=v.trim(); if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; } if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
-    if(k==='email'){ render(); return; }   // l'email est l'identifiant de connexion : seul l'admin le gère
+    if(k==='email'){ if(isEnc()) return RA.paxField(S.user,'email',v); render(); return; }   // l'email est l'identifiant de connexion : seul l'admin le gère (le sien compris)
     if(k==='matricule'&&!/^[A-Za-z0-9 .\-]{0,20}$/.test(v)){ render(); toast('Matricule invalide : lettres et chiffres uniquement'); return; } if(k==='matricule') return run(()=>sb.rpc('maj_mon_matricule',{p:v}),'Matricule enregistré');
     return run(()=>sb.rpc('maj_mon_profil',{p_tel:k==='tel'?v:null,p_email:null}),'Téléphone mis à jour'); },
   monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } LOCAL.monDossier(k,v); sb.rpc('maj_mon_dossier',{k,v:v||null}).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
   confirmer(id,k){ const av=Object.assign({},member(id).aVerifier); delete av[k]; return run(()=>sb.from('dossiers').update({a_verifier:av}).eq('member_id',id),'Validé'); },
   paxField(id,k,v){ const m=member(id);
+    if(k==='email'&&m.lie){   // la personne a déjà un compte : on change aussi son identifiant de connexion (fonction de la base, script v24)
+      v=String(v||'').trim().toLowerCase(); if(!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; } if(v===(m.email||'').toLowerCase()){ render(); return; }
+      if(S.members.some(x=>x.id!==id&&(x.email||'').toLowerCase()===v)){ render(); toast('Un compte existe déjà avec cet email'); return; }
+      return run(async()=>{ const r=await sb.rpc('admin_set_email',{m:id,p_email:v}); if(!r.error&&id===S.user&&AUTHU) AUTHU.email=v; return r; }, id===S.user?'Email modifié — connecte-toi avec le nouveau la prochaine fois':'Email modifié — c’est son nouvel identifiant de connexion'); }
     if(['actif','role','titulaire','tel','nom','prenom','grade','email','matricule'].includes(k)){ if(typeof v==='string') v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } if(k==='nom') v=v.toUpperCase(); if(k==='email'&&!v) v=null;
       return run(()=>sb.from('members').update({[k]:v}).eq('id',id), k==='actif'?(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'):'Enregistré'); }
     if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } const av=Object.assign({},m.aVerifier); delete av[k]; LOCAL.paxField(id,k,v);   // date du dossier : pas de rechargement pendant la saisie
@@ -1168,6 +1197,10 @@ const RA = {
   refuserHab(id,k){ const m=member(id); const av=Object.assign({},m.aVerifier); delete av[k]; let patch={[k]:null,a_verifier:av};
     if(!HAB_FIXES.includes(k)){ const ex=Object.assign({},m.extra); delete ex[k]; patch={extra:ex,a_verifier:av}; }
     return run(()=>sb.from('dossiers').update(patch).eq('member_id',id),'Refusé — la case est décochée'); },
+  // ---- réglages (admin)
+  oblHab(k,v){ if(!OBL_OK){ render(); toast('Lance d’abord « mise-a-jour-v24.sql » dans Supabase'); return; } return run(()=>sb.from('habilitations').update({obligatoire:!!v}).eq('cle',k), v?'Marqué obligatoire':'N’est plus obligatoire'); },
+  reg(k,v){ if(!REG_OK){ render(); toast('Lance d’abord « mise-a-jour-v24.sql » dans Supabase'); return; } const o=regNew(k,v); if(!o){ render(); toast('Mets un nombre entre 1 et 40'); return; }
+    return run(()=>sb.from('reglages').upsert({id:1,cap1:o.cap1,cap2:o.cap2,limite:o.limite}),'Réglage enregistré'); },
   // ---- types d'habilitation (admin)
   addHab(){ const v=habNom(document.getElementById('hab-new')?.value); if(!v){ toast('Écris le nom de l’habilitation'); return; } if(DOSSIER_ITEMS.some(([,l])=>l.toLowerCase()===v.toLowerCase())){ toast('Ce type existe déjà'); return; }
     const ordre=HAB_ROWS.reduce((n,r)=>Math.max(n,r.ordre||0),0)+1;
@@ -1188,7 +1221,7 @@ async function supprCompte(id){ const r=await sb.rpc('admin_supprimer_compte',{m
 function tmpClient(){ return window.supabase.createClient(CFG.url, CFG.key, {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bstc-creation-compte'}}); }
 
 async function boot(){
-  if(!REMOTE){ if(Array.isArray(S.habTypes)) setHab(S.habTypes); render(); return; }
+  if(!REMOTE){ if(Array.isArray(S.habTypes)) setHab(S.habTypes); if(S.reglages) setReg(S.reglages); render(); return; }
   Object.assign(act, RA);
   sb=window.supabase.createClient(CFG.url, CFG.key);
   render();
