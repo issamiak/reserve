@@ -186,8 +186,10 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .dlist>.valrow>:first-child{flex:0 0 auto}
 .valrow .btn{flex:1;justify-content:center;padding:10px 12px}
 .dlist>div>.pl{flex:1 1 150px}
-.vgrp{padding:14px 0;border-top:1px solid var(--line)} .vgrp:first-child{border-top:0;padding-top:4px}
-.vline{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.vgrp{margin-top:14px;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:10px;overflow:hidden;background:var(--surface)} .vgrp:first-child{margin-top:4px} .vgrp.matin{border-left-color:var(--amber)} .vgrp.cx{border-left-color:var(--cx)}
+.vhead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--surface2)}
+.vhead .vd{font-size:16px;font-weight:700}
+.vline{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
 .btn.vb{width:40px;height:40px;padding:0;justify-content:center;font-size:18px;flex:0 0 auto}
 .vth{display:inline-block;background:var(--accent);color:var(--accent-fg);font-weight:700;font-size:13px;line-height:1.3;padding:4px 10px;border-radius:6px}
 .vth.sp{background:var(--orange);color:#fff}
@@ -666,7 +668,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v42</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v43</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -701,7 +703,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 42</b> · 05/10/2026</p>
+    <p class="small muted" style="margin:0"><b>Version 43</b> · 05/10/2026</p>
     <p class="small muted" style="margin:0">© 2026 Issam AKEZDAW — Tous droits réservés</p>
   </div></div>`;
 }
@@ -1024,13 +1026,13 @@ function gDemandes(){
   const rows=groups.map(g=>{ const b=g.b; const p=patrouille(b.date); const nd=g.ds.length;
     const tous=nd>1&&(p.etat==='notit'||p.illim||nd<=p.libres);   // « Valider les N » seulement s'il y a de la place pour tout le monde
     const etat=p.etat==='notit'?'pas de titulaire indiqué':p.illim?`${p.n} présent${p.n>1?'s':''} · pas de limite`:p.etat==='over'?`${p.n}/${p.max} · sureffectif`:p.libres?`${p.n}/${p.max} présents · ${p.libres} place${p.libres>1?'s':''} libre${p.libres>1?'s':''}`:`${p.n}/${p.max} · complet`;
-    return `<div class="vgrp"><div class="row between" style="gap:8px"><div style="min-width:0;cursor:pointer" onclick="act.ouvrir('${b.date}')" title="Ouvrir la vacation"><b>${fmtDate(b.date)}</b> <span class="small muted">· ${typeOf(b).label} ${vacTitle(b)}${themeOn()?' · '+esc(themeOf(b)):''}</span>
-        <div class="small muted">${etat} · ${nd} dispo${nd>1?'s':''} à valider</div></div>${tous?`<button class="btn ok sm" onclick="act.attribuerTous('${b.id}')">✓ Valider les ${nd}</button>`:''}</div>
+    return `<div class="vgrp ${typeCls(b)}"><div class="vhead"><div style="min-width:0;flex:1 1 180px;cursor:pointer" onclick="act.ouvrir('${b.date}')" title="Ouvrir la vacation"><span class="vd">${fmtDate(b.date)}</span> <span class="badge ${nd>1?'red':'amber'}">${nd} à valider</span>
+        <div class="small muted">${esc(typeOf(b).label)} ${vacTitle(b)}${themeOn()?' · '+esc(themeOf(b)):''}</div><div class="small muted">${etat}</div></div>${tous?`<button class="btn ok sm" onclick="act.attribuerTous('${b.id}')">✓ Valider les ${nd}</button>`:''}</div>
       ${g.ds.map(d=>{ const m=member(d.memberId); const nom=esc(fullName(m)); return `<div class="vline"><div style="flex:1;min-width:0"><span class="${m.actif?'':'name-inactive'}" style="font-weight:700">${nom}</span> ${manque(m)}<div class="small muted">${cptTxt(m)}</div></div>
         <button class="btn ok vb" title="Valider" aria-label="Valider ${nom}" onclick="act.attribuer('${d.id}')">✓</button><button class="btn danger vb" title="Refuser" aria-label="Refuser ${nom}" onclick="act.refuser('${d.id}')">✕</button></div>`; }).join('')}</div>`; }).join('');
   return `<div class="card stack" id="a-valider" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Dispos à valider</h3><span class="badge ${pendR.length?'red':'green'}">${pendR.length?pendR.length+' en attente':'Tout est validé'}</span></div>
-      <p class="small muted" style="margin:0">Les dispos sont rangées par vacation. ✓ valide une personne (elle passe en vert sur le planning de tout le monde), ✕ la refuse. Sous chaque nom : ses jours faits cette année, sur ${MAX_JOURS}.</p>
-      ${rows?`<div>${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
+      <p class="small muted" style="margin:0">Un cadre par vacation, avec dedans les personnes qui se proposent ce jour-là. ✓ valide une personne (elle passe en vert sur le planning de tout le monde), ✕ la refuse. Sous chaque nom : ses jours faits cette année, sur ${MAX_JOURS}.</p>
+      ${rows?`<div id="vgroups">${rows}</div>`:'<div class="empty">Rien à valider pour l’instant.</div>'}</div>
     ${ret.length?`<div class="card stack"><h3>Désistements</h3><div class="dlist">${ret.map(r=>`<div><span><b>${esc(fullName(member(r.memberId)))}</b> s’est désisté <span class="small muted">· ${fmtDate(r.date)}</span></span><button class="btn sm" onclick="act.delNotif('${r.id}')">Supprimer</button></div>`).join('')}</div></div>`:''}
     ${rDates.length?`<div><h3>Vacations à venir</h3><p class="small muted" style="margin:4px 0 0">Coche les titulaires présents : ${regleTxt()}. Tu peux aussi ajouter quelqu’un toi-même.</p></div>${rDates.map(d=>dayPanel(d,true)).join('')}`:''}`;
 }
@@ -1368,7 +1370,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 42 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 43 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
