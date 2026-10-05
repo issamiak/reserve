@@ -389,17 +389,28 @@ function nvExtra(){ const g=id=>document.getElementById(id)?.value; const lieu=t
   const th=g('nv-theme'); return {lieu, theme:th&&REG.themes.includes(th)&&th!==themeDef()?th:null, detail:txtCourt(g('nv-detail'),200)||null}; }
 const regleTxt = ()=> REG.limite?`${REG.cap1} personnes au total avec un titulaire, ${REG.cap2} avec deux, titulaires compris`:'pas de limite de places';
 const MAX_JOURS = 90;   // plafond annuel d'un réserviste (information seulement, rien n'est bloqué)
-let CPT = {at:0, map:{}};   // mode réel : compteurs de l'année, relus de temps en temps (les vacations passées changent peu)
+let CPT = {at:0, map:{}, det:{}};   // mode réel : compteurs de l'année, relus de temps en temps (les vacations passées changent peu)
 // Un jour compte quand la personne est validée sur une vacation déjà passée, du 1er janvier au 31 décembre.
 // Vacation terminée : jour passé, ou aujourd'hui une fois l'heure de fin atteinte (une vacation qui finit après minuit compte le lendemain).
 function finie(b){ const t=iso(TODAY); if(b.date!==t) return b.date<t; if(!b.fin||!b.debut||b.fin<=b.debut) return false; const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')>=b.fin; }
 let FINK='';   // vacations du jour déjà terminées : quand la liste change, le compteur est recalculé
 const finKey = ()=>{ const t=iso(TODAY); return S.besoins.filter(b=>b.date===t&&finie(b)).map(b=>b.id).join(); };
-function cptCalc(besoins,demandes,heures){ const t=iso(TODAY), y=t.slice(0,4); const B={}; besoins.forEach(b=>{ if(b.date.slice(0,4)===y&&finie(b)) B[b.id]=b; });
-  const H={}; heures.forEach(h=>{ if(h.statut!=='refusee') H[h.besoinId+'|'+h.memberId]=h.heures; }); const map={}, vu={};
-  demandes.forEach(d=>{ const b=B[d.besoinId]; if(!b||d.statut!=='attribuee') return; const k=d.memberId+'|'+b.date; if(vu[k]) return; vu[k]=1;
-    const m=S.members.find(x=>x.id===d.memberId); const o=map[d.memberId]||(map[d.memberId]={j:0,h:0,mj:0,mh:0}); o.j++; const h=H[b.id+'|'+d.memberId]; const v=h!=null?Number(h):(m&&m.titulaire?8:Number(b.duree)||0); o.h+=v; if(b.date.slice(0,7)===t.slice(0,7)){ o.mj++; o.mh+=v; } });
-  return map; }
+// Heures d'une personne sur une vacation : la valeur validée par l'admin (val), une correction en attente (pend), un refus (ref).
+function hInfo(rows){ rows=rows.slice().sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||''))); let val=null, pend=null;
+  rows.forEach(h=>{ if(h.statut==='validee') val=h; else if(h.statut==='declaree') pend=h; }); const last=rows[rows.length-1];
+  return {val, pend, ref:!!(last&&last.statut==='refusee')}; }
+const hVal = (bid,mid) => hInfo(S.heures.filter(h=>h.besoinId===bid&&h.memberId===mid)).val;
+// Détail du compteur : une ligne par vacation terminée de l'année où la personne était validée (st « ok », comptée)
+// ou avait posé une dispo jamais validée (st « wait », non comptée). Heures comptées = heures validées par l'admin, sinon la durée prévue.
+function cptDetail(besoins,demandes,heures){ const t=iso(TODAY), y=t.slice(0,4); const B={}; besoins.forEach(b=>{ if(b.date.slice(0,4)===y&&finie(b)) B[b.id]=b; });
+  const G={}; heures.forEach(h=>{ (G[h.besoinId+'|'+h.memberId]=G[h.besoinId+'|'+h.memberId]||[]).push(h); }); const det={}, vu={};
+  demandes.forEach(d=>{ const b=B[d.besoinId]; if(!b||(d.statut!=='attribuee'&&d.statut!=='demandee')) return; const k=d.memberId+'|'+b.date; if(vu[k]) return; vu[k]=1;
+    const m=S.members.find(x=>x.id===d.memberId); const def=m&&m.titulaire?8:Number(b.duree)||0; const g=hInfo(G[b.id+'|'+d.memberId]||[]); const ok=d.statut==='attribuee';
+    (det[d.memberId]=det[d.memberId]||[]).push({bid:b.id,did:d.id,date:b.date,debut:b.debut||'',fin:b.fin||'',st:ok?'ok':'wait',def,h:ok?(g.val?Number(g.val.heures):def):0,val:g.val,pend:g.pend,ref:g.ref}); });
+  Object.values(det).forEach(l=>l.sort((a,b)=>b.date.localeCompare(a.date))); return det; }
+function cptMap(det){ const mois=iso(TODAY).slice(0,7), map={}; Object.keys(det).forEach(id=>{ const o={j:0,h:0,mj:0,mh:0}; det[id].forEach(e=>{ if(e.st!=='ok') return; o.j++; o.h+=e.h; if(e.date.slice(0,7)===mois){ o.mj++; o.mh+=e.h; } }); if(o.j) map[id]=o; }); return map; }
+const cptCalc = (besoins,demandes,heures) => cptMap(cptDetail(besoins,demandes,heures));
+const cptDet = id => (REMOTE?(CPT.det||{}):cptDetail(S.besoins,S.demandes,S.heures))[id]||[];
 const compteur = id => (REMOTE?CPT.map:cptCalc(S.besoins,S.demandes,S.heures))[id]||{j:0,h:0,mj:0,mh:0};
 const cptH = h => String(Math.round(h*10)/10).replace('.',',');
 function cptTxt(m){ const c=compteur(m.id); const y=iso(TODAY).slice(0,4);
@@ -561,7 +572,20 @@ window.act = {
     toast(`${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${pCnt(p)}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`); },
   refuser(did){ const d=S.demandes.find(x=>x.id===did); d.statut='refusee'; d.par=S.user; save(); render(); toast('Demande refusée'); },
   declarer(bid){ const inp=document.getElementById('h-'+bid); const v=parseFloat(inp.value); if(!(v>0&&v<=24)){toast('Indique un nombre d’heures valide');return;} const b=besoin(bid); S.heures.push({id:nid('h'),besoinId:bid,memberId:S.user,heures:v,statut:'declaree',validePar:null,date:b.date}); save(); render(); toast('Heures déclarées, en attente de validation'); },
-  validerH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
+  validerH(hid){ const h=S.heures.find(x=>x.id===hid); S.heures=S.heures.filter(x=>x===h||!(x.besoinId===h.besoinId&&x.memberId===h.memberId&&x.statut==='validee')); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
+  // ---- compteur : détail et corrections
+  cptOpen(){ S.cptOpen=!S.cptOpen; S.cptEdit=null; render(); },
+  cptAll(mid){ S.cptAll=mid; render(); },
+  cptPax(mid){ S.cptPax=S.cptPax===mid?null:mid; S.cptEdit=null; S.cptAll=null; S.confirm=null; render(); },
+  cptEdit(key){ S.cptEdit=key||null; S.confirm=null; render(); if(key) document.getElementById('cx-'+key.split('|')[0])?.focus(); },
+  cptCorr(bid,mid){ const v=parseFloat(document.getElementById('cx-'+bid)?.value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; }
+    const e=cptDet(mid).find(x=>x.bid===bid); if(!e||e.st!=='ok') return; const adm=isEnc(); if(!adm&&mid!==S.user) return;
+    if(!adm&&!e.pend&&v===e.h){ toast('C’est déjà le nombre d’heures compté'); return; }
+    S.heures=S.heures.filter(h=>!(h.besoinId===bid&&h.memberId===mid&&(h.statut==='declaree'||(adm&&h.statut==='validee'))));
+    S.heures.push({id:nid('h'),besoinId:bid,memberId:mid,heures:v,statut:adm?'validee':'declaree',validePar:adm?S.user:null,date:e.date}); S.cptEdit=null; save(); render(); toast(adm?'Heures corrigées':'Correction envoyée — l’admin doit la valider'); },
+  cptValider(did){ if(!isEnc()) return; const d=S.demandes.find(x=>x.id===did); if(!d) return; d.statut='attribuee'; d.par=S.user; save(); render(); toast('Vacation validée — elle entre dans le compteur'); },
+  cptRetirer(did){ if(!isEnc()) return; if(S.confirm!=='cr-'+did){ S.confirm='cr-'+did; render(); toast('Touche « Confirmer »'); return; } S.confirm=null;
+    const d=S.demandes.find(x=>x.id===did); if(!d) return; S.heures=S.heures.filter(h=>!(h.besoinId===d.besoinId&&h.memberId===d.memberId)); S.demandes=S.demandes.filter(x=>x.id!==did); save(); render(); toast('Vacation retirée du compteur'); },
   refuserH(hid){ const h=S.heures.find(x=>x.id===hid); h.statut='refusee'; h.validePar=S.user; save(); render(); toast('Déclaration refusée'); },
   pax(id){ S.paxOpen = S.paxOpen===id?null:id; save(); render(); },
   paxField(id,k,v){ const m=member(id); if(k==='actif'){ m.actif=v; toast(v?'Réserviste réactivé':'Marqué sans activité à la BSTC'); } else if(k==='role'){ m.role=v; } else if(k==='titulaire'){ m.titulaire=v; } else if(k==='tel'){ m.tel=v; } else if(['nom','prenom','grade','email','matricule'].includes(k)){ v=v.trim(); if((k==='nom'||k==='prenom')&&!v){ render(); toast('Nom et prénom obligatoires'); return; } m[k]=k==='nom'?v.toUpperCase():v; } else { if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } m.dossier[k]=v; if(m.aVerifier) delete m.aVerifier[k]; save(); const s=dossierStatus(v,k), el=document.getElementById('bd-'+id+'-'+k); if(el){ el.className='badge '+s.cls; el.textContent=s.label; } document.getElementById('cf-'+id+'-'+k)?.remove(); toast('Enregistré'); return; } save(); render(); },
@@ -617,7 +641,7 @@ window.act = {
       ['VACATION DU MOIS','',...dates.map(d=>{ const b=vacOf(d); return b?typeOf(b).court:''; }),'']];
     S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.titulaire?0:1)-(b.titulaire?0:1)||a.nom.localeCompare(b.nom)).forEach(m=>{ let tot=0;
       const c=dates.map(d=>{ const b=vacOf(d); const dm=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===m.id&&x.statut==='attribuee'); if(!dm) return '';
-        const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===m.id&&x.statut!=='refusee'); const v=h?h.heures:(m.titulaire?8:b.duree); tot+=v; return String(v).replace('.',','); });
+        const h=hVal(b.id,m.id); const v=h?h.heures:(m.titulaire?8:b.duree); tot+=v; return String(v).replace('.',','); });
       rows.push([((m.grade?m.grade+' ':'')+fullName(m)).trim(),m.tel||'',...c,String(tot).replace('.',',')]); });
     const csv='﻿'+rows.map(r=>r.map(q).join(';')).join('\r\n');
     try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download=`planning-bstc-${S.month}.csv`; document.body.appendChild(a); a.click(); a.remove(); }catch(e){}
@@ -641,7 +665,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v36</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v37</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -676,7 +700,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 36</b> · 05/10/2026</p>
+    <p class="small muted" style="margin:0"><b>Version 37</b> · 05/10/2026</p>
     <p class="small muted" style="margin:0">© 2026 Issam AKEZDAW — Tous droits réservés</p>
   </div></div>`;
 }
@@ -797,7 +821,7 @@ function renderGrille(list){
   const cells={}; // memberId -> jour -> {h,cls,wait}
   list.forEach(b=>S.demandes.filter(d=>d.besoinId===b.id&&d.statut!=='refusee').forEach(a=>{
     const m=member(a.memberId); if(!m) return; const day=+b.date.slice(8);
-    const h=S.heures.find(x=>x.besoinId===b.id&&x.memberId===a.memberId&&x.statut!=='refusee');
+    const h=hVal(b.id,a.memberId);
     (cells[a.memberId] = cells[a.memberId] || {})[day] = {h: h? h.heures : (m.titulaire?8:b.duree), cls:m.titulaire?'permanence':'vacation', wait:a.statut==='demandee', tit:m.titulaire};
   }));
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.titulaire?0:1)-(b.titulaire?0:1)||a.nom.localeCompare(b.nom));
@@ -899,21 +923,52 @@ function mesProchaines(){
 
 // Compteur du réserviste : vacations effectuées et heures, ce mois et sur l'année.
 // Une vacation compte sa durée prévue (7 h) tant que d'autres heures n'ont pas été déclarées.
+// Une ligne du détail : date, heures comptées, d'où vient le chiffre, et les boutons pour corriger.
+function cptRow(e,mid){ const adm=isEnc(), key=e.bid+'|'+mid, edit=S.cptEdit===key;
+  const src=e.st==='wait'?'<span class="badge amber">Dispo jamais validée · non comptée</span>'
+    :(e.val?'<span class="badge green">Heures validées</span>':'<span class="badge grey">Durée prévue</span>')
+     +(e.pend?` <span class="badge amber">Correction en attente : ${cptH(e.pend.heures)} h</span>`:e.ref?' <span class="badge red">Correction refusée</span>':'');
+  let btn='';
+  if(e.st==='wait'){ if(adm) btn=`<button class="btn ok sm" onclick="act.cptValider('${e.did}')">Valider</button><button class="btn danger sm" onclick="act.cptRetirer('${e.did}')">${S.confirm==='cr-'+e.did?'Confirmer':'Retirer'}</button>`; }
+  else if(!edit){ if(adm&&e.pend) btn+=`<button class="btn ok sm" onclick="act.validerH('${e.pend.id}')">Valider ${cptH(e.pend.heures)} h</button><button class="btn danger sm" onclick="act.refuserH('${e.pend.id}')">Refuser</button>`;
+    btn+=`<button class="btn sm" onclick="act.cptEdit('${key}')">${!adm&&e.pend?'Modifier':'Corriger'}</button>`;
+    if(adm) btn+=`<button class="btn danger sm" onclick="act.cptRetirer('${e.did}')">${S.confirm==='cr-'+e.did?'Confirmer':'Retirer'}</button>`; }
+  const form=!edit?'':`<div class="row" style="gap:6px"><input id="cx-${e.bid}" type="number" min="0.5" max="24" step="0.5" value="${e.pend?e.pend.heures:e.h}" style="width:76px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures réellement faites"> h
+      <button class="btn primary sm" onclick="act.cptCorr('${e.bid}','${mid}')">${adm?'Enregistrer':'Envoyer à l’admin'}</button><button class="btn sm" onclick="act.cptEdit('')">Annuler</button></div>
+      <div class="small muted">${adm?'Le compteur change tout de suite.':'L’admin valide, puis ton compteur change.'}</div>`;
+  return `<div class="stack cptrow" style="gap:6px;padding:9px 0;border-top:1px solid var(--line)"><div class="row between" style="flex-wrap:nowrap"><div><b>${fmtDate(e.date)}</b> <span class="small muted">${e.debut?hm(e.debut)+'–'+hm(e.fin):''}</span></div><b class="num">${e.st==='ok'?cptH(e.h)+' h':'—'}</b></div>
+    <div>${src}</div>${btn?`<div class="row" style="gap:6px">${btn}</div>`:''}${form}</div>`; }
+function cptList(mid){ const l=cptDet(mid); if(!l.length) return '<div class="small muted" style="padding-top:8px">Aucune vacation terminée cette année.</div>';
+  const all=S.cptAll===mid||l.length<=8, vis=all?l:l.slice(0,6);
+  return `<div class="cptlist">${vis.map(e=>cptRow(e,mid)).join('')}${all?'':`<button class="btn sm" style="margin-top:8px" onclick="act.cptAll('${mid}')">Voir les ${l.length} vacations</button>`}</div>`; }
+const cptAFaire = mid => cptDet(mid).filter(e=>e.pend||e.st==='wait').length;   // lignes qui attendent une décision de l'admin
+const CPT_REGLES = ()=>`<ul class="muted" style="margin:8px 0 0;padding-left:18px">
+        <li>Une vacation compte <b>dès son heure de fin</b>, si l’admin avait validé la personne.</li>
+        <li>Elle vaut sa durée prévue : <b>7 h</b> en général (8 h pour un titulaire).</li>
+        <li>Si la durée réelle est différente, « Corriger » : les nouvelles heures comptent <b>une fois validées par l’admin</b>.</li>
+        <li>Une dispo jamais validée ou refusée ne compte pas.</li>
+        <li>Maximum ${MAX_JOURS} vacations par an : c’est une information, rien n’est bloqué.</li></ul>`;
 function monCompteurCard(m){ if(m.id==='m0') return ''; const c=compteur(m.id), t=iso(TODAY), y=t.slice(0,4); const mj=c.mj||0, mh=c.mh||0;
   const lim=c.j>=MAX_JOURS-10?`<div style="margin-top:10px"><span class="badge red">${c.j} j / ${MAX_JOURS}${c.j>=MAX_JOURS?' · limite atteinte':' · proche de la limite'}</span></div>`:'';
   const bj=vacOf(t), dj=bj&&S.demandes.find(d=>d.besoinId===bj.id&&d.memberId===m.id&&d.statut==='attribuee');   // ma vacation d'aujourd'hui
   const auj=!dj?'':finie(bj)?`<div class="small" style="margin-top:10px"><span class="badge green">Aujourd’hui</span> Ta vacation ${hm(bj.debut)}–${hm(bj.fin)} est terminée : elle est comptée.</div>`
     :`<div class="small" style="margin-top:10px"><span class="badge amber">Aujourd’hui</span> Ta vacation ${hm(bj.debut)}–${hm(bj.fin)} sera comptée ${bj.fin>bj.debut?'à '+hm(bj.fin)+', quand elle sera terminée':'demain'}.</div>`;
+  const n=cptDet(m.id).length;
   return `<div class="card" id="mon-compteur"><div class="eyebrow" style="margin-bottom:8px">Mon compteur</div>
     <div class="kpi" style="grid-template-columns:repeat(2,1fr)"><div><b class="num">${mj}</b><span>vacation${mj>1?'s':''} ce mois</span></div><div><b class="num">${cptH(mh)} h</b><span>heures ce mois</span></div><div><b class="num">${c.j}</b><span>vacation${c.j>1?'s':''} en ${y} · max ${MAX_JOURS}</span></div><div><b class="num">${cptH(c.h)} h</b><span>heures en ${y}</span></div></div>${lim}${auj}
-    <details class="small" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Comment c’est compté ?</summary>
-      <ul class="muted" style="margin:8px 0 0;padding-left:18px">
-        <li>Une vacation compte <b>dès son heure de fin</b>, si l’admin t’avait validé.</li>
-        <li>Elle vaut sa durée prévue : <b>7 h</b> en général.</li>
-        <li>Si tu déclares d’autres heures (carte « À déclarer »), ce sont elles qui comptent.</li>
-        <li>Une dispo en attente ou refusée ne compte pas.</li>
-        <li>Maximum ${MAX_JOURS} vacations par an : c’est une information, rien n’est bloqué.</li>
-      </ul></details></div>`; }
+    <div style="margin-top:10px"><button class="btn sm" id="cpt-toggle" onclick="act.cptOpen()">${S.cptOpen?'Masquer le détail':`Voir le détail et corriger${n?' ('+n+')':''}`}</button></div>
+    ${S.cptOpen?`<p class="small muted" style="margin:10px 0 0">Une ligne par vacation. Si le nombre d’heures n’est pas le bon, touche « Corriger ». S’il manque une vacation, préviens l’admin.</p>${cptList(m.id)}`:''}
+    <details class="small" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Comment c’est compté ?</summary>${CPT_REGLES()}</details></div>`; }
+// Gestion > Compteurs : le compteur de chacun, avec le détail vacation par vacation, que l'admin peut corriger.
+function gCompteurs(){ const y=iso(TODAY).slice(0,4); const l=S.members.filter(m=>m.id!=='m0').sort((a,b)=>a.nom.localeCompare(b.nom)||a.prenom.localeCompare(b.prenom));
+  const tot=l.reduce((n,m)=>n+cptAFaire(m.id),0);
+  return `<div class="card stack" id="g-compteurs"><div class="row between"><h3>Compteurs ${y}</h3>${tot?`<span class="badge amber">${tot} à vérifier</span>`:''}</div>
+    <p class="small muted" style="margin:0">Pour chaque personne : vacations et heures du mois, puis de l’année. Touche un nom pour voir le détail, vacation par vacation, et corriger.</p>
+    <details class="small"><summary style="cursor:pointer;font-weight:700">Comment c’est compté ? Que puis-je corriger ?</summary>${CPT_REGLES()}
+      <ul class="muted" style="margin:6px 0 0;padding-left:18px"><li><b>Corriger</b> : change les heures d’une vacation, tout de suite.</li><li><b>Valider / Refuser</b> : répond à une correction demandée par la personne.</li><li><b>Retirer</b> : la personne n’a pas fait cette vacation, elle sort du compteur.</li><li><b>Valider</b> une dispo jamais validée : la vacation entre dans le compteur.</li></ul></details>
+    <div>${l.map(m=>{ const c=compteur(m.id), af=cptAFaire(m.id), open=S.cptPax===m.id;
+      return `<div style="border-top:1px solid var(--line);padding:9px 0" id="cp-${m.id}"><div class="row between" style="cursor:pointer;flex-wrap:nowrap;gap:8px" onclick="act.cptPax('${m.id}')"><div style="min-width:0"><div class="${m.actif?'':'name-inactive'}" style="font-weight:700">${esc(fullName(m))}${m.titulaire?' <span class="badge blue">Titulaire</span>':''}${af?` <span class="badge amber">${af} à vérifier</span>`:''}</div>
+        <div class="small muted">Ce mois : ${c.mj||0} vac. · ${cptH(c.mh||0)} h</div></div><div style="text-align:right;white-space:nowrap"><b class="num">${c.j} / ${MAX_JOURS}</b><div class="small muted">${cptH(c.h)} h en ${y}</div></div></div>${open?cptList(m.id):''}</div>`; }).join('')}</div></div>`; }
 function renderMoi(){
   const m=me(); const ym=S.month; const y=iso(TODAY).slice(0,4);
   const mineH=S.heures.filter(h=>h.memberId===S.user);
@@ -948,11 +1003,11 @@ function renderEquipe(){
 }
 
 function renderGestion(){
-  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Comptes'],['reglages','Réglages']];
+  const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['compteurs','Compteurs'],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Comptes'],['reglages','Réglages']];
   if(!subs.some(([k])=>k===S.sub)) S.sub='demandes';
   return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.tab('besoins')">+ Créer une vacation</button></div>
     <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
-    ${({demandes:gDemandes,heures:gHeures,habil:gHabil,pax:gPax,reglages:gReglages})[S.sub]()}`;
+    ${({demandes:gDemandes,heures:gHeures,compteurs:gCompteurs,habil:gHabil,pax:gPax,reglages:gReglages})[S.sub]()}`;
 }
 
 function gDemandes(){
@@ -981,7 +1036,7 @@ function gHeures(){
   const pend=S.heures.filter(h=>h.statut==='declaree').sort((a,b)=>a.date.localeCompare(b.date));
   const enc=S.members.filter(m=>m.role==='admin').map(m=>m.prenom).join(', ');
   const recent=S.heures.filter(h=>h.statut==='validee'&&h.validePar).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
-  return `<p class="small muted" style="margin:0">Seules les heures validées ici comptent dans les compteurs. Valideurs : ${esc(enc)}.</p>
+  return `<p class="small muted" style="margin:0">Seules les heures validées comptent dans les compteurs ; en attendant, la vacation compte sa durée prévue. Le détail par personne est dans « Compteurs ». Valideurs : ${esc(enc)}.</p>
     ${pend.length?`<div class="card stack"><h3>${pend.length} déclaration${pend.length>1?'s':''} en attente</h3><div class="dlist">${pend.map(h=>{const m=member(h.memberId); const b=besoin(h.besoinId)||{libelle:'',debut:'',fin:'',duree:h.heures}; const diff=h.heures!==b.duree;
       return `<div><div><b>${esc(fullName(m))}</b><div class="small muted">${fmtDate(h.date)} · ${esc(b.id?vacNom(b):'')} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><span class="num" style="font-weight:700">${h.heures} h</span>${diff?`<span class="badge amber" title="Différent de la durée prévue">≠ ${b.duree} h</span>`:''}<button class="btn ok sm" onclick="act.validerH('${h.id}')">Valider</button><button class="btn danger sm" onclick="act.refuserH('${h.id}')">Refuser</button></div></div>`;}).join('')}</div></div>`:'<div class="empty">Aucune déclaration d’heures en attente.</div>'}
     <div class="card stack"><h3>Dernières validations</h3><div class="dlist">${recent.map(h=>`<div><span>${esc(fullName(member(h.memberId)))} <span class="small muted">· ${fmtDate(h.date)}</span></span><span class="small muted"><span class="num" style="color:var(--fg);font-weight:600">${h.heures} h</span> · validé par ${esc(member(h.validePar)?.prenom||'')}</span></div>`).join('')}</div></div>
@@ -1129,7 +1184,7 @@ function setBusy(b){ BUSY=b; document.getElementById('app').classList.toggle('bu
 let LOADSEQ=0, HAB_ROWS=[], MAT_OK=false, LOADED_FROM='';
 const mapB = x=>({id:x.id,date:x.date,debut:String(x.debut).slice(0,5),fin:String(x.fin).slice(0,5),type:x.type,libelle:x.libelle,lieu:x.lieu,places:x.places,duree:Number(x.duree),theme:x.theme||'',detail:x.detail||''});
 const mapD = x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,statut:x.statut,par:x.par});
-const mapH = x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,heures:Number(x.heures),statut:x.statut,validePar:x.valide_par,date:x.date});
+const mapH = x=>({id:x.id,besoinId:x.besoin_id,memberId:x.member_id,heures:Number(x.heures),statut:x.statut,validePar:x.valide_par,date:x.date,createdAt:x.created_at||''});
 // Pour rester léger (quota gratuit), on ne charge pas tout l'historique : les vacations des 2 derniers mois (ou depuis le mois affiché s'il est plus ancien),
 // et les heures depuis le 1er janvier. Rien n'est supprimé de la base ; l'export Excel va chercher n'importe quel mois.
 function fenetre(){ const t=iso(TODAY); let b=addDays(t,-62); const m=(S.month||t.slice(0,7))+'-01'; if(m<b) b=m; const jan=t.slice(0,4)+'-01-01';
@@ -1166,9 +1221,9 @@ async function loadCpt(force){
   if(!S.user||(!force&&Date.now()-CPT.at<600000)) return; const first=!CPT.at; CPT.at=Date.now();
   try{ const t=iso(TODAY), jan=t.slice(0,4)+'-01-01';
     const rb=await sb.from('besoins').select('id,date,duree,debut,fin').gte('date',jan).lte('date',t); if(rb.error) throw rb.error;
-    const ds=[]; for(let i=0;i<10;i++){ const r=await sb.from('demandes').select('id,besoin_id,member_id,statut').eq('statut','attribuee').gte('created_at',addDays(jan,-62)+'T00:00:00').order('id').range(i*1000,i*1000+999); if(r.error) throw r.error; ds.push(...(r.data||[])); if((r.data||[]).length<1000) break; }
-    const map=cptCalc((rb.data||[]).map(x=>({id:x.id,date:x.date,duree:Number(x.duree),debut:String(x.debut||'').slice(0,5),fin:String(x.fin||'').slice(0,5)})),ds.map(mapD),S.heures);
-    const ch=JSON.stringify(map)!==JSON.stringify(CPT.map); CPT.map=map; if(ch&&(first||!editing())&&!BUSY) render(); }
+    const ds=[]; for(let i=0;i<10;i++){ const r=await sb.from('demandes').select('id,besoin_id,member_id,statut').in('statut',['attribuee','demandee']).gte('created_at',addDays(jan,-62)+'T00:00:00').order('id').range(i*1000,i*1000+999); if(r.error) throw r.error; ds.push(...(r.data||[])); if((r.data||[]).length<1000) break; }
+    const det=cptDetail((rb.data||[]).map(x=>({id:x.id,date:x.date,duree:Number(x.duree),debut:String(x.debut||'').slice(0,5),fin:String(x.fin||'').slice(0,5)})),ds.map(mapD),S.heures), map=cptMap(det);
+    const ch=JSON.stringify(det)!==JSON.stringify(CPT.det); CPT.map=map; CPT.det=det; if(ch&&(first||!editing())&&!BUSY) render(); }
   catch(e){ CPT.at=0; } }
 // Exécute une écriture, recharge, réaffiche. fn renvoie un résultat Supabase (ou une liste).
 async function run(fn,msg){
@@ -1223,7 +1278,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 36 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 37 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -1282,7 +1337,27 @@ const RA = {
   // ---- heures
   declarer(bid){ const v=parseFloat(document.getElementById('h-'+bid).value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; } const b=besoin(bid);
     return run(()=>sb.from('heures').insert({besoin_id:bid,member_id:S.user,heures:v,statut:'declaree',date:b.date}),'Heures déclarées, en attente de validation'); },
-  validerH(hid){ return run(()=>sb.from('heures').update({statut:'validee',valide_par:S.user}).eq('id',hid),'Heures validées'); },
+  validerH(hid){ const h=S.heures.find(x=>x.id===hid);
+    return run(async()=>{ const r=await sb.from('heures').update({statut:'validee',valide_par:S.user}).eq('id',hid); if(r.error||!h) return r;
+      // une ancienne valeur validée pour la même vacation est remplacée : même nombre d'heures, puis supprimée si la base le permet (script v37)
+      const u=await sb.from('heures').update({heures:h.heures}).eq('besoin_id',h.besoinId).eq('member_id',h.memberId).eq('statut','validee').neq('id',hid); if(u.error) return u;
+      await sb.from('heures').delete().eq('besoin_id',h.besoinId).eq('member_id',h.memberId).eq('statut','validee').neq('id',hid); return r; },'Heures validées'); },
+  // ---- compteur : détail et corrections
+  cptCorr(bid,mid){ const v=parseFloat(document.getElementById('cx-'+bid)?.value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; }
+    const e=cptDet(mid).find(x=>x.bid===bid); if(!e||e.st!=='ok') return; const adm=isEnc(); if(!adm&&mid!==S.user) return;
+    if(!adm&&!e.pend&&v===e.h){ toast('C’est déjà le nombre d’heures compté'); return; } S.cptEdit=null;
+    if(!adm) return run(async()=>{   // réserviste : une correction en attente, que l'admin valide
+        if(!e.pend) return sb.from('heures').insert({besoin_id:bid,member_id:mid,heures:v,statut:'declaree',date:e.date});
+        const r=await sb.from('heures').update({heures:v}).eq('id',e.pend.id).select(); if(!r.error&&!(r.data&&r.data.length)) return {error:{message:'pour modifier une correction déjà envoyée, l’admin doit lancer « mise-a-jour-v37.sql » dans Supabase'}}; return r; },'Correction envoyée — l’admin doit la valider');
+    return run(async()=>{   // admin : la valeur est validée tout de suite
+        if(e.pend){ const r=await sb.from('heures').update({heures:v,statut:'validee',valide_par:S.user}).eq('id',e.pend.id); if(r.error) return r;
+          if(e.val){ const u=await sb.from('heures').update({heures:v}).eq('besoin_id',bid).eq('member_id',mid).eq('statut','validee').neq('id',e.pend.id); if(u.error) return u;
+            await sb.from('heures').delete().eq('besoin_id',bid).eq('member_id',mid).eq('statut','validee').neq('id',e.pend.id); } return r; }
+        if(e.val) return sb.from('heures').update({heures:v,valide_par:S.user}).eq('besoin_id',bid).eq('member_id',mid).eq('statut','validee');
+        return sb.from('heures').insert({besoin_id:bid,member_id:mid,heures:v,statut:'validee',valide_par:S.user,date:e.date}); },'Heures corrigées'); },
+  cptValider(did){ return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),'Vacation validée — elle entre dans le compteur'); },
+  cptRetirer(did){ if(S.confirm!=='cr-'+did){ S.confirm='cr-'+did; render(); toast('Touche « Confirmer »'); return; } S.confirm=null;
+    return run(()=>sb.from('demandes').delete().eq('id',did),'Vacation retirée du compteur'); },
   refuserH(hid){ return run(()=>sb.from('heures').update({statut:'refusee',valide_par:S.user}).eq('id',hid),'Déclaration refusée'); },
   // ---- profil, dossier, tirs
   monProfil(k,v){ v=v.trim(); if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; } if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
