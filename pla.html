@@ -574,6 +574,7 @@ window.act = {
   declarer(bid){ const inp=document.getElementById('h-'+bid); const v=parseFloat(inp.value); if(!(v>0&&v<=24)){toast('Indique un nombre d’heures valide');return;} const b=besoin(bid); S.heures.push({id:nid('h'),besoinId:bid,memberId:S.user,heures:v,statut:'declaree',validePar:null,date:b.date}); save(); render(); toast('Heures déclarées, en attente de validation'); },
   validerH(hid){ const h=S.heures.find(x=>x.id===hid); S.heures=S.heures.filter(x=>x===h||!(x.besoinId===h.besoinId&&x.memberId===h.memberId&&x.statut==='validee')); h.statut='validee'; h.validePar=S.user; save(); render(); toast('Heures validées'); },
   // ---- compteur : détail et corrections
+  sauvegarde(){ toast('La sauvegarde complète n’existe qu’avec la vraie base'); },
   cptOpen(){ S.cptOpen=!S.cptOpen; S.cptEdit=null; render(); },
   cptAll(mid){ S.cptAll=mid; render(); },
   cptPax(mid){ S.cptPax=S.cptPax===mid?null:mid; S.cptEdit=null; S.cptAll=null; S.confirm=null; render(); },
@@ -665,12 +666,12 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v37</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v41</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
     <div class="main">
-      <div class="content"><div class="wrap">${notifBanner()}${({planning:renderPlanning,besoins:renderBesoins,moi:renderMoi,equipe:renderEquipe,gestion:renderGestion})[S.tab]()}</div></div>
+      <div class="content"><div class="wrap">${pwdRappel()}${notifBanner()}${({planning:renderPlanning,besoins:renderBesoins,moi:renderMoi,equipe:renderEquipe,gestion:renderGestion})[S.tab]()}</div></div>
       <nav class="tabbar">${tabs.map(([k,l,i])=>`<button class="${S.tab===k?'active':''}" onclick="act.tab('${k}')">${i}${l}${k==='gestion'&&badge?`<span class="dot">${badge}</span>`:''}</button>`).join('')}</nav>
     </div>`;
   if(_st) $('.content').scrollTop=_st;
@@ -700,7 +701,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 37</b> · 05/10/2026</p>
+    <p class="small muted" style="margin:0"><b>Version 41</b> · 05/10/2026</p>
     <p class="small muted" style="margin:0">© 2026 Issam AKEZDAW — Tous droits réservés</p>
   </div></div>`;
 }
@@ -733,13 +734,13 @@ function patBadge0(p){
 function meter(p){ const n=Math.max(p.max,p.n); return n?`<span class="meter" role="img" aria-label="${p.n} personnes sur ${p.max}, titulaires compris">${Array.from({length:n},(_,i)=>`<i class="${i<p.n?(i>=p.max?'over':'on'):''}"></i>`).join('')}</span>`:''; }
 // Ce que l'utilisateur connecté peut faire sur la vacation d'un jour
 function myAction(date){
-  const m=me(); const b=vacOf(date); if(!b||date<iso(TODAY)||m.id==='m0') return '';
+  const m=me(); const b=vacOf(date); const past=date<iso(TODAY); if(!b||m.id==='m0'||(past&&m.role!=='admin')) return '';
   const d=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user);
   if(d?.statut==='attribuee') return `<span class="badge ${m.titulaire?'blue':'green'}">${m.titulaire?'Présent':'✓ Validé'}</span>${outBtn(d)}`;
   if(d?.statut==='demandee') return `<span class="badge grey">En attente</span>${outBtn(d)}`;
   if(!m.actif) return `<span class="badge red">Compte sans activité</span>`;
   if(d?.statut==='refusee') return `<span class="badge grey">Non retenu</span>`;
-  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${m.titulaire?'Je serai présent':m.role==='admin'?'M’ajouter comme réserviste':'Je suis dispo'}</button>`;
+  return `<button class="btn primary sm" onclick="act.dispo('${date}')">${past?(m.titulaire?'J’étais présent':'J’y étais : m’ajouter'):m.titulaire?'Je serai présent':m.role==='admin'?'M’ajouter comme réserviste':'Je suis dispo'}</button>`;
 }
 function alertBadge(m){ const al=alertes(m); const t=tirInfo(m); const n=al.length+(t.ok?0:1); if(!n) return '';
   if(!DOSSIER_ITEMS.some(([k])=>m.dossier[k])&&!(m.tirs||[]).length) return `<span class="badge grey" title="Rien de coché, aucun tir">Dossier vide</span>`;
@@ -762,8 +763,8 @@ function dayPanel(date,noAct){
   const wait = !p.wait.length?'<span class="small muted">Personne</span>'
     : adm?`<div class="dlist">${p.wait.map(d=>`<div>${paxLine(member(d.memberId))}<div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.attribuer('${d.id}')">Valider</button><button class="btn danger sm" onclick="act.refuser('${d.id}')">Refuser</button></div></div>`).join('')}</div>`
     : `<div class="row" style="gap:6px">${p.wait.map(d=>chip(member(d.memberId),'wait')).join('')}</div>`;
-  const dispo=S.members.filter(m=>m.id!=='m0'&&m.actif&&!m.titulaire&&!S.demandes.some(d=>d.besoinId===b.id&&d.memberId===m.id&&d.statut==='attribuee')).sort((x,y)=>x.nom.localeCompare(y.nom));
-  const add = adm?`<div class="row" style="gap:8px"><select id="add-${date}" class="dinput" style="max-width:none;flex:1 1 170px" aria-label="Personne à ajouter à la vacation"><option value="">Ajouter quelqu’un à la vacation…</option>${dispo.map(m=>`<option value="${m.id}">${esc(fullName(m))}</option>`).join('')}</select><button class="btn" onclick="act.ajouter('${date}')">Ajouter</button></div>`:'';
+  const dispo=S.members.filter(m=>m.id!=='m0'&&(m.actif||passee(date))&&!m.titulaire&&!S.demandes.some(d=>d.besoinId===b.id&&d.memberId===m.id&&d.statut==='attribuee')).sort((x,y)=>x.nom.localeCompare(y.nom));
+  const add = adm?`<div class="row" style="gap:8px"><select id="add-${date}" class="dinput" style="max-width:none;flex:1 1 170px" aria-label="Personne à ajouter à la vacation"><option value="">${passee(date)?'Ajouter quelqu’un qui était là…':'Ajouter quelqu’un à la vacation…'}</option>${dispo.map(m=>`<option value="${m.id}">${esc(fullName(m))}</option>`).join('')}</select><button class="btn" onclick="act.ajouter('${date}')">Ajouter</button></div>`:'';
   const edit = adm?`<details class="vacedit" ${S.vacEdit===b.id?'open':''} ontoggle="S.vacEdit=this.open?'${b.id}':(S.vacEdit==='${b.id}'?null:S.vacEdit)"><summary>Modifier ou supprimer cette vacation</summary>
       <div class="stack" style="margin-top:8px"><div class="grid2">
         <label class="field">Type<select id="vt-${b.id}" onchange="act.majVac('${b.id}','type',this.value)">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${b.type===k?'selected':''}>${esc(t.label)} ${hm(t.debut)}–${hm(t.fin)}</option>`).join('')}</select></label>
@@ -779,7 +780,7 @@ function dayPanel(date,noAct){
   return `<div class="card stripe ${typeCls(b)} stack fiche" id="fiche-jour">
     <div class="row between"><div><div class="eyebrow">${typeOf(b).label} du</div><h3>${fmtLong(date)}</h3><div class="small muted">${vacTitle(b)}${themeOn()?'':' · '+esc(b.lieu||'Paris')}</div>${vacTheme(b)}${vacDetail(b)}</div>${patBadge(p)}</div>
     ${my&&noAct!==true?`<div class="myact">${my}</div>`:''}
-    ${passee(date)?`<div class="small muted">Vacation passée : plus de dispo ni de retrait possible${adm?' pour les réservistes (toi, tu peux encore corriger)':''}.</div>`:''}
+    ${passee(date)?(adm?`<div class="card todo small" style="padding:8px 12px"><b>Vacation passée.</b> Les réservistes ne peuvent plus se proposer ni se retirer. Toi, tu peux encore corriger : ajouter quelqu’un qui était là (liste « Ajouter quelqu’un qui était là » plus bas), retirer quelqu’un, cocher un titulaire. Le compteur de la personne suit tout de suite.</div>`:`<div class="small muted">Vacation passée : plus de dispo ni de retrait possible. S’il manque quelqu’un, préviens l’admin.</div>`):''}
     <div class="row" style="gap:6px 14px"><span class="eyebrow">Titulaires</span>${titRow}</div>
     <div class="row small muted" style="gap:8px">${meter(p)}<span>${capTxt}</span></div>
     ${adm&&(p.etat==='full'||p.etat==='over')?'<div class="small muted">Besoin de plus de monde ? Ouvre « Modifier ou supprimer cette vacation » et change le nombre de places.</div>':''}
@@ -807,7 +808,7 @@ function renderPlanning(){
       return `<div class="day ${d===iso(TODAY)?'today':''}"><div class="d"><b class="num">${dt.getDate()}</b><span>${dt.toLocaleDateString('fr-FR',{weekday:'short'})}</span></div>
         <div class="slot stripe ${typeCls(b)}"><div class="row between"><span class="t">${typeOf(b).label} · ${vacTitle(b)}</span>${patBadge(p)}</div>${vacTheme(b)}${vacDetail(b)}
           <div class="row" style="gap:6px">${p.tit.map(a=>chip(member(a.memberId),'tit')).join('')}${p.att.map(a=>chip(member(a.memberId),'ok')).join('')}${p.wait.map(a=>chip(member(a.memberId),'wait')).join('')}${p.vide?'<span class="small muted">Personne pour l’instant</span>':''}</div>
-          ${my?`<div class="row" style="gap:6px;justify-content:flex-end">${my}</div>`:''}</div></div>`;
+          ${my||isEnc()?`<div class="row" style="gap:6px;justify-content:flex-end">${my}${isEnc()?`<button class="btn sm" onclick="act.ouvrir('${d}')">${passee(d)?'Ajouter ou retirer quelqu’un':'Gérer'}</button>`:''}</div>`:''}</div></div>`;
     }).join('') : `<div class="empty">Aucune vacation créée pour ${monthLabel(S.month)}.${isEnc()?' Va dans « Vacations » pour en créer.':''}</div>`;
   }
   return `<div class="toolbar between">${monthNav()}<div class="row" style="gap:8px"><div class="segment"><button class="${S.view==='liste'?'active':''}" onclick="act.view('liste')">Liste</button><button class="${S.view==='grille'?'active':''}" onclick="act.view('grille')">Grille</button></div>${isEnc()&&S.view==='grille'?'<button class="btn sm" onclick="act.exportMois()">Exporter le mois</button>':''}${isEnc()?'<button class="btn primary sm" onclick="act.tab(\'besoins\')">+ Créer une vacation</button>':''}</div></div>
@@ -902,7 +903,7 @@ function monProfilCard(m){
     ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="me-mat" maxlength="20" autocomplete="off" value="${esc(m.matricule||'')}" onchange="act.monProfil('matricule',this.value)"></label>`}</div>
     ${REMOTE?(isEnc()?'<div class="small muted">Ton adresse email est ton identifiant de connexion : si tu la changes, connecte-toi ensuite avec la nouvelle.</div>':'<div class="small muted">Ton adresse email est ton identifiant de connexion : pour la changer, demande à un admin.</div>'):''}
     <div class="small muted">${esc((m.grade?m.grade+' ':'')+fullName(m))} · ${roleLabel(m.role)}. Nom, grade et rôle sont gérés par l’admin.</div>
-    ${REMOTE?`<div class="row" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><label class="field" style="flex:1 1 160px">Nouveau mot de passe<input id="me-pwd" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.changePwd()">Changer mon mot de passe</button></div>`:''}</div>`;
+    ${REMOTE?`<div class="row" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><label class="field" style="flex:1 1 160px">Nouveau mot de passe<input id="me-pwd" type="password" minlength="10" autocomplete="new-password" placeholder="10 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.changePwd()">Changer mon mot de passe</button></div>`:''}</div>`;
 }
 function myBadges(m,k){ const s=dossierStatus(m.dossier[k],k); return `${s.label==='—'?'':`<span class="badge ${s.cls}">${s.label}</span>`}${m.aVerifier?.[k]?'<span class="badge blue">À vérifier par l’admin</span>':''}`; }
 function myManque(m){ const n=DOSSIER_ITEMS.filter(([k,,o])=>o&&!m.dossier[k]).length; return n?`<span class="badge red">${n} obligatoire${n>1?'s':''} manquant${n>1?'s':''}</span>`:'<span class="badge green">À jour</span>'; }
@@ -988,6 +989,7 @@ function renderMoi(){
     ${aDeclarer.length?`<div class="card stack"><h3>À déclarer</h3><p class="small muted" style="margin:0">Saisis le nombre d’heures réellement effectuées. L’admin valide ensuite.</p>
       ${aDeclarer.map(b=>`<div class="row between stripe ${typeCls(b)}" style="padding-left:10px"><div><b>${fmtDate(b.date)}</b> · ${esc(vacNom(b))}<div class="small muted">${hm(b.debut)} – ${hm(b.fin)}</div></div><div class="row" style="gap:6px"><input id="h-${b.id}" type="number" min="0.5" max="24" step="0.5" value="${b.duree}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures effectuées"> h <button class="btn primary sm" onclick="act.declarer('${b.id}')">Déclarer</button></div></div>`).join('')}</div>`:''}
     ${mesProchaines()}
+    ${ntfyCard(m)}
     ${monProfilCard(m)}
     ${mesTirsCard(m)}
     ${monDossierCard(m)}
@@ -1006,6 +1008,7 @@ function renderGestion(){
   const subs=[['demandes',`À valider${pendingDemandes()?` (${pendingDemandes()})`:''}`],['heures',`Heures à valider${pendingHeures()?` (${pendingHeures()})`:''}`],['compteurs','Compteurs'],['habil',`Habilitations${pendingHabil()?` (${pendingHabil()})`:''}`],['pax','Comptes'],['reglages','Réglages']];
   if(!subs.some(([k])=>k===S.sub)) S.sub='demandes';
   return `<div class="row between"><h2>Gestion</h2><button class="btn primary" onclick="act.tab('besoins')">+ Créer une vacation</button></div>
+    ${REMOTE&&S.sub!=='reglages'&&(sauvAge()==null||sauvAge()>7)?`<div class="card todo row between" id="sauv-rappel" style="padding:8px 12px"><span class="small"><b>Sauvegarde :</b> ${sauvAge()==null?'jamais faite depuis cet appareil':'la dernière date de '+sauvAge()+' jours'}.</span><button class="btn sm" onclick="act.sub('reglages')">Sauvegarder</button></div>`:''}
     <div class="subtabs">${subs.map(([k,l])=>`<button class="${S.sub===k?'active':''}" onclick="act.sub('${k}')">${l}</button>`).join('')}</div>
     ${({demandes:gDemandes,heures:gHeures,compteurs:gCompteurs,habil:gHabil,pax:gPax,reglages:gReglages})[S.sub]()}`;
 }
@@ -1065,7 +1068,7 @@ function gHabil(){
 
 function gReglages(){
   const off=REMOTE&&!REG_OK;
-  return `<div class="card stack" id="reglages"><h3>Places par patrouille</h3>
+  return `${sauvCard()}${ntfyAdminCard()}<div class="card stack" id="reglages"><h3>Places par patrouille</h3>
     <p class="small muted" style="margin:0">Le nombre de personnes sur une vacation, titulaires compris. Ça s’applique à toutes les vacations, sauf celles où tu as fixé toi-même un nombre de places.</p>
     ${off?'<p class="small" style="margin:0"><b>Pour changer ces réglages, lance d’abord le fichier « mise-a-jour-v25.sql » dans Supabase (une seule fois).</b></p>':''}
     <label class="check"><input type="checkbox" id="reg-limite" ${REG.limite?'checked':''} ${off?'disabled':''} onchange="act.reg('limite',this.checked)"> <span><span style="font-weight:600">Limiter le nombre de places par patrouille</span> <span class="small muted">(décoché : pas de limite, chacun peut se proposer)</span></span></label>
@@ -1115,6 +1118,93 @@ function habTypesCard(){
     <p class="small muted" style="margin:0">Coche « Obligatoire » pour ce que tout le monde doit avoir : une alerte apparaît quand ça manque. Le reste est noté sans alerte. Les tirs (3 sur 365 jours) sont toujours obligatoires.${REMOTE&&!OBL_OK?' <b>Pour changer « Obligatoire », lance d’abord le fichier « mise-a-jour-v25.sql » dans Supabase (une seule fois).</b>':''}</p>
     <p class="small muted" style="margin:0">Supprimer un type le retire du dossier de tout le monde.</p></div>`; }
 // ---- export du mois (fichier CSV lisible par Excel)
+/* ---------------- sauvegarde complète (admin) ----------------
+   Un fichier .sql qui contient toutes les données lisibles par l'admin et qui sait se restaurer lui-même :
+   on le colle dans Supabase > SQL Editor. Il ne fait qu'AJOUTER ce qui manque : il ne supprime rien et n'écrase rien.
+   Les mots de passe n'y sont pas (personne ne peut les lire) : après une perte totale, l'admin redonne un mot de passe à chacun. */
+const SAUV_TABLES = [['members','id'],['dossiers','member_id'],['tirs','id'],['besoins','id'],['demandes','id'],['heures','id'],['notifs','id'],['habilitations','cle'],['reglages','id']];
+const SAUV_KEY = 'bstc-derniere-sauvegarde';
+function sauvDate(){ try{ return localStorage.getItem(SAUV_KEY)||''; }catch(e){ return ''; } }
+function sauvAge(){ const d=sauvDate(); return d?Math.round((TODAY-new Date(d+'T00:00:00'))/86400000):null; }
+function sauvegardeSql(T,quand){
+  const tag='$bstc_sauvegarde$'; const json=JSON.stringify(T).split(tag).join('');
+  const n=k=>(T[k]||[]).length; const a=k=>`(select coalesce(d->'${k}','[]'::jsonb) from _bstc)`;
+  const simple=(k)=>`insert into public.${k} select * from jsonb_populate_recordset(null::public.${k}, ${a(k)}) on conflict do nothing;`;
+  return `-- ============================================================================
+-- Planning BSTC — SAUVEGARDE COMPLÈTE du ${quand}
+-- ${n('members')} personnes · ${n('besoins')} vacations · ${n('demandes')} inscriptions · ${n('heures')} lignes d'heures · ${n('tirs')} tirs
+--
+-- CONTIENT DES DONNÉES PERSONNELLES : à garder dans un endroit privé, jamais sur GitHub.
+--
+-- POUR RESTAURER : coller tout ce fichier dans Supabase > SQL Editor > New query, puis « Run ».
+--   * Le fichier ne fait qu'AJOUTER ce qui manque (personnes, dossiers, tirs, vacations, inscriptions, heures, réglages).
+--   * Il ne supprime rien et n'écrase rien de ce qui existe déjà. On peut le lancer plusieurs fois.
+--   * Les mots de passe ne sont pas dans la sauvegarde. Si les comptes de connexion ont été perdus,
+--     l'admin redonne un mot de passe à chacun (Gestion > Comptes) : le compte se rattache à la fiche par l'email.
+--   * Sur un projet Supabase neuf : lancer d'abord supabase.sql puis les mises à jour, et ensuite ce fichier.
+-- ============================================================================
+begin;
+create temp table _bstc(d jsonb) on commit drop;
+insert into _bstc values (${tag}${json}${tag}::jsonb);
+
+-- personnes (le lien vers le compte de connexion n'est gardé que si ce compte existe encore)
+insert into public.members
+  select (jsonb_populate_record(null::public.members,
+            case when e->>'user_id' is not null and not exists (select 1 from auth.users u where u.id::text = e->>'user_id')
+                 then e || '{"user_id":null}'::jsonb else e end)).*
+    from jsonb_array_elements(${a('members')}) e
+  on conflict do nothing;
+
+-- dossiers : la ligne existe déjà pour chaque personne ; on complète ce qui est vide, sans écraser
+do $do$
+declare sets text;
+begin
+  select string_agg(case when data_type = 'jsonb'
+           then format('%1$I = coalesce(s.%1$I, ''{}''::jsonb) || coalesce(d.%1$I, ''{}''::jsonb)', column_name)
+           else format('%1$I = coalesce(d.%1$I, s.%1$I)', column_name) end, ', ')
+    into sets from information_schema.columns
+   where table_schema = 'public' and table_name = 'dossiers' and column_name <> 'member_id';
+  execute 'insert into public.dossiers select s.* from jsonb_populate_recordset(null::public.dossiers, (select coalesce(d->''dossiers'',''[]''::jsonb) from _bstc)) s
+            where exists (select 1 from public.members m where m.id = s.member_id) on conflict do nothing';
+  execute 'update public.dossiers d set ' || sets || ' from jsonb_populate_recordset(null::public.dossiers, (select coalesce(d->''dossiers'',''[]''::jsonb) from _bstc)) s where s.member_id = d.member_id';
+end $do$;
+
+insert into public.tirs select s.* from jsonb_populate_recordset(null::public.tirs, ${a('tirs')}) s
+  where exists (select 1 from public.members m where m.id = s.member_id) on conflict do nothing;
+${simple('besoins')}
+insert into public.demandes
+  select (jsonb_populate_record(null::public.demandes,
+            case when e->>'par' is not null and not exists (select 1 from public.members m where m.id::text = e->>'par') then e || '{"par":null}'::jsonb else e end)).*
+    from jsonb_array_elements(${a('demandes')}) e
+   where exists (select 1 from public.members m where m.id::text = e->>'member_id')
+     and exists (select 1 from public.besoins b where b.id::text = e->>'besoin_id')
+  on conflict do nothing;
+insert into public.heures
+  select (jsonb_populate_record(null::public.heures,
+            case when e->>'valide_par' is not null and not exists (select 1 from public.members m where m.id::text = e->>'valide_par') then e || '{"valide_par":null}'::jsonb else e end)).*
+    from jsonb_array_elements(${a('heures')}) e
+   where exists (select 1 from public.members m where m.id::text = e->>'member_id')
+     and exists (select 1 from public.besoins b where b.id::text = e->>'besoin_id')
+     and not exists (select 1 from public.heures h where h.id::text = e->>'id')
+  on conflict do nothing;
+insert into public.notifs select s.* from jsonb_populate_recordset(null::public.notifs, ${a('notifs')}) s
+  where exists (select 1 from public.members m where m.id = s.member_id) on conflict do nothing;
+${T.habilitations?simple('habilitations'):'-- (types d’habilitation : non sauvegardés)'}
+${T.reglages?simple('reglages'):'-- (réglages : non sauvegardés)'}
+commit;
+`; }
+function sauvTelecharger(sql,jour){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([sql],{type:'application/sql;charset=utf-8'})); a.download='sauvegarde-bstc-'+jour+'.sql'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  try{ localStorage.setItem(SAUV_KEY,jour); }catch(e){} window.__lastSauv=sql; }
+function sauvCard(){ const d=sauvDate(), age=sauvAge();
+  return `<div class="card stack" id="sauvegarde"><div class="row between"><h3>Sauvegarde complète</h3>${age==null?'<span class="badge red">Jamais faite ici</span>':age>7?`<span class="badge amber">Il y a ${age} jours</span>`:`<span class="badge green">${age?'Il y a '+age+' jour'+(age>1?'s':''):'Aujourd’hui'}</span>`}</div>
+    <p class="small muted" style="margin:0">Télécharge un fichier avec <b>toutes</b> les données : personnes, dossiers, tirs, vacations, inscriptions, heures, réglages. À faire <b>une fois par semaine</b>, et avant chaque mise à jour. Garde le fichier dans un endroit privé (il contient des données personnelles), jamais sur GitHub.</p>
+    <div><button class="btn primary" onclick="act.sauvegarde()" ${REMOTE?'':'disabled'}>Télécharger la sauvegarde</button></div>
+    <details class="small"><summary style="cursor:pointer;font-weight:700">Comment restaurer ?</summary><ul class="muted" style="margin:8px 0 0;padding-left:18px">
+      <li>Ouvre le fichier, copie tout, colle dans Supabase › SQL Editor, puis « Run ».</li>
+      <li>Il remet ce qui manque. Il ne supprime rien et n’écrase rien.</li>
+      <li>Les mots de passe ne sont pas sauvegardés : après une perte totale, tu redonnes un mot de passe à chacun dans « Comptes ».</li></ul></details>
+    ${REMOTE?'':'<div class="small muted">Disponible seulement avec la vraie base (pas en mode démo).</div>'}
+    ${d?`<div class="small muted">Dernière sauvegarde téléchargée depuis cet appareil : ${frDate(d)}.</div>`:''}</div>`; }
 function exportCsv(ym,D){
   const q=v=>{ v=String(v==null?'':v); if(/^[=+\-@]/.test(v)) v="'"+v; return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
   const nb=n=>String(Math.round(n*100)/100).replace('.',',');
@@ -1143,7 +1233,7 @@ function gPax(){
       <div class="grid2"><label class="field">Nom<input name="nom" id="np-nom" required autocomplete="off"></label><label class="field">Prénom<input name="prenom" id="np-prenom" required autocomplete="off"></label>
         <label class="field">Grade<input name="grade" id="np-grade" placeholder="facultatif"></label><label class="field">Profil<select name="role" id="np-role"><option value="reserviste">Réserviste</option><option value="admin">Admin</option></select></label>
         <label class="field">Téléphone<input name="tel" id="np-tel" type="tel" inputmode="tel"></label>${REMOTE&&!MAT_OK?'':'<label class="field">Matricule<input name="matricule" id="np-mat" maxlength="20" placeholder="facultatif"></label>'}<label class="field">Adresse email (son identifiant)<input name="email" id="np-email" type="email" autocomplete="off" ${REMOTE?'required':''}></label>
-        ${REMOTE?`<label class="field">Mot de passe (à lui transmettre)<input name="pwd" id="np-pwd" required minlength="6" autocomplete="off" value="${esc(S.pwdSug||'')}"></label>`:''}</div>
+        ${REMOTE?`<label class="field">Mot de passe (à lui transmettre)<input name="pwd" id="np-pwd" required minlength="10" autocomplete="off" value="${esc(S.pwdSug||'')}"></label>`:''}</div>
       ${REMOTE?'<p class="small muted" style="margin:0">Tu crées le compte complet. La personne se connecte avec cet email et ce mot de passe, puis peut le changer dans « Moi ».</p>':''}
       <div class="row" style="gap:8px"><button class="btn primary" type="submit">Créer le compte</button><button class="btn" type="button" onclick="act.toggleAdd()">Annuler</button></div></form>`:'';
   return `<div class="row between"><div><h3>${nRes} réserviste${nRes>1?'s':''} · ${rows.length-nRes} admin${rows.length-nRes>1?'s':''}</h3><div class="small muted">${rows.filter(m=>!m.actif).length} sans activité</div></div>${S.addOpen?'':'<button class="btn primary" onclick="act.toggleAdd()">+ Ajouter un réserviste</button>'}</div>
@@ -1158,7 +1248,7 @@ function gPax(){
           <label class="field">Grade<input id="grade-${m.id}" value="${esc(m.grade||'')}" onchange="act.paxField('${m.id}','grade',this.value)"></label><label class="field">Profil<select id="role-${m.id}" ${m.id===S.user?'disabled':''} onchange="act.paxField('${m.id}','role',this.value)">${['reserviste','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${roleLabel(r)}</option>`).join('')}</select></label>
           <label class="field">Téléphone<input id="tel-${m.id}" type="tel" value="${esc(m.tel||'')}" onchange="act.paxField('${m.id}','tel',this.value)"></label><label class="field">Adresse email<input id="email-${m.id}" type="email" value="${esc(m.email||'')}" onchange="act.paxField('${m.id}','email',this.value)"></label>
           ${REMOTE&&!MAT_OK?'':`<label class="field">Matricule<input id="mat-${m.id}" maxlength="20" value="${esc(m.matricule||'')}" onchange="act.paxField('${m.id}','matricule',this.value)"></label>`}</div>
-          ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="6" autocomplete="off" placeholder="6 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
+          ${REMOTE?`<div class="row" style="gap:8px"><label class="field" style="flex:1 1 170px">${m.lie?'Nouveau mot de passe':'Mot de passe du compte'}<input id="pwd-${m.id}" minlength="10" autocomplete="off" placeholder="10 caractères au moins"></label><button class="btn" style="align-self:flex-end" onclick="act.setPwd('${m.id}')">${m.lie?'Remplacer son mot de passe':'Créer son compte'}</button></div>`:''}
           <label class="check"><input type="checkbox" id="tit-${m.id}" ${m.titulaire?'checked':''} onchange="act.paxField('${m.id}','titulaire',this.checked)"> <span><span style="font-weight:600">Titulaire</span> <span class="small muted">(sa présence ouvre la vacation)</span></span></label>
           <label class="check"><input type="checkbox" id="actif-${m.id}" ${m.actif?'':'checked'} onchange="act.paxField('${m.id}','actif',!this.checked)"> <span><span style="color:var(--red);font-weight:600">N’a plus d’activité à la BSTC</span> <span class="small muted">(nom affiché en rouge partout)</span></span></label>
           <div class="eyebrow">Dossier · coche ce qu’il a (* = obligatoire)</div>
@@ -1196,7 +1286,7 @@ async function loadAll(){
   const win=fenetre();
   const [hr,rg,...res]=await Promise.all([sb.from('habilitations').select('*'),sb.from('reglages').select('*'),...names.map(n=>lire(n,win))]);
   if(seq!==LOADSEQ) return MEROW;
-  REG_OK=!rg.error&&Array.isArray(rg.data); if(REG_OK) setReg(rg.data[0]); V25_OK=!!(REG_OK&&rg.data[0]&&('themes' in rg.data[0]));   // réglages des places : lus dans la base si elle les gère, sinon la règle par défaut (6 / 10)
+  REG_OK=!rg.error&&Array.isArray(rg.data); if(REG_OK) setReg(rg.data[0]); { const r0=(REG_OK&&rg.data[0])||{}; NTFY_OK=REG_OK&&('ntfy_tous' in r0); NTFY={tous:r0.ntfy_tous||'',admin:r0.ntfy_admin||''}; } V25_OK=!!(REG_OK&&rg.data[0]&&('themes' in rg.data[0]));   // réglages des places : lus dans la base si elle les gère, sinon la règle par défaut (6 / 10)
   // types d'habilitation : lus dans la base si elle les gère, sinon la liste de départ reste en place
   if(!hr.error&&Array.isArray(hr.data)){ HAB_DYN=true; HAB_ROWS=hr.data.slice().sort((a,b)=>(a.ordre-b.ordre)||String(a.libelle).localeCompare(String(b.libelle))); setHab(HAB_ROWS.map(r=>[r.cle,r.libelle,r.obligatoire])); OBL_OK=!!(HAB_ROWS[0]&&('obligatoire' in HAB_ROWS[0])); } else { HAB_DYN=false; OBL_OK=false; }   // une lecture plus récente est partie entre-temps : on ne l'écrase pas avec des données plus anciennes
   const T={}; res.forEach((r,i)=>{ if(r.error) throw r.error; T[names[i]]=r.data||[]; });
@@ -1226,12 +1316,12 @@ async function loadCpt(force){
     const ch=JSON.stringify(det)!==JSON.stringify(CPT.det); CPT.map=map; CPT.det=det; if(ch&&(first||!editing())&&!BUSY) render(); }
   catch(e){ CPT.at=0; } }
 // Exécute une écriture, recharge, réaffiche. fn renvoie un résultat Supabase (ou une liste).
-async function run(fn,msg){
+async function run(fn,msg,apres){
   if(BUSY) return; setBusy(true);
   try{ const rs=[].concat(await fn()); rs.forEach(r=>{ if(r&&r.error) throw r.error; });
     CPT.at=0;   // une action vient d'être enregistrée : le compteur est recalculé tout de suite
     await loadAll(); syncMe();
-    setBusy(false); render(); if(msg) toast(typeof msg==='function'?msg():msg); }
+    setBusy(false); render(); if(msg) toast(typeof msg==='function'?msg():msg); if(apres){ try{ apres(); }catch(_){} } }
   catch(e){ setBusy(false); try{ await loadAll(); }catch(_){} render(); toast('Erreur : '+errMsg(e)); }
 }
 async function enter(){
@@ -1267,7 +1357,7 @@ function renderAuth(){
     <form class="stack" onsubmit="act.signUp(event)"><h3>Première installation</h3><p class="small muted" style="margin:0">À utiliser une seule fois, pour créer le compte du premier admin. Ensuite, c’est l’admin qui crée les comptes de tout le monde.</p>${err}
       <div class="grid2"><label class="field">Prénom<input name="prenom" id="au-prenom" required autocomplete="given-name"></label><label class="field">Nom<input name="nom" id="au-nom" required autocomplete="family-name"></label></div>
       <label class="field">Adresse email<input name="email" id="au-email" type="email" required autocomplete="username"></label>
-      <label class="field">Mot de passe (6 caractères au moins)<input name="pwd" id="au-pwd" type="password" minlength="6" required autocomplete="new-password"></label>
+      <label class="field">Mot de passe (10 caractères au moins)<input name="pwd" id="au-pwd" type="password" minlength="10" required autocomplete="new-password"></label>
       <button class="btn primary" type="submit">Créer le compte admin</button></form>
     <button class="linkbtn" onclick="act.authMode('in')">J’ai déjà un compte</button></div></div>`;
   return `<div class="login"><div class="box">${head}
@@ -1278,19 +1368,58 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 37 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 41 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
     <p class="small muted" style="margin:0">Ces personnes se sont inscrites elles-mêmes. Accepte uniquement celles que tu connais.</p>
     <div class="dlist">${l.map(x=>`<div><div style="min-width:0"><div style="font-weight:700">${esc((x.nom+' '+x.prenom).trim()||'(sans nom)')}</div><div class="small muted">${esc(x.email||'')}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ok sm" onclick="act.approuver('${x.id}')">Accepter</button><button class="btn danger sm" onclick="act.refuserCompte('${x.id}')">Refuser</button></div></div>`).join('')}</div></div>`; }
 
+/* ---------------- notifications sur téléphone ----------------
+   Chaque personne installe l'application gratuite « ntfy » et s'abonne à des « sujets » dont le nom est secret
+   (tiré au hasard, rangé dans les réglages de la base : seuls les comptes connectés le voient).
+   La page envoie un court message à ntfy.sh, qui le pousse sur les téléphones. Aucun nom de personne dans les messages. */
+let NTFY = {tous:'', admin:''}, NTFY_OK = false;   // NTFY_OK : la base sait ranger les sujets (script SQL v41 lancé)
+const ntfyOn = ()=>REMOTE&&!!NTFY.tous;
+const ntfyPerso = id => NTFY.tous+'-'+String(id).replace(/[^a-z0-9]/gi,'').slice(0,12);   // sujet personnel : réponses à mes dispos et à mes heures
+const ntfySujet = c => c==='tous'?NTFY.tous:c==='admin'?NTFY.admin:ntfyPerso(c);
+function ntfy(cible,titre,message){ if(!ntfyOn()) return; const topic=ntfySujet(cible); if(!topic) return;
+  try{ fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic,title:titre,message,click:location.href.split('#')[0]})}).catch(()=>{}); }catch(e){} }   // jamais bloquant : si l'envoi échoue, l'application continue
+const ntfyJour = b => `${fmtLong(b.date)}, ${hm(b.debut)}–${hm(b.fin)}`;
+const ntfyAlea = ()=>{ const A='abcdefghijkmnpqrstuvwxyz23456789'; const u=new Uint32Array(24); crypto.getRandomValues(u); return 'bstc-'+[...u].map(x=>A[x%A.length]).join(''); };
+function ntfyLigne(n,titre,quoi,sujet){ return `<div class="stack" style="gap:6px;padding:9px 0;border-top:1px solid var(--line)"><div><b>${n}. ${titre}</b><div class="small muted">${quoi}</div></div>
+    <div class="row" style="gap:6px"><a class="btn primary sm" href="ntfy://ntfy.sh/${sujet}">M’abonner</a><button class="btn sm" onclick="act.copy('${sujet}','Nom copié : dans ntfy, touche + et colle-le')">Copier le nom</button></div></div>`; }
+function ntfyCard(m){ if(!ntfyOn()||m.id==='m0') return '';
+  return `<div class="card stack" id="mes-notifs"><h3>Notifications sur mon téléphone</h3>
+    <p class="small muted" style="margin:0">Pour être prévenu même quand l’application est fermée : nouvelle vacation, place libérée, dispo validée.</p>
+    <details class="small" ${S.ntfyOpen?'open':''} ontoggle="S.ntfyOpen=this.open"><summary style="cursor:pointer;font-weight:700">Activer sur ce téléphone (2 minutes, une seule fois)</summary>
+      <div class="stack" style="gap:0;margin-top:8px"><div style="padding-bottom:9px"><b>D’abord : installe l’application gratuite « ntfy »</b><div class="row" style="gap:6px;margin-top:6px"><a class="btn sm" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy">Android</a><a class="btn sm" target="_blank" rel="noopener" href="https://apps.apple.com/app/ntfy/id1625396347">iPhone</a></div></div>
+      ${ntfyLigne(1,'Annonces','Nouvelles vacations, places libérées, vacations annulées.',NTFY.tous)}
+      ${ntfyLigne(2,'Mes réponses','Ma dispo validée ou non retenue, mes heures validées.',ntfyPerso(m.id))}
+      ${m.role==='admin'&&NTFY.admin?ntfyLigne(3,'Admin','Dispos et heures à valider.',NTFY.admin):''}
+      <div class="small muted" style="padding-top:9px;border-top:1px solid var(--line)">Si « M’abonner » n’ouvre rien : touche « Copier le nom », ouvre ntfy, touche « + » et colle le nom. Ne donne ces noms à personne en dehors de la brigade.</div>
+      <div style="padding-top:9px"><button class="btn sm" onclick="act.ntfyEssai()">M’envoyer un essai</button></div></div></details></div>`; }
+function ntfyAdminCard(){ if(!REMOTE) return '';
+  if(!NTFY_OK) return `<div class="card stack" id="reg-notifs"><h3>Notifications sur téléphone</h3><p class="small" style="margin:0"><b>Pour les activer, lance d’abord le fichier « mise-a-jour-v41.sql » dans Supabase (une seule fois).</b></p></div>`;
+  return `<div class="card stack" id="reg-notifs"><div class="row between"><h3>Notifications sur téléphone</h3><span class="badge ${ntfyOn()?'green':'grey'}">${ntfyOn()?'Activées':'Désactivées'}</span></div>
+    <p class="small muted" style="margin:0">Chacun installe l’application gratuite « ntfy » et s’abonne depuis l’onglet « Moi ». L’application prévient alors : tout le monde d’une nouvelle vacation ou d’une place libérée, chaque personne quand sa dispo ou ses heures sont validées, les admins quand il y a quelque chose à valider.</p>
+    <p class="small muted" style="margin:0">Les messages passent par le service public ntfy.sh : ils ne contiennent <b>aucun nom</b>, seulement des dates et des horaires.</p>
+    <div class="row" style="gap:6px">${ntfyOn()?`<button class="btn" onclick="act.ntfyEssaiTous()">Envoyer un essai à tous</button><button class="btn danger sm" onclick="act.ntfySet(false)">${S.confirm==='ntfy-off'?'Confirmer : tout le monde devra se réabonner':'Désactiver'}</button>`:`<button class="btn primary" onclick="act.ntfySet(true)">Activer les notifications</button>`}</div></div>`; }
+const PWD_MIN = 10;   // longueur minimale d'un mot de passe
+// Mot de passe proposé à la création d'un compte : « Bstc-xxxx-xxxx », tiré au hasard, sans caractères qui se confondent (0/o, 1/l).
+function pwdPropose(){ const A='abcdefghjkmnpqrstuvwxyz23456789'; const u=new Uint32Array(8); crypto.getRandomValues(u); const c=[...u].map(x=>A[x%A.length]).join(''); return 'Bstc-'+c.slice(0,4)+'-'+c.slice(4); }
+function pwdRappel(){ return S.pwdCourt?`<div class="card todo row between" id="pwd-rappel" style="padding:8px 12px"><span class="small"><b>Ton mot de passe est trop court.</b> Choisis-en un de ${PWD_MIN} caractères au moins.</span><button class="btn primary sm" onclick="act.pwdAller()">Le changer</button></div>`:''; }
 const RA = {
+  pwdAller(){ S.tab='moi'; render(); act.go('mon-profil','me-pwd'); },
+  ntfySet(on){ if(!isEnc()||!NTFY_OK) return; if(!on&&S.confirm!=='ntfy-off'){ S.confirm='ntfy-off'; render(); toast('Touche « Confirmer »'); return; } S.confirm=null;
+    return run(()=>sb.from('reglages').upsert({id:1,ntfy_tous:on?ntfyAlea():null,ntfy_admin:on?ntfyAlea():null}), on?'Notifications activées — chacun s’abonne dans l’onglet « Moi »':'Notifications désactivées'); },
+  ntfyEssai(){ ntfy(S.user,'Essai réussi','Les notifications de Planning BSTC arrivent bien sur ce téléphone.'); toast('Essai envoyé — il arrive dans quelques secondes si tu es abonné à « Mes réponses »'); },
+  ntfyEssaiTous(){ if(!isEnc()) return; ntfy('tous','Essai','Les notifications de Planning BSTC fonctionnent.'); toast('Essai envoyé à tous les abonnés'); },
   // ---- comptes
   authMode(m){ S.auth=m; S.authErr=''; render(); },
   async signIn(ev){ ev.preventDefault(); const f=ev.target; S.authErr=''; setBusy(true);
     const r=await sb.auth.signInWithPassword({email:f.email.value.trim(),password:f.pwd.value}); setBusy(false);
-    if(r.error){ S.authErr=errMsg(r.error); render(); return; } AUTHU=r.data.user; await enter(); },
+    if(r.error){ S.authErr=errMsg(r.error); render(); return; } S.pwdCourt=f.pwd.value.length<PWD_MIN; AUTHU=r.data.user; await enter(); },
   async signUp(ev){ ev.preventDefault(); const f=ev.target; S.authErr=''; setBusy(true);
     const r=await sb.auth.signUp({email:f.email.value.trim(),password:f.pwd.value,options:{data:{nom:f.nom.value.trim(),prenom:f.prenom.value.trim()}}}); setBusy(false);
     if(r.error){ S.authErr=errMsg(r.error); render(); return; }
@@ -1299,8 +1428,8 @@ const RA = {
   async forgot(){ const e=document.getElementById('au-email')?.value.trim(); if(!e){ toast('Écris d’abord ton adresse email'); return; } const r=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.href.split('#')[0]}); toast(r.error?'Erreur : '+errMsg(r.error):'Email de réinitialisation envoyé'); },
   async recheck(){ await enter(); if(!S.user) toast('Pas encore accepté'); },
   async logout(){ try{ await sb.auth.signOut(); }catch(e){} AUTHU=null; MEROW=null; S.user=null; S.auth='in'; S.authErr=''; render(); },
-  async changePwd(){ const el=document.getElementById('me-pwd'); const v=el?el.value:''; if(v.length<6){ toast('6 caractères au moins'); return; }
-    const r=await sb.auth.updateUser({password:v}); if(r.error){ toast('Erreur : '+errMsg(r.error)); return; } el.value=''; toast('Mot de passe changé'); },
+  async changePwd(){ const el=document.getElementById('me-pwd'); const v=el?el.value:''; if(v.length<PWD_MIN){ toast(PWD_MIN+' caractères au moins'); return; }
+    const r=await sb.auth.updateUser({password:v}); if(r.error){ toast('Erreur : '+errMsg(r.error)); return; } el.value=''; S.pwdCourt=false; render(); toast('Mot de passe changé'); },
   login(){}, reset(){},
   async refreshNow(){ await refresh(true); toast('À jour'); },
   tab(t){ S.tab=t; S.confirm=null; render(); refresh(); },
@@ -1310,45 +1439,46 @@ const RA = {
   refuserCompte(id){ return run(()=>supprCompte(id),'Compte refusé'); },
   // ---- vacations (admin)
   creerVac(date,type){ if(vacOf(date)) return; const t=TYPES[type]||TYPES.vacation; S.day=date;
-    const x=nvExtra(); return run(()=>sb.from('besoins').insert({date,type,debut:t.debut,fin:t.fin,libelle:(TYPES0[type]||TYPES0.vacation).label,places:0,duree:dureeDe(t.debut,t.fin),...x}),`${t.label} créée — les réservistes peuvent se proposer`); },
+    const x=nvExtra(); return run(()=>sb.from('besoins').insert({date,type,debut:t.debut,fin:t.fin,libelle:(TYPES0[type]||TYPES0.vacation).label,places:0,duree:dureeDe(t.debut,t.fin),...x}),`${t.label} créée — les réservistes peuvent se proposer`,()=>{ if(date>=iso(TODAY)) ntfy('tous','Nouvelle vacation',`${fmtLong(date)}, ${hm(t.debut)}–${hm(t.fin)}. Propose-toi dans l’application.`); }); },
   supprVac(bid){ if(S.confirm!=='vac-'+bid){ S.confirm='vac-'+bid; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.vacEdit=null;
-    return run(()=>sb.from('besoins').delete().eq('id',bid),'Vacation supprimée'); },
+    const bs=besoin(bid); return run(()=>sb.from('besoins').delete().eq('id',bid),'Vacation supprimée',()=>{ if(bs&&bs.date>=iso(TODAY)) ntfy('tous','Vacation annulée',`La vacation du ${ntfyJour(bs)} est annulée.`); }); },
   majVac(bid,k,v){ const b=besoin(bid); if(!b) return; const o=vacPatch(b,k,v); if(!o) return; return run(()=>sb.from('besoins').update(o).eq('id',bid),'Vacation modifiée'); },
   ajouter(date){ const b=vacOf(date); const mid=document.getElementById('add-'+date)?.value; if(!b||!mid){ toast('Choisis une personne dans la liste'); return; }
     const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
-    return run(()=>ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user}),()=>`${shortName(member(mid))} ajouté·e à la vacation`); },
+    return run(()=>ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user}),()=>`${shortName(member(mid))} ajouté·e à la vacation`,()=>{ if(date>=iso(TODAY)&&mid!==S.user) ntfy(mid,'Ajouté à une vacation',`L’admin t’a mis sur la vacation du ${ntfyJour(b)}.`); }); },
   titPresence(date,mid,on){ const b=vacOf(date); if(!b) return; const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
     return run(()=>on?(ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user})):(ex?sb.from('demandes').delete().eq('id',ex.id):null),
       ()=>{ const p=patrouille(date); return p.tit.length?`${p.tit.length} titulaire${p.tit.length>1?'s':''} : ${p.illim?'pas de limite de places':p.cap+' réservistes possibles'}`:'Plus de titulaire ce jour-là'; }); },
   multiCreer(type){ if(!S.multi) return; const t=TYPES[type]||TYPES.vacation; const ds=S.multi.filter(d=>!vacOf(d)); if(!ds.length) return; S.multi=null;
-    return run(()=>Promise.all(ds.map(d=>sb.from('besoins').insert({date:d,type,debut:t.debut,fin:t.fin,libelle:(TYPES0[type]||TYPES0.vacation).label,lieu:'Paris',places:0,duree:dureeDe(t.debut,t.fin)}))),`${ds.length} vacation${ds.length>1?'s':''} créée${ds.length>1?'s':''}`); },
+    return run(()=>Promise.all(ds.map(d=>sb.from('besoins').insert({date:d,type,debut:t.debut,fin:t.fin,libelle:(TYPES0[type]||TYPES0.vacation).label,lieu:'Paris',places:0,duree:dureeDe(t.debut,t.fin)}))),`${ds.length} vacation${ds.length>1?'s':''} créée${ds.length>1?'s':''}`,()=>{ const n=ds.filter(d=>d>=iso(TODAY)).length; if(n) ntfy('tous',n>1?'Nouvelles vacations':'Nouvelle vacation',`${n} vacation${n>1?'s':''} ${t.label} ajoutée${n>1?'s':''} au planning (${hm(t.debut)}–${hm(t.fin)}). Propose-toi dans l’application.`); }); },
   // ---- dispos
   dispo(date){ const m=me(); const b=vacOf(date); if(!b){ toast('Pas de vacation ce jour'); return; } if(!m.actif) return; const direct=m.role==='admin';
     const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===m.id);
     return run(async()=>{ if(ex){ const r=await sb.from('demandes').delete().eq('id',ex.id); if(r.error) return r; }
-      return sb.from('demandes').insert({besoin_id:b.id,member_id:m.id,statut:direct?'attribuee':'demandee'}); }, m.titulaire?'Présence enregistrée':direct?'Tu es sur la vacation':'Dispo posée — l’admin doit la valider'); },
+      return sb.from('demandes').insert({besoin_id:b.id,member_id:m.id,statut:direct?'attribuee':'demandee'}); }, m.titulaire?'Présence enregistrée':direct?'Tu es sur la vacation':'Dispo posée — l’admin doit la valider',()=>{ if(!direct) ntfy('admin','Dispo à valider',`Une dispo a été posée pour le ${ntfyJour(b)}.`); }); },
   cell(date){ S.day=date; const b=vacOf(date); const d=b&&S.demandes.find(x=>x.besoinId===b.id&&x.memberId===S.user); if(b&&!d&&me().actif&&date>=iso(TODAY)) return RA.dispo(date); render(); },
   retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const m=member(d.memberId); const self=d.memberId===S.user; const val=d.statut==='attribuee'&&!m.titulaire;
     if(self&&val&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
-    S.confirm=null; return run(()=>sb.from('demandes').delete().eq('id',did), !self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning'); },
+    S.confirm=null; const bq=besoin(d.besoinId); return run(()=>sb.from('demandes').delete().eq('id',did), !self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning',()=>{ if(!bq||bq.date<iso(TODAY)) return;
+      if(self&&val) ntfy('tous','Une place s’est libérée',`${ntfyJour(bq)}. Propose-toi dans l’application.`); else if(!self) ntfy(d.memberId,'Retiré d’une vacation',`Tu n’es plus sur la vacation du ${ntfyJour(bq)}.`); }); },
   attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
-    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=patrouille(b.date); return `${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${pCnt(p)}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`; }); },
-  refuser(did){ return run(()=>sb.from('demandes').update({statut:'refusee',par:S.user}).eq('id',did),'Demande refusée'); },
+    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=patrouille(b.date); return `${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${pCnt(p)}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`; },()=>{ if(b.date>=iso(TODAY)) ntfy(d.memberId,'Dispo validée',`Tu es validé pour le ${ntfyJour(b)}.`); }); },
+  refuser(did){ const d=S.demandes.find(x=>x.id===did), b=d&&besoin(d.besoinId); return run(()=>sb.from('demandes').update({statut:'refusee',par:S.user}).eq('id',did),'Demande refusée',()=>{ if(b&&b.date>=iso(TODAY)) ntfy(d.memberId,'Dispo non retenue',`Ta dispo du ${ntfyJour(b)} n’a pas été retenue.`); }); },
   // ---- heures
   declarer(bid){ const v=parseFloat(document.getElementById('h-'+bid).value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; } const b=besoin(bid);
-    return run(()=>sb.from('heures').insert({besoin_id:bid,member_id:S.user,heures:v,statut:'declaree',date:b.date}),'Heures déclarées, en attente de validation'); },
+    return run(()=>sb.from('heures').insert({besoin_id:bid,member_id:S.user,heures:v,statut:'declaree',date:b.date}),'Heures déclarées, en attente de validation',()=>ntfy('admin','Heures à valider','Des heures ont été déclarées : elles attendent ta validation.')); },
   validerH(hid){ const h=S.heures.find(x=>x.id===hid);
     return run(async()=>{ const r=await sb.from('heures').update({statut:'validee',valide_par:S.user}).eq('id',hid); if(r.error||!h) return r;
       // une ancienne valeur validée pour la même vacation est remplacée : même nombre d'heures, puis supprimée si la base le permet (script v37)
       const u=await sb.from('heures').update({heures:h.heures}).eq('besoin_id',h.besoinId).eq('member_id',h.memberId).eq('statut','validee').neq('id',hid); if(u.error) return u;
-      await sb.from('heures').delete().eq('besoin_id',h.besoinId).eq('member_id',h.memberId).eq('statut','validee').neq('id',hid); return r; },'Heures validées'); },
+      await sb.from('heures').delete().eq('besoin_id',h.besoinId).eq('member_id',h.memberId).eq('statut','validee').neq('id',hid); return r; },'Heures validées',()=>{ if(h&&h.memberId!==S.user) ntfy(h.memberId,'Heures validées',`Tes ${cptH(h.heures)} h du ${frDate(h.date)} sont validées.`); }); },
   // ---- compteur : détail et corrections
   cptCorr(bid,mid){ const v=parseFloat(document.getElementById('cx-'+bid)?.value); if(!(v>0&&v<=24)){ toast('Indique un nombre d’heures valide'); return; }
     const e=cptDet(mid).find(x=>x.bid===bid); if(!e||e.st!=='ok') return; const adm=isEnc(); if(!adm&&mid!==S.user) return;
     if(!adm&&!e.pend&&v===e.h){ toast('C’est déjà le nombre d’heures compté'); return; } S.cptEdit=null;
     if(!adm) return run(async()=>{   // réserviste : une correction en attente, que l'admin valide
         if(!e.pend) return sb.from('heures').insert({besoin_id:bid,member_id:mid,heures:v,statut:'declaree',date:e.date});
-        const r=await sb.from('heures').update({heures:v}).eq('id',e.pend.id).select(); if(!r.error&&!(r.data&&r.data.length)) return {error:{message:'pour modifier une correction déjà envoyée, l’admin doit lancer « mise-a-jour-v37.sql » dans Supabase'}}; return r; },'Correction envoyée — l’admin doit la valider');
+        const r=await sb.from('heures').update({heures:v}).eq('id',e.pend.id).select(); if(!r.error&&!(r.data&&r.data.length)) return {error:{message:'pour modifier une correction déjà envoyée, l’admin doit lancer « mise-a-jour-v37.sql » dans Supabase'}}; return r; },'Correction envoyée — l’admin doit la valider',()=>ntfy('admin','Heures à valider','Une correction d’heures attend ta validation.'));
     return run(async()=>{   // admin : la valeur est validée tout de suite
         if(e.pend){ const r=await sb.from('heures').update({heures:v,statut:'validee',valide_par:S.user}).eq('id',e.pend.id); if(r.error) return r;
           if(e.val){ const u=await sb.from('heures').update({heures:v}).eq('besoin_id',bid).eq('member_id',mid).eq('statut','validee').neq('id',e.pend.id); if(u.error) return u;
@@ -1358,7 +1488,7 @@ const RA = {
   cptValider(did){ return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),'Vacation validée — elle entre dans le compteur'); },
   cptRetirer(did){ if(S.confirm!=='cr-'+did){ S.confirm='cr-'+did; render(); toast('Touche « Confirmer »'); return; } S.confirm=null;
     return run(()=>sb.from('demandes').delete().eq('id',did),'Vacation retirée du compteur'); },
-  refuserH(hid){ return run(()=>sb.from('heures').update({statut:'refusee',valide_par:S.user}).eq('id',hid),'Déclaration refusée'); },
+  refuserH(hid){ const h=S.heures.find(x=>x.id===hid); return run(()=>sb.from('heures').update({statut:'refusee',valide_par:S.user}).eq('id',hid),'Déclaration refusée',()=>{ if(h&&h.memberId!==S.user) ntfy(h.memberId,'Heures non retenues',`Tes heures du ${frDate(h.date)} n’ont pas été retenues : vois avec l’admin.`); }); },
   // ---- profil, dossier, tirs
   monProfil(k,v){ v=v.trim(); if(k==='tel'&&!/^[0-9 +.]{8,20}$/.test(v)){ render(); toast('Numéro invalide : chiffres et espaces uniquement'); return; } if(k==='email'&&!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; }
     if(k==='email'){ if(isEnc()) return RA.paxField(S.user,'email',v); render(); return; }   // l'email est l'identifiant de connexion : seul l'admin le gère (le sien compris)
@@ -1384,9 +1514,9 @@ const RA = {
   delTir(mid,tid){ return run(()=>sb.from('tirs').delete().eq('id',tid),'Tir supprimé'); },
   okTir(mid,tid){ return run(()=>sb.from('tirs').update({ok:true}).eq('id',tid),'Tir validé'); },
   // ---- comptes : l'admin crée tout (fiche + compte de connexion avec mot de passe)
-  toggleAdd(){ S.addOpen=!S.addOpen; S.pwdSug='Bstc-'+Math.floor(1000+Math.random()*9000); render(); },
+  toggleAdd(){ S.addOpen=!S.addOpen; S.pwdSug=pwdPropose(); render(); },
   async addPax(ev){ ev.preventDefault(); const f=ev.target; const nom=f.nom.value.trim().toUpperCase(), prenom=f.prenom.value.trim(), email=f.email.value.trim().toLowerCase(), pwd=f.pwd.value;
-    if(!nom||!prenom||!email){ toast('Nom, prénom et email obligatoires'); return; } if(pwd.length<6){ toast('Mot de passe : 6 caractères au moins'); return; }
+    if(!nom||!prenom||!email){ toast('Nom, prénom et email obligatoires'); return; } if(pwd.length<PWD_MIN){ toast('Mot de passe : '+PWD_MIN+' caractères au moins'); return; }
     if(S.members.some(m=>(m.email||'').toLowerCase()===email)||(S.pending||[]).some(x=>(x.email||'').toLowerCase()===email)){ toast('Un compte existe déjà avec cet email'); return; }
     if(BUSY) return; setBusy(true);
     try{ let r=await sb.from('members').insert({nom,prenom,grade:f.grade.value.trim(),role:f.role.value,tel:f.tel.value.trim(),email,approuve:true,...(MAT_OK&&f.matricule?{matricule:f.matricule.value.trim()}:{})}); if(r.error) throw r.error;
@@ -1394,13 +1524,23 @@ const RA = {
       S.addOpen=false; S.cred={nom:prenom+' '+nom,email,pwd}; await loadAll(); syncMe(); const n=S.members.find(m=>(m.email||'').toLowerCase()===email); if(n) S.paxOpen=n.id;
       setBusy(false); render(); toast('Compte créé'); }
     catch(e){ S.addOpen=false; setBusy(false); try{ await loadAll(); }catch(_){} render(); toast('Erreur : '+errMsg(e)); } },
-  async setPwd(id){ const m=member(id); const v=document.getElementById('pwd-'+id)?.value||''; if(v.length<6){ toast('Mot de passe : 6 caractères au moins'); return; } if(!m.email){ toast('Renseigne d’abord son adresse email'); return; }
+  async setPwd(id){ const m=member(id); const v=document.getElementById('pwd-'+id)?.value||''; if(v.length<PWD_MIN){ toast('Mot de passe : '+PWD_MIN+' caractères au moins'); return; } if(!m.email){ toast('Renseigne d’abord son adresse email'); return; }
     if(BUSY) return; setBusy(true);
     try{ const r=m.lie?await sb.rpc('admin_set_password',{m:id,pwd:v}):await tmpClient().auth.signUp({email:m.email,password:v,options:{data:{nom:m.nom,prenom:m.prenom}}}); if(r.error) throw r.error;
       S.cred={nom:m.prenom+' '+m.nom,email:m.email,pwd:v}; await loadAll(); syncMe(); setBusy(false); render(); toast(m.lie?'Mot de passe remplacé':'Compte créé'); document.querySelector('.content').scrollTo({top:0,behavior:'smooth'}); }
     catch(e){ setBusy(false); render(); toast('Erreur : '+errMsg(e)); } },
   delPax(id){ if(id===S.user) return; if(S.confirm!=='del-'+id){ S.confirm='del-'+id; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.paxOpen=null;
     return run(()=>supprCompte(id),'Compte supprimé'); },
+  async sauvegarde(){ if(!isEnc()||BUSY) return; setBusy(true);
+    try{ const T={};
+      for(const [k,cle] of SAUV_TABLES){ const rows=[]; let err=null;
+        for(let i=0;i<50;i++){ const r=await sb.from(k).select('*').order(cle).range(i*1000,i*1000+999); if(r.error){ err=r.error; break; } rows.push(...(r.data||[])); if((r.data||[]).length<1000) break; }
+        if(err){ if(k==='habilitations'||k==='reglages') continue; throw err; }   // tables facultatives selon la version de la base
+        T[k]=rows; }
+      if(!T.members.length) throw {message:'la base a répondu sans aucune personne : sauvegarde annulée'};
+      const jour=iso(new Date()); sauvTelecharger(sauvegardeSql(T,frDate(jour)+' à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})),jour);
+      setBusy(false); render(); toast('Sauvegarde téléchargée — range le fichier dans un endroit privé'); }
+    catch(e){ setBusy(false); toast('Erreur : '+errMsg(e)); } },
   async exporter(){ const ym=moisExport(); if(!ym||BUSY) return; setBusy(true);
     try{ const a=ym+'-01', z=ym+'-'+String(new Date(+ym.slice(0,4),+ym.slice(5,7),0).getDate()).padStart(2,'0');
       const rb=await sb.from('besoins').select('*').gte('date',a).lte('date',z); if(rb.error) throw rb.error; const ids=(rb.data||[]).map(x=>x.id);
@@ -1411,8 +1551,8 @@ const RA = {
   refuserHab(id,k){ const m=member(id); const av=Object.assign({},m.aVerifier); delete av[k]; let patch={[k]:null,a_verifier:av};
     if(!HAB_FIXES.includes(k)){ const ex=Object.assign({},m.extra); delete ex[k]; patch={extra:ex,a_verifier:av}; }
     return run(()=>sb.from('dossiers').update(patch).eq('member_id',id),'Refusé — la case est décochée'); },
-  attribuerTous(bid){ const n=S.demandes.filter(d=>d.besoinId===bid&&d.statut==='demandee').length; if(!n) return;
-    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('besoin_id',bid).eq('statut','demandee'),`${n} dispo${n>1?'s':''} validée${n>1?'s':''}`); },
+  attribuerTous(bid){ const qui=S.demandes.filter(d=>d.besoinId===bid&&d.statut==='demandee').map(d=>d.memberId), n=qui.length, bv=besoin(bid); if(!n) return;
+    return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('besoin_id',bid).eq('statut','demandee'),`${n} dispo${n>1?'s':''} validée${n>1?'s':''}`,()=>{ if(bv&&bv.date>=iso(TODAY)) qui.forEach(id=>ntfy(id,'Dispo validée',`Tu es validé pour le ${ntfyJour(bv)}.`)); }); },
   // ---- réglages (admin)
   oblHab(k,v){ if(!OBL_OK){ render(); toast('Lance d’abord « mise-a-jour-v25.sql » dans Supabase'); return; } return run(()=>sb.from('habilitations').update({obligatoire:!!v}).eq('cle',k), v?'Marqué obligatoire':'N’est plus obligatoire'); },
   regSet(o,ren,msg){ if(!V25_OK){ render(); toast('Lance d’abord « mise-a-jour-v25.sql » dans Supabase'); return; }
