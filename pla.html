@@ -666,7 +666,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v41</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v42</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -701,7 +701,7 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 41</b> · 05/10/2026</p>
+    <p class="small muted" style="margin:0"><b>Version 42</b> · 05/10/2026</p>
     <p class="small muted" style="margin:0">© 2026 Issam AKEZDAW — Tous droits réservés</p>
   </div></div>`;
 }
@@ -1368,7 +1368,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 41 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 42 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
@@ -1384,7 +1384,12 @@ const ntfyOn = ()=>REMOTE&&!!NTFY.tous;
 const ntfyPerso = id => NTFY.tous+'-'+String(id).replace(/[^a-z0-9]/gi,'').slice(0,12);   // sujet personnel : réponses à mes dispos et à mes heures
 const ntfySujet = c => c==='tous'?NTFY.tous:c==='admin'?NTFY.admin:ntfyPerso(c);
 function ntfy(cible,titre,message){ if(!ntfyOn()) return; const topic=ntfySujet(cible); if(!topic) return;
-  try{ fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic,title:titre,message,click:location.href.split('#')[0]})}).catch(()=>{}); }catch(e){} }   // jamais bloquant : si l'envoi échoue, l'application continue
+  try{ fetch('https://ntfy.sh/',{method:'POST',keepalive:true,body:JSON.stringify({topic,title:titre,message,click:location.href.split('#')[0]})}).catch(()=>{}); }catch(e){} }   // jamais bloquant : si l'envoi échoue, l'application continue
+// Plusieurs changements de suite sur la même chose (début puis fin d'une vacation, plusieurs dates du dossier) = un seul message, envoyé 15 secondes après le dernier.
+const NTFY_ATT = {};
+function ntfyGroupe(cle,fn){ if(!ntfyOn()) return; if(NTFY_ATT[cle]) clearTimeout(NTFY_ATT[cle].t); NTFY_ATT[cle]={fn,t:setTimeout(()=>{ const x=NTFY_ATT[cle]; delete NTFY_ATT[cle]; try{ x.fn(); }catch(e){} },15000)}; }
+window.addEventListener('pagehide',()=>{ Object.keys(NTFY_ATT).forEach(k=>{ const x=NTFY_ATT[k]; clearTimeout(x.t); delete NTFY_ATT[k]; try{ x.fn(); }catch(e){} }); });
+const habLib = k => { const it=DOSSIER_ITEMS.find(x=>x[0]===k); return it?it[1]:'élément'; };
 const ntfyJour = b => `${fmtLong(b.date)}, ${hm(b.debut)}–${hm(b.fin)}`;
 const ntfyAlea = ()=>{ const A='abcdefghijkmnpqrstuvwxyz23456789'; const u=new Uint32Array(24); crypto.getRandomValues(u); return 'bstc-'+[...u].map(x=>A[x%A.length]).join(''); };
 function ntfyLigne(n,titre,quoi,sujet){ return `<div class="stack" style="gap:6px;padding:9px 0;border-top:1px solid var(--line)"><div><b>${n}. ${titre}</b><div class="small muted">${quoi}</div></div>
@@ -1394,15 +1399,15 @@ function ntfyCard(m){ if(!ntfyOn()||m.id==='m0') return '';
     <p class="small muted" style="margin:0">Pour être prévenu même quand l’application est fermée : nouvelle vacation, place libérée, dispo validée.</p>
     <details class="small" ${S.ntfyOpen?'open':''} ontoggle="S.ntfyOpen=this.open"><summary style="cursor:pointer;font-weight:700">Activer sur ce téléphone (2 minutes, une seule fois)</summary>
       <div class="stack" style="gap:0;margin-top:8px"><div style="padding-bottom:9px"><b>D’abord : installe l’application gratuite « ntfy »</b><div class="row" style="gap:6px;margin-top:6px"><a class="btn sm" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy">Android</a><a class="btn sm" target="_blank" rel="noopener" href="https://apps.apple.com/app/ntfy/id1625396347">iPhone</a></div></div>
-      ${ntfyLigne(1,'Annonces','Nouvelles vacations, places libérées, vacations annulées.',NTFY.tous)}
-      ${ntfyLigne(2,'Mes réponses','Ma dispo validée ou non retenue, mes heures validées.',ntfyPerso(m.id))}
-      ${m.role==='admin'&&NTFY.admin?ntfyLigne(3,'Admin','Dispos et heures à valider.',NTFY.admin):''}
+      ${ntfyLigne(1,'Annonces','Nouvelles vacations, places libérées ou ajoutées, vacations annulées.',NTFY.tous)}
+      ${ntfyLigne(2,'Mes réponses','Ma dispo validée ou non retenue, ma vacation modifiée, mes heures, mes tirs et mon dossier validés.',ntfyPerso(m.id))}
+      ${m.role==='admin'&&NTFY.admin?ntfyLigne(3,'Admin','Dispos, heures, tirs et dossiers à valider.',NTFY.admin):''}
       <div class="small muted" style="padding-top:9px;border-top:1px solid var(--line)">Si « M’abonner » n’ouvre rien : touche « Copier le nom », ouvre ntfy, touche « + » et colle le nom. Ne donne ces noms à personne en dehors de la brigade.</div>
       <div style="padding-top:9px"><button class="btn sm" onclick="act.ntfyEssai()">M’envoyer un essai</button></div></div></details></div>`; }
 function ntfyAdminCard(){ if(!REMOTE) return '';
   if(!NTFY_OK) return `<div class="card stack" id="reg-notifs"><h3>Notifications sur téléphone</h3><p class="small" style="margin:0"><b>Pour les activer, lance d’abord le fichier « mise-a-jour-v41.sql » dans Supabase (une seule fois).</b></p></div>`;
   return `<div class="card stack" id="reg-notifs"><div class="row between"><h3>Notifications sur téléphone</h3><span class="badge ${ntfyOn()?'green':'grey'}">${ntfyOn()?'Activées':'Désactivées'}</span></div>
-    <p class="small muted" style="margin:0">Chacun installe l’application gratuite « ntfy » et s’abonne depuis l’onglet « Moi ». L’application prévient alors : tout le monde d’une nouvelle vacation ou d’une place libérée, chaque personne quand sa dispo ou ses heures sont validées, les admins quand il y a quelque chose à valider.</p>
+    <p class="small muted" style="margin:0">Chacun installe l’application gratuite « ntfy » et s’abonne depuis l’onglet « Moi ». L’application prévient alors : tout le monde d’une nouvelle vacation, d’une place libérée, de places en plus ou d’une annulation ; chaque personne quand sa dispo, ses heures, son tir ou son dossier sont validés, ou quand sa vacation change d’horaire ; les admins quand il y a une dispo, des heures, un tir ou un dossier à valider.</p>
     <p class="small muted" style="margin:0">Les messages passent par le service public ntfy.sh : ils ne contiennent <b>aucun nom</b>, seulement des dates et des horaires.</p>
     <div class="row" style="gap:6px">${ntfyOn()?`<button class="btn" onclick="act.ntfyEssaiTous()">Envoyer un essai à tous</button><button class="btn danger sm" onclick="act.ntfySet(false)">${S.confirm==='ntfy-off'?'Confirmer : tout le monde devra se réabonner':'Désactiver'}</button>`:`<button class="btn primary" onclick="act.ntfySet(true)">Activer les notifications</button>`}</div></div>`; }
 const PWD_MIN = 10;   // longueur minimale d'un mot de passe
@@ -1442,7 +1447,11 @@ const RA = {
     const x=nvExtra(); return run(()=>sb.from('besoins').insert({date,type,debut:t.debut,fin:t.fin,libelle:(TYPES0[type]||TYPES0.vacation).label,places:0,duree:dureeDe(t.debut,t.fin),...x}),`${t.label} créée — les réservistes peuvent se proposer`,()=>{ if(date>=iso(TODAY)) ntfy('tous','Nouvelle vacation',`${fmtLong(date)}, ${hm(t.debut)}–${hm(t.fin)}. Propose-toi dans l’application.`); }); },
   supprVac(bid){ if(S.confirm!=='vac-'+bid){ S.confirm='vac-'+bid; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null; S.vacEdit=null;
     const bs=besoin(bid); return run(()=>sb.from('besoins').delete().eq('id',bid),'Vacation supprimée',()=>{ if(bs&&bs.date>=iso(TODAY)) ntfy('tous','Vacation annulée',`La vacation du ${ntfyJour(bs)} est annulée.`); }); },
-  majVac(bid,k,v){ const b=besoin(bid); if(!b) return; const o=vacPatch(b,k,v); if(!o) return; return run(()=>sb.from('besoins').update(o).eq('id',bid),'Vacation modifiée'); },
+  majVac(bid,k,v){ const b=besoin(bid); if(!b) return; const o=vacPatch(b,k,v); if(!o) return; const avant=patrouille(b.date).libres;
+    return run(()=>sb.from('besoins').update(o).eq('id',bid),'Vacation modifiée',()=>{ const n=besoin(bid); if(!n||n.date<iso(TODAY)) return;
+      if(k==='places'){ const ap=patrouille(n.date).libres; if(ap>avant&&ap>0) ntfy('tous','Des places en plus',`${ntfyJour(n)} : ${ap>=999?'des places sont disponibles':ap+' place'+(ap>1?'s':'')+' disponible'+(ap>1?'s':'')}. Propose-toi dans l’application.`); }
+      else if(['debut','fin','type','lieu'].includes(k)) ntfyGroupe('vac-'+bid,()=>{ const x=besoin(bid); if(!x) return;
+        S.demandes.filter(d=>d.besoinId===bid&&d.statut!=='refusee'&&d.memberId!==S.user).forEach(d=>ntfy(d.memberId,'Vacation modifiée',`La vacation du ${fmtLong(x.date)} est maintenant de ${hm(x.debut)} à ${hm(x.fin)}, lieu : ${x.lieu||'Paris'}.`)); }); }); },
   ajouter(date){ const b=vacOf(date); const mid=document.getElementById('add-'+date)?.value; if(!b||!mid){ toast('Choisis une personne dans la liste'); return; }
     const ex=S.demandes.find(x=>x.besoinId===b.id&&x.memberId===mid);
     return run(()=>ex?sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',ex.id):sb.from('demandes').insert({besoin_id:b.id,member_id:mid,statut:'attribuee',par:S.user}),()=>`${shortName(member(mid))} ajouté·e à la vacation`,()=>{ if(date>=iso(TODAY)&&mid!==S.user) ntfy(mid,'Ajouté à une vacation',`L’admin t’a mis sur la vacation du ${ntfyJour(b)}.`); }); },
@@ -1460,7 +1469,7 @@ const RA = {
   retirer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const m=member(d.memberId); const self=d.memberId===S.user; const val=d.statut==='attribuee'&&!m.titulaire;
     if(self&&val&&S.confirm!==did){ S.confirm=did; render(); toast('Déjà validé : touche « Confirmer le retrait »'); return; }
     S.confirm=null; const bq=besoin(d.besoinId); return run(()=>sb.from('demandes').delete().eq('id',did), !self?`${shortName(m)} retiré·e de la vacation`:val?'Désistement enregistré — l’admin et les collègues sont prévenus':'Retiré du planning',()=>{ if(!bq||bq.date<iso(TODAY)) return;
-      if(self&&val) ntfy('tous','Une place s’est libérée',`${ntfyJour(bq)}. Propose-toi dans l’application.`); else if(!self) ntfy(d.memberId,'Retiré d’une vacation',`Tu n’es plus sur la vacation du ${ntfyJour(bq)}.`); }); },
+      if(self&&val) ntfy('tous','Une place s’est libérée',`${ntfyJour(bq)}. Propose-toi dans l’application.`); else if(!self){ ntfy(d.memberId,'Retiré d’une vacation',`Tu n’es plus sur la vacation du ${ntfyJour(bq)}.`); if(val) ntfy('tous','Une place s’est libérée',`${ntfyJour(bq)}. Propose-toi dans l’application.`); } }); },
   attribuer(did){ const d=S.demandes.find(x=>x.id===did); if(!d) return; const b=besoin(d.besoinId);
     return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('id',did),()=>{ const p=patrouille(b.date); return `${shortName(member(d.memberId))} validé·e${p.tit.length?` — ${pCnt(p)}${p.etat==='over'?' (sureffectif)':''}`:' — titulaire à indiquer'}`; },()=>{ if(b.date>=iso(TODAY)) ntfy(d.memberId,'Dispo validée',`Tu es validé pour le ${ntfyJour(b)}.`); }); },
   refuser(did){ const d=S.demandes.find(x=>x.id===did), b=d&&besoin(d.besoinId); return run(()=>sb.from('demandes').update({statut:'refusee',par:S.user}).eq('id',did),'Demande refusée',()=>{ if(b&&b.date>=iso(TODAY)) ntfy(d.memberId,'Dispo non retenue',`Ta dispo du ${ntfyJour(b)} n’a pas été retenue.`); }); },
@@ -1494,8 +1503,8 @@ const RA = {
     if(k==='email'){ if(isEnc()) return RA.paxField(S.user,'email',v); render(); return; }   // l'email est l'identifiant de connexion : seul l'admin le gère (le sien compris)
     if(k==='matricule'&&!/^[A-Za-z0-9 .\-]{0,20}$/.test(v)){ render(); toast('Matricule invalide : lettres et chiffres uniquement'); return; } if(k==='matricule') return run(()=>sb.rpc('maj_mon_matricule',{p:v}),'Matricule enregistré');
     return run(()=>sb.rpc('maj_mon_profil',{p_tel:k==='tel'?v:null,p_email:null}),'Téléphone mis à jour'); },
-  monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } LOCAL.monDossier(k,v); sb.rpc('maj_mon_dossier',{k,v:v||null}).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); }); },
-  confirmer(id,k){ const av=Object.assign({},member(id).aVerifier); delete av[k]; return run(()=>sb.from('dossiers').update({a_verifier:av}).eq('member_id',id),'Validé'); },
+  monDossier(k,v){ if(v&&v<'2000-01-01') return; if(v&&v>iso(TODAY)){ toast('Indique la date à laquelle c’est fait, pas une date future'); return; } LOCAL.monDossier(k,v); sb.rpc('maj_mon_dossier',{k,v:v||null}).then(r=>{ if(r.error) toast('Erreur : '+errMsg(r.error)); else if(v&&!isEnc()) ntfyGroupe('dossier',()=>ntfy('admin','Dossier à vérifier','Un dossier a été complété : il attend ta vérification.')); }); },
+  confirmer(id,k){ const av=Object.assign({},member(id).aVerifier); delete av[k]; return run(()=>sb.from('dossiers').update({a_verifier:av}).eq('member_id',id),'Validé',()=>{ if(id!==S.user) ntfyGroupe('dos-'+id,()=>ntfy(id,'Dossier validé','L’admin a validé ton dossier.')); }); },
   paxField(id,k,v){ const m=member(id);
     if(k==='email'&&m.lie){   // la personne a déjà un compte : on change aussi son identifiant de connexion (fonction de la base, script v24)
       v=String(v||'').trim().toLowerCase(); if(!/^\S+@\S+\.\S+$/.test(v)){ render(); toast('Adresse email invalide'); return; } if(v===(m.email||'').toLowerCase()){ render(); return; }
@@ -1510,9 +1519,9 @@ const RA = {
   addTir(mid){ majToday(); const adm=!!mid; const m=adm?member(mid):me(); const v=document.getElementById(adm?'tir-'+mid:'tir-date')?.value; const today=iso(TODAY);
     if(!v){ toast('Choisis la date du tir'); return; } if(v>today){ toast('La date du tir ne peut pas être dans le futur'); return; } if((m.tirs||[]).some(t=>t.date===v)){ toast('Ce tir est déjà noté'); return; }
     const ok=adm||isEnc();   // un admin n'a pas à valider son propre tir
-    return run(async()=>{ const r=await sb.from('tirs').insert({member_id:m.id,date:v,ok}).select(); if(!r.error&&!(r.data&&r.data.length)) return {error:{message:'le tir n’a pas été enregistré par la base'}}; return r; },ok?'Tir ajouté':'Tir ajouté — l’admin va le valider'); },
+    return run(async()=>{ const r=await sb.from('tirs').insert({member_id:m.id,date:v,ok}).select(); if(!r.error&&!(r.data&&r.data.length)) return {error:{message:'le tir n’a pas été enregistré par la base'}}; return r; },ok?'Tir ajouté':'Tir ajouté — l’admin va le valider',()=>{ if(!ok) ntfy('admin','Tir à valider','Un tir a été ajouté : il attend ta validation.'); else if(adm&&m.id!==S.user) ntfy(m.id,'Tir ajouté',`L’admin a noté ton tir du ${frDate(v)}.`); }); },
   delTir(mid,tid){ return run(()=>sb.from('tirs').delete().eq('id',tid),'Tir supprimé'); },
-  okTir(mid,tid){ return run(()=>sb.from('tirs').update({ok:true}).eq('id',tid),'Tir validé'); },
+  okTir(mid,tid){ const tt=(member(mid).tirs||[]).find(t=>t.id===tid); return run(()=>sb.from('tirs').update({ok:true}).eq('id',tid),'Tir validé',()=>{ if(mid!==S.user) ntfy(mid,'Tir validé',`Ton tir${tt?' du '+frDate(tt.date):''} est validé.`); }); },
   // ---- comptes : l'admin crée tout (fiche + compte de connexion avec mot de passe)
   toggleAdd(){ S.addOpen=!S.addOpen; S.pwdSug=pwdPropose(); render(); },
   async addPax(ev){ ev.preventDefault(); const f=ev.target; const nom=f.nom.value.trim().toUpperCase(), prenom=f.prenom.value.trim(), email=f.email.value.trim().toLowerCase(), pwd=f.pwd.value;
@@ -1550,7 +1559,7 @@ const RA = {
     catch(e){ setBusy(false); toast('Erreur : '+errMsg(e)); } },
   refuserHab(id,k){ const m=member(id); const av=Object.assign({},m.aVerifier); delete av[k]; let patch={[k]:null,a_verifier:av};
     if(!HAB_FIXES.includes(k)){ const ex=Object.assign({},m.extra); delete ex[k]; patch={extra:ex,a_verifier:av}; }
-    return run(()=>sb.from('dossiers').update(patch).eq('member_id',id),'Refusé — la case est décochée'); },
+    return run(()=>sb.from('dossiers').update(patch).eq('member_id',id),'Refusé — la case est décochée',()=>{ if(id!==S.user) ntfy(id,'Dossier : élément refusé',`« ${habLib(k)} » n’a pas été validé : vois avec l’admin.`); }); },
   attribuerTous(bid){ const qui=S.demandes.filter(d=>d.besoinId===bid&&d.statut==='demandee').map(d=>d.memberId), n=qui.length, bv=besoin(bid); if(!n) return;
     return run(()=>sb.from('demandes').update({statut:'attribuee',par:S.user}).eq('besoin_id',bid).eq('statut','demandee'),`${n} dispo${n>1?'s':''} validée${n>1?'s':''}`,()=>{ if(bv&&bv.date>=iso(TODAY)) qui.forEach(id=>ntfy(id,'Dispo validée',`Tu es validé pour le ${ntfyJour(bv)}.`)); }); },
   // ---- réglages (admin)
