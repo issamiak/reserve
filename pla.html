@@ -248,7 +248,12 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 @media (min-width:760px){ .wrap{max-width:980px} .cal-d{min-height:64px} .actbar{position:static;box-shadow:none} .tabbar{width:120px} }
 .cal-d.pick{outline:3px solid var(--accent);outline-offset:1px;background:var(--accent-soft);color:var(--fg);border-color:var(--accent)}
 .cal.multi .cal-d.off{border:1px dashed var(--muted)}
-.cal.multi .cal-d.vac,.cal.multi .cal-d.mat{opacity:.5}
+.cal.multi .cal-d.vac,.cal.multi .cal-d.mat,.cal.multi .cal-d.cx{opacity:.5}
+/* créneaux ajoutés par l'admin (Gestion > Réglages) : quatre couleurs, lisibles en clair et en sombre */
+.cx1{--cx:#8b5cf6} .cx2{--cx:#0d9488} .cx3{--cx:#db2777} .cx4{--cx:#64748b}
+.stripe.cx{border-left-color:var(--cx)} .cal-d.cx{border-top:4px solid var(--cx)}
+.badge.cx,.pgrid tr.count td.vr.cx{background:color-mix(in srgb,var(--cx) 18%,transparent);color:var(--cx)}
+.legend i.cx{background:var(--cx)}
 .todo{border-color:var(--accent);background:var(--accent-soft)}
 @media (max-width:600px){ .pgrid .nm{min-width:118px;padding:0 6px} .pgrid .nm .badge{display:none} .pgrid .tot{position:static} }
 .rule{background:var(--accent-soft);border-radius:8px;padding:8px 12px;font-size:13px}
@@ -340,6 +345,10 @@ const TYPES = {
 };
 const TYPES0 = JSON.parse(JSON.stringify(TYPES));   // créneaux d'origine ; l'admin peut changer nom et horaires (Gestion > Réglages)
 const typeOf = b => TYPES[b&&b.type] || TYPES.vacation;
+const CREN_MAX = 4;   // créneaux que l'admin peut ajouter en plus des deux de base
+const crenPerso = k => /^c_[a-z0-9]{1,12}$/.test(k);
+const typeCls = b => { const k=b&&b.type; return TYPES[k]&&crenPerso(k)?TYPES[k].color:k==='matin'?'matin':'vacation'; };   // classe de couleur du trait
+const calCls = b => { const k=b&&b.type; return TYPES[k]&&crenPerso(k)?TYPES[k].color:k==='matin'?'mat':'vac'; };
 const THEMES0 = ['Patrouille dans les transports','Formation','Manifestation particulière'];
 const hOk = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v||''));
 const dureeDe = (d,f)=>{ let h=(new Date('2000-01-01T'+f)-new Date('2000-01-01T'+d))/3600000; if(h<=0) h+=24; return h; };
@@ -360,7 +369,12 @@ let REG = {cap1:6, cap2:10, limite:true, themes:THEMES0.slice(), creneaux:JSON.p
 const regNum = (v,d)=>{ v=parseInt(v); return v>=1&&v<=40?v:d; };
 function setReg(o){ o=o||{}; REG={cap1:regNum(o.cap1,6), cap2:regNum(o.cap2,10), limite:o.limite!==false};
   const th=[]; (Array.isArray(o.themes)?o.themes:[]).forEach(t=>{ t=habNom(t); if(t&&!th.some(x=>x.toLowerCase()===t.toLowerCase())) th.push(t); }); REG.themes=th.length?th.slice(0,20):THEMES0.slice();
-  REG.creneaux={}; Object.keys(TYPES0).forEach(k=>{ const c=(o.creneaux||{})[k]||{}, d=TYPES0[k]; const x={label:habNom(c.label).slice(0,20)||d.label, debut:hOk(c.debut)?c.debut:d.debut, fin:hOk(c.fin)?c.fin:d.fin}; REG.creneaux[k]=x; Object.assign(TYPES[k],x); }); }
+  REG.creneaux={}; Object.keys(TYPES0).forEach(k=>{ const c=(o.creneaux||{})[k]||{}, d=TYPES0[k]; const x={label:habNom(c.label).slice(0,20)||d.label, debut:hOk(c.debut)?c.debut:d.debut, fin:hOk(c.fin)?c.fin:d.fin}; REG.creneaux[k]=x; Object.assign(TYPES[k],x); });
+  // créneaux ajoutés par l'admin : clé « c_… », rangés avec les deux de base dans les réglages
+  Object.keys(TYPES).forEach(k=>{ if(crenPerso(k)) delete TYPES[k]; }); let n=0;
+  Object.keys(o.creneaux||{}).forEach(k=>{ const c=o.creneaux[k]||{}; if(!crenPerso(k)||n>=CREN_MAX||!habNom(c.label)||!hOk(c.debut)||!hOk(c.fin)) return; n++;
+    const coul=c.c>=1&&c.c<=4?+c.c:n; const x={label:habNom(c.label).slice(0,20), debut:c.debut, fin:c.fin, c:coul}; REG.creneaux[k]=x;
+    TYPES[k]={label:x.label, court:x.label.slice(0,3).toLowerCase(), color:'cx cx'+coul, debut:x.debut, fin:x.fin}; }); }
 let V25_OK = false;   // vrai quand la base sait enregistrer thèmes, précision et créneaux (script SQL v25 lancé)
 const themeOn = ()=>!REMOTE||V25_OK;
 const themeDef = ()=>REG.themes[0];   // le premier thème de la liste est celui des jours normaux
@@ -377,12 +391,16 @@ const regleTxt = ()=> REG.limite?`${REG.cap1} personnes au total avec un titulai
 const MAX_JOURS = 90;   // plafond annuel d'un réserviste (information seulement, rien n'est bloqué)
 let CPT = {at:0, map:{}};   // mode réel : compteurs de l'année, relus de temps en temps (les vacations passées changent peu)
 // Un jour compte quand la personne est validée sur une vacation déjà passée, du 1er janvier au 31 décembre.
-function cptCalc(besoins,demandes,heures){ const t=iso(TODAY), y=t.slice(0,4); const B={}; besoins.forEach(b=>{ if(b.date.slice(0,4)===y&&b.date<t) B[b.id]=b; });
+// Vacation terminée : jour passé, ou aujourd'hui une fois l'heure de fin atteinte (une vacation qui finit après minuit compte le lendemain).
+function finie(b){ const t=iso(TODAY); if(b.date!==t) return b.date<t; if(!b.fin||!b.debut||b.fin<=b.debut) return false; const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')>=b.fin; }
+let FINK='';   // vacations du jour déjà terminées : quand la liste change, le compteur est recalculé
+const finKey = ()=>{ const t=iso(TODAY); return S.besoins.filter(b=>b.date===t&&finie(b)).map(b=>b.id).join(); };
+function cptCalc(besoins,demandes,heures){ const t=iso(TODAY), y=t.slice(0,4); const B={}; besoins.forEach(b=>{ if(b.date.slice(0,4)===y&&finie(b)) B[b.id]=b; });
   const H={}; heures.forEach(h=>{ if(h.statut!=='refusee') H[h.besoinId+'|'+h.memberId]=h.heures; }); const map={}, vu={};
   demandes.forEach(d=>{ const b=B[d.besoinId]; if(!b||d.statut!=='attribuee') return; const k=d.memberId+'|'+b.date; if(vu[k]) return; vu[k]=1;
-    const m=S.members.find(x=>x.id===d.memberId); const o=map[d.memberId]||(map[d.memberId]={j:0,h:0}); o.j++; const h=H[b.id+'|'+d.memberId]; o.h+=h!=null?Number(h):(m&&m.titulaire?8:Number(b.duree)||0); });
+    const m=S.members.find(x=>x.id===d.memberId); const o=map[d.memberId]||(map[d.memberId]={j:0,h:0,mj:0,mh:0}); o.j++; const h=H[b.id+'|'+d.memberId]; const v=h!=null?Number(h):(m&&m.titulaire?8:Number(b.duree)||0); o.h+=v; if(b.date.slice(0,7)===t.slice(0,7)){ o.mj++; o.mh+=v; } });
   return map; }
-const compteur = id => (REMOTE?CPT.map:cptCalc(S.besoins,S.demandes,S.heures))[id]||{j:0,h:0};
+const compteur = id => (REMOTE?CPT.map:cptCalc(S.besoins,S.demandes,S.heures))[id]||{j:0,h:0,mj:0,mh:0};
 const cptH = h => String(Math.round(h*10)/10).replace('.',',');
 function cptTxt(m){ const c=compteur(m.id); const y=iso(TODAY).slice(0,4);
   const j=c.j>=MAX_JOURS-10?`<span class="badge red">${c.j} j / ${MAX_JOURS}${c.j>=MAX_JOURS?' · limite atteinte':' · proche de la limite'}</span>`:`${c.j} j / ${MAX_JOURS}`;
@@ -623,7 +641,7 @@ function render(){
   const badge = pendingDemandes()+pendingHeures()+pendingHabil();
   app.innerHTML = `
     <header class="topbar">
-      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v33</small></div>
+      <span class="blogo" aria-hidden="true"></span><div class="brand">Planning BSTC<small><span class="w-lg">Brigade des transports · </span>v36</small></div>
       <div class="who"><b>${esc(shortName(m))}</b>${roleLabel(m.role)}</div>
       ${REMOTE?'<button class="logout" onclick="act.refreshNow()" aria-label="Actualiser" title="Actualiser">↻</button>':''}<button class="logout" onclick="act.logout()">Quitter</button>
     </header>
@@ -658,15 +676,15 @@ function renderLogin(){
     <div><div class="eyebrow" style="margin-bottom:6px">Maquette — choisir un compte de démonstration</div>
       <div class="demo">${demo.map(([id,n,r])=>`<button onclick="act.login('${id}')"><span>${esc(n)}</span><span class="badge ${r==='Réserviste'?'grey':'blue'}">${r}</span></button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">Données de démonstration réduites (2 réservistes et les responsables). Les numéros de téléphone sont fictifs.</p>
-    <p class="small muted" style="margin:0"><b>Version 19</b> · 01/10/2026</p>
+    <p class="small muted" style="margin:0"><b>Version 36</b> · 05/10/2026</p>
     <p class="small muted" style="margin:0">© 2026 Issam AKEZDAW — Tous droits réservés</p>
   </div></div>`;
 }
 
 function monthNav(){ const cur=iso(TODAY).slice(0,7);
   return `<div class="row" style="gap:6px"><div class="monthnav"><button onclick="act.month(-1)" aria-label="Mois précédent">‹</button><b>${monthLabel(S.month)}</b><button onclick="act.month(1)" aria-label="Mois suivant">›</button></div>${S.month!==cur?'<button class="btn sm" onclick="act.thisMonth()">Aujourd’hui</button>':''}</div>`; }
-function legend(){ return `<div class="legend"><span><i style="background:var(--accent)"></i>${esc(TYPES.vacation.label)} ${hm(TYPES.vacation.debut)}–${hm(TYPES.vacation.fin)}</span><span><i style="background:var(--amber)"></i>${esc(TYPES.matin.label)} ${hm(TYPES.matin.debut)}–${hm(TYPES.matin.fin)}</span><span><i style="background:var(--green)"></i>Validé</span><span><i class="hatch"></i>Dispo posée, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>`; }
-function typeBadge(b){ const t=typeOf(b); return `<span class="badge ${t.color}">${t.label}</span>`; }
+function legend(){ return `<div class="legend"><span><i style="background:var(--accent)"></i>${esc(TYPES.vacation.label)} ${hm(TYPES.vacation.debut)}–${hm(TYPES.vacation.fin)}</span><span><i style="background:var(--amber)"></i>${esc(TYPES.matin.label)} ${hm(TYPES.matin.debut)}–${hm(TYPES.matin.fin)}</span>${Object.entries(TYPES).filter(([k])=>crenPerso(k)).map(([k,t])=>`<span><i class="${t.color}"></i>${esc(t.label)} ${hm(t.debut)}–${hm(t.fin)}</span>`).join('')}<span><i style="background:var(--green)"></i>Validé</span><span><i class="hatch"></i>Dispo posée, en attente</span><span><i style="background:var(--blue)"></i>Titulaire présent</span></div>`; }
+function typeBadge(b){ const t=typeOf(b); return `<span class="badge ${t.color}">${esc(t.label)}</span>`; }
 function vacTitle(b){ const t=typeOf(b); if(themeOn()) return `${hm(b.debut)} – ${hm(b.fin)}`;   // le thème et le lieu sont affichés sur leur propre ligne (vacTheme)
   return `${hm(b.debut)} – ${hm(b.fin)}${b.libelle&&b.libelle!==t.label?' · '+esc(b.libelle):''}`; }
 function vacTheme(b){ return themeOn()?`<div class="row" style="gap:8px;margin-top:6px"><span class="vth ${themeSpecial(b)?'sp':''}">${esc(themeOf(b))}</span><span class="vlieu">Lieu : ${esc(b.lieu||'Paris')}</span></div>`:''; }
@@ -724,7 +742,7 @@ function dayPanel(date,noAct){
   const add = adm?`<div class="row" style="gap:8px"><select id="add-${date}" class="dinput" style="max-width:none;flex:1 1 170px" aria-label="Personne à ajouter à la vacation"><option value="">Ajouter quelqu’un à la vacation…</option>${dispo.map(m=>`<option value="${m.id}">${esc(fullName(m))}</option>`).join('')}</select><button class="btn" onclick="act.ajouter('${date}')">Ajouter</button></div>`:'';
   const edit = adm?`<details class="vacedit" ${S.vacEdit===b.id?'open':''} ontoggle="S.vacEdit=this.open?'${b.id}':(S.vacEdit==='${b.id}'?null:S.vacEdit)"><summary>Modifier ou supprimer cette vacation</summary>
       <div class="stack" style="margin-top:8px"><div class="grid2">
-        <label class="field">Type<select id="vt-${b.id}" onchange="act.majVac('${b.id}','type',this.value)">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${b.type===k?'selected':''}>${t.label} ${hm(t.debut)}–${hm(t.fin)}</option>`).join('')}</select></label>
+        <label class="field">Type<select id="vt-${b.id}" onchange="act.majVac('${b.id}','type',this.value)">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${b.type===k?'selected':''}>${esc(t.label)} ${hm(t.debut)}–${hm(t.fin)}</option>`).join('')}</select></label>
         ${themeOn()?`<label class="field">Thème<select id="vth-${b.id}" onchange="act.majVac('${b.id}','theme',this.value)">${[...new Set([...REG.themes,themeOf(b)])].map(t=>`<option value="${esc(t)}" ${themeOf(b)===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
         <label class="field">Lieu<input id="vli-${b.id}" maxlength="60" value="${esc(b.lieu||'Paris')}" onchange="act.majVac('${b.id}','lieu',this.value)"></label>
         <label class="field" style="grid-column:1/-1">Précision (facultatif)<input id="vde-${b.id}" maxlength="200" value="${esc(detailOf(b))}" placeholder="ex. Fête de l’Humanité, rendez-vous 12h30 au poste" onchange="act.majVac('${b.id}','detail',this.value)"></label>`
@@ -734,7 +752,7 @@ function dayPanel(date,noAct){
         <label class="field">Nombre de places<input type="number" min="0" max="40" inputmode="numeric" id="vp-${b.id}" value="${b.places>0?b.places:''}" placeholder="automatique : ${REG.limite?REG.cap1+' ou '+REG.cap2:'sans limite'}" onchange="act.majVac('${b.id}','places',this.value)"></label></div>
       <div class="small muted">Laisse « places » vide pour la règle habituelle (${regleTxt()}). Mets un nombre total pour en prendre plus ou moins ce jour-là.</div>
       <div><button class="btn danger sm" onclick="act.supprVac('${b.id}')">${S.confirm==='vac-'+b.id?'Confirmer la suppression':'Supprimer la vacation'}</button></div></div></details>`:'';
-  return `<div class="card stripe ${b.type} stack fiche" id="fiche-jour">
+  return `<div class="card stripe ${typeCls(b)} stack fiche" id="fiche-jour">
     <div class="row between"><div><div class="eyebrow">${typeOf(b).label} du</div><h3>${fmtLong(date)}</h3><div class="small muted">${vacTitle(b)}${themeOn()?'':' · '+esc(b.lieu||'Paris')}</div>${vacTheme(b)}${vacDetail(b)}</div>${patBadge(p)}</div>
     ${my&&noAct!==true?`<div class="myact">${my}</div>`:''}
     ${passee(date)?`<div class="small muted">Vacation passée : plus de dispo ni de retrait possible${adm?' pour les réservistes (toi, tu peux encore corriger)':''}.</div>`:''}
@@ -763,7 +781,7 @@ function renderPlanning(){
   else {
     body = list.length? list.map(b=>{ const d=b.date; const dt=new Date(d+'T00:00:00'); const p=patrouille(d); const my=myAction(d);
       return `<div class="day ${d===iso(TODAY)?'today':''}"><div class="d"><b class="num">${dt.getDate()}</b><span>${dt.toLocaleDateString('fr-FR',{weekday:'short'})}</span></div>
-        <div class="slot stripe ${b.type}"><div class="row between"><span class="t">${typeOf(b).label} · ${vacTitle(b)}</span>${patBadge(p)}</div>${vacTheme(b)}${vacDetail(b)}
+        <div class="slot stripe ${typeCls(b)}"><div class="row between"><span class="t">${typeOf(b).label} · ${vacTitle(b)}</span>${patBadge(p)}</div>${vacTheme(b)}${vacDetail(b)}
           <div class="row" style="gap:6px">${p.tit.map(a=>chip(member(a.memberId),'tit')).join('')}${p.att.map(a=>chip(member(a.memberId),'ok')).join('')}${p.wait.map(a=>chip(member(a.memberId),'wait')).join('')}${p.vide?'<span class="small muted">Personne pour l’instant</span>':''}</div>
           ${my?`<div class="row" style="gap:6px;justify-content:flex-end">${my}</div>`:''}</div></div>`;
     }).join('') : `<div class="empty">Aucune vacation créée pour ${monthLabel(S.month)}.${isEnc()?' Va dans « Vacations » pour en créer.':''}</div>`;
@@ -808,7 +826,7 @@ function renderGrille(list){
 
 function multiBar(){ const n=S.multi.length;
   return `<div class="actbar" style="flex-wrap:wrap"><div style="min-width:0;flex:1 1 170px"><b>${n?`${n} jour${n>1?'s':''} sélectionné${n>1?'s':''}`:'Touche les jours à créer'}</b><div><button class="linkbtn" style="padding:0;font-size:13px" onclick="act.multiSemaine()">Tous les lundis au vendredis du mois</button></div></div>
-    <div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" ${n?'':'disabled'} onclick="act.multiCreer('${k}')">+ ${t.label}</button>`).join('')}</div></div>`; }
+    <div class="row" style="gap:6px;flex-wrap:${Object.keys(TYPES).length>2?'wrap':'nowrap'};justify-content:flex-end">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" ${n?'':'disabled'} onclick="act.multiCreer('${k}')">+ ${esc(t.label)}</button>`).join('')}</div></div>`; }
 // Onglet « Vacations » : le calendrier du mois. L'admin crée les vacations, le réserviste se propose dessus.
 function renderBesoins(){
   const today=iso(TODAY); const [y,mo]=S.month.split('-').map(Number); const nDays=new Date(y,mo,0).getDate(); const adm=isEnc(); const m=me();
@@ -821,13 +839,15 @@ function renderBesoins(){
     const st=mine?(mine.statut==='attribuee'?(m.titulaire?'tit':'ok'):'wait'):'';
     const cnt=!b?'':p.etat==='notit'?(p.att.length?`${p.att.length}/?`:p.wait.length?`+${p.wait.length}`:typeOf(b).court):pCnt(p);
     const lbl=`${fmtLong(d)}${b?', '+typeOf(b).label:', pas de vacation'}${st==='ok'?', validé':st==='wait'?', dispo en attente':st==='tit'?', présent':''}`;
-    return `<button class="cal-d ${b?(b.type==='matin'?'mat':'vac'):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.multi?(S.multi.includes(d)?'pick':''):(S.day===d?'sel':'')}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.multi?S.multi.includes(d):S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
+    return `<button class="cal-d ${b?calCls(b):'off'} ${st} ${d<today?'past':''} ${d===today?'today':''} ${S.multi?(S.multi.includes(d)?'pick':''):(S.day===d?'sel':'')}" onclick="act.pick('${d}')" aria-label="${lbl}" aria-pressed="${S.multi?S.multi.includes(d):S.day===d}"><b class="num">${i+1}</b><span class="cnt ${b?p.etat:''} num">${cnt}</span></button>`; }).join('');
   const sel=S.day&&S.day.startsWith(S.month); const b=sel&&vacOf(S.day); const my=(sel&&!(isEnc()&&me().titulaire))?myAction(S.day):'';
   let bar='';
   if(adm&&S.multi) bar=multiBar();
   else if(sel&&b&&my) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">${typeOf(b).label} ${hm(b.debut)}–${hm(b.fin)}</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${my}</div></div>`;
-  else if(sel&&!b&&adm) bar=`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation. Créer :</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" onclick="act.creerVac('${S.day}','${k}')">+ ${esc(t.label)}</button>`).join('')}</div></div>
-    ${themeOn()?`<div class="card" style="padding:10px 14px"><details class="vacedit"><summary>Thème, lieu, précision (facultatif)</summary><div class="small muted" style="margin-top:6px">Sans rien choisir : ${esc(themeDef())}, à Paris. Remplis avant de toucher « + ${esc(TYPES.vacation.label)} » ou « + ${esc(TYPES.matin.label)} ».</div><div class="grid2" style="margin-top:8px">
+  else if(sel&&!b&&adm) bar=(Object.keys(TYPES).length>2
+    ?`<div class="actbar" style="flex-direction:column;align-items:stretch;gap:8px"><div><b>${fmtDate(S.day)}</b> <span class="small muted">· pas de vacation. Créer :</span></div><div class="row" style="gap:6px">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary sm" onclick="act.creerVac('${S.day}','${k}')">+ ${esc(t.label)}</button>`).join('')}</div></div>`
+    :`<div class="actbar"><div style="min-width:0"><b>${fmtDate(S.day)}</b><div class="small muted">Pas de vacation. Créer :</div></div><div class="row" style="gap:6px;flex-wrap:nowrap">${Object.entries(TYPES).map(([k,t])=>`<button class="btn primary" onclick="act.creerVac('${S.day}','${k}')">+ ${esc(t.label)}</button>`).join('')}</div></div>`)+`
+    ${themeOn()?`<div class="card" style="padding:10px 14px"><details class="vacedit"><summary>Thème, lieu, précision (facultatif)</summary><div class="small muted" style="margin-top:6px">Sans rien choisir : ${esc(themeDef())}, à Paris. Remplis avant de toucher un bouton « + … » de création.</div><div class="grid2" style="margin-top:8px">
       <label class="field">Thème<select id="nv-theme">${REG.themes.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select></label>
       <label class="field">Lieu<input id="nv-lieu" maxlength="60" value="Paris"></label>
       <label class="field" style="grid-column:1/-1">Précision<input id="nv-detail" maxlength="200" placeholder="ex. Fête de l’Humanité, rendez-vous 12h30 au poste"></label></div></details></div>`:''}`;
@@ -835,7 +855,7 @@ function renderBesoins(){
   return `<div><h2>Vacations du mois</h2><p class="small muted" style="margin:4px 0 0">${adm?`Touche un jour : crée la vacation (${Object.values(TYPES).map(t=>esc(t.label)+' '+hm(t.debut)+'–'+hm(t.fin)).join(' ou ')}), puis gère qui est dessus.`:'Touche un jour coloré, puis « Je suis dispo ». L’admin valide : le jour passe en vert.'}</p></div>
     <div class="toolbar between">${monthNav()}${adm?`<button class="btn sm" onclick="act.multi()">${S.multi?'Terminer':'Créer plusieurs jours'}</button>`:''}</div>
     <div class="card stack" style="padding:10px"><div class="cal ${adm&&S.multi?'multi':''}">${['lun','mar','mer','jeu','ven','sam','dim'].map(w=>`<div class="wd">${w}</div>`).join('')}${'<div></div>'.repeat(lead)}${cells}</div>
-      <div class="legend"><span><i style="background:var(--accent)"></i>Vacation</span><span><i style="background:var(--amber)"></i>Matin</span><span><i class="hatch"></i>Ma dispo en attente</span><span><i style="background:var(--green)"></i>Je suis validé</span><span><b class="num">3/5</b> validés / places</span></div></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>${esc(TYPES.vacation.label)}</span><span><i style="background:var(--amber)"></i>${esc(TYPES.matin.label)}</span>${Object.entries(TYPES).filter(([k])=>crenPerso(k)).map(([k,t])=>`<span><i class="${t.color}"></i>${esc(t.label)}</span>`).join('')}<span><i class="hatch"></i>Ma dispo en attente</span><span><i style="background:var(--green)"></i>Je suis validé</span><span><b class="num">3/5</b> validés / places</span></div></div>
     ${bar}
     ${sel&&b&&!(adm&&S.multi)?dayPanel(S.day,true):''}`;
 }
@@ -873,10 +893,27 @@ function mesProchaines(){
   const list=S.demandes.filter(d=>d.memberId===S.user&&d.statut!=='refusee').map(d=>({d,b:besoin(d.besoinId)})).filter(x=>x.b&&x.b.date>=today).sort((a,b)=>a.b.date.localeCompare(b.b.date));
   return `<div class="card stack"><h3>Mes prochaines vacations</h3>${list.length?list.map(({d,b})=>{
     const ok=d.statut==='attribuee'; const others=attribs(b).filter(a=>a.memberId!==S.user).map(a=>member(a.memberId));
-    return `<div class="stripe ${ok?b.type:''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge green">Validé</span>`:'<span class="badge grey">En attente de validation</span>'}${outBtn(d)}</span></div><div class="small">${esc(vacNom(b))} · ${esc(b.lieu||'Paris')}</div>${vacDetail(b)}${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
+    return `<div class="stripe ${ok?typeCls(b):''}" style="padding-left:10px"><div class="row between"><b>${fmtDate(b.date)} · ${hm(b.debut)} – ${hm(b.fin)}</b><span class="row" style="gap:6px">${ok?`<span class="badge green">Validé</span>`:'<span class="badge grey">En attente de validation</span>'}${outBtn(d)}</span></div><div class="small">${esc(vacNom(b))} · ${esc(b.lieu||'Paris')}</div>${vacDetail(b)}${ok?`<div class="row small muted" style="gap:6px;margin-top:4px">Avec : ${others.length?others.map(m=>chip(m)).join(''):'<span>personne d’autre pour l’instant</span>'}</div>`:''}</div>`;
   }).join(''):'<div class="small muted">Rien de prévu. Va dans « Vacations » pour te proposer.</div>'}</div>`;
 }
 
+// Compteur du réserviste : vacations effectuées et heures, ce mois et sur l'année.
+// Une vacation compte sa durée prévue (7 h) tant que d'autres heures n'ont pas été déclarées.
+function monCompteurCard(m){ if(m.id==='m0') return ''; const c=compteur(m.id), t=iso(TODAY), y=t.slice(0,4); const mj=c.mj||0, mh=c.mh||0;
+  const lim=c.j>=MAX_JOURS-10?`<div style="margin-top:10px"><span class="badge red">${c.j} j / ${MAX_JOURS}${c.j>=MAX_JOURS?' · limite atteinte':' · proche de la limite'}</span></div>`:'';
+  const bj=vacOf(t), dj=bj&&S.demandes.find(d=>d.besoinId===bj.id&&d.memberId===m.id&&d.statut==='attribuee');   // ma vacation d'aujourd'hui
+  const auj=!dj?'':finie(bj)?`<div class="small" style="margin-top:10px"><span class="badge green">Aujourd’hui</span> Ta vacation ${hm(bj.debut)}–${hm(bj.fin)} est terminée : elle est comptée.</div>`
+    :`<div class="small" style="margin-top:10px"><span class="badge amber">Aujourd’hui</span> Ta vacation ${hm(bj.debut)}–${hm(bj.fin)} sera comptée ${bj.fin>bj.debut?'à '+hm(bj.fin)+', quand elle sera terminée':'demain'}.</div>`;
+  return `<div class="card" id="mon-compteur"><div class="eyebrow" style="margin-bottom:8px">Mon compteur</div>
+    <div class="kpi" style="grid-template-columns:repeat(2,1fr)"><div><b class="num">${mj}</b><span>vacation${mj>1?'s':''} ce mois</span></div><div><b class="num">${cptH(mh)} h</b><span>heures ce mois</span></div><div><b class="num">${c.j}</b><span>vacation${c.j>1?'s':''} en ${y} · max ${MAX_JOURS}</span></div><div><b class="num">${cptH(c.h)} h</b><span>heures en ${y}</span></div></div>${lim}${auj}
+    <details class="small" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">Comment c’est compté ?</summary>
+      <ul class="muted" style="margin:8px 0 0;padding-left:18px">
+        <li>Une vacation compte <b>dès son heure de fin</b>, si l’admin t’avait validé.</li>
+        <li>Elle vaut sa durée prévue : <b>7 h</b> en général.</li>
+        <li>Si tu déclares d’autres heures (carte « À déclarer »), ce sont elles qui comptent.</li>
+        <li>Une dispo en attente ou refusée ne compte pas.</li>
+        <li>Maximum ${MAX_JOURS} vacations par an : c’est une information, rien n’est bloqué.</li>
+      </ul></details></div>`; }
 function renderMoi(){
   const m=me(); const ym=S.month; const y=iso(TODAY).slice(0,4);
   const mineH=S.heures.filter(h=>h.memberId===S.user);
@@ -884,7 +921,7 @@ function renderMoi(){
   const valMois=sum(mineH.filter(h=>h.statut==='validee'&&h.date.startsWith(iso(TODAY).slice(0,7))));
   const attente=sum(mineH.filter(h=>h.statut==='declaree'));
   const valAn=sum(mineH.filter(h=>h.statut==='validee'&&h.date.startsWith(y)));
-  const done=S.demandes.filter(d=>d.memberId===S.user&&d.statut==='attribuee').map(d=>besoin(d.besoinId)).filter(b=>b&&b.date<iso(TODAY)).sort((a,b)=>b.date.localeCompare(a.date));
+  const done=S.demandes.filter(d=>d.memberId===S.user&&d.statut==='attribuee').map(d=>besoin(d.besoinId)).filter(b=>b&&finie(b)).sort((a,b)=>b.date.localeCompare(a.date));
   const aDeclarer=done.filter(b=>!mineH.some(h=>h.besoinId===b.id&&h.statut!=='refusee'));
   const aVenir=S.demandes.filter(d=>d.memberId===S.user&&d.statut==='attribuee').map(d=>besoin(d.besoinId)).filter(b=>b&&b.date>=iso(TODAY)).sort((a,b)=>a.date.localeCompare(b.date));
   const hist=mineH.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
@@ -892,9 +929,9 @@ function renderMoi(){
   return `<div class="row" style="gap:12px"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div><h2 class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</h2><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · <b style="color:var(--red)">Plus d’activité à la BSTC</b>'}</div></div></div>
     <div class="quick">${m.id==='m0'?'':`<button class="btn" onclick="act.go('mes-tirs','tir-date')">+ Ajouter un tir</button><button class="btn" onclick="act.go('mon-dossier')">Mon dossier</button>`}<button class="btn" onclick="act.go('mon-profil','me-tel')">Modifier mon profil</button></div>
     ${m.id!=='m0'&&DOSSIER_ITEMS.some(([k,,o])=>o&&!m.dossier[k])?`<div class="card todo row between"><span><b>Ton dossier est incomplet.</b> <span class="small">Il manque ${DOSSIER_ITEMS.filter(([k,,o])=>o&&!m.dossier[k]).length} élément(s) obligatoire(s).</span></span><button class="btn primary sm" onclick="act.go('mon-dossier')">Compléter</button></div>`:''}
-    <div class="card"><div class="eyebrow" style="margin-bottom:8px">Mes heures</div><div class="kpi"><div><b class="num">${valMois}</b><span>validées ce mois</span></div><div><b class="num">${attente}</b><span>en attente</span></div><div><b class="num">${valAn}</b><span>validées en ${y}</span></div></div>${m.id==='m0'?'':`<div class="small" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><b>Mes jours :</b> ${cptTxt(m)} <span class="muted">— vacations passées où tu étais validé ; maximum ${MAX_JOURS} jours par an.</span></div>`}</div>
+    ${monCompteurCard(m)}<div class="card"><div class="eyebrow" style="margin-bottom:8px">Mes heures déclarées</div><div class="kpi"><div><b class="num">${cptH(valMois)}</b><span>validées ce mois</span></div><div><b class="num">${cptH(attente)}</b><span>en attente</span></div><div><b class="num">${cptH(valAn)}</b><span>validées en ${y}</span></div></div></div>
     ${aDeclarer.length?`<div class="card stack"><h3>À déclarer</h3><p class="small muted" style="margin:0">Saisis le nombre d’heures réellement effectuées. L’admin valide ensuite.</p>
-      ${aDeclarer.map(b=>`<div class="row between stripe ${b.type}" style="padding-left:10px"><div><b>${fmtDate(b.date)}</b> · ${esc(vacNom(b))}<div class="small muted">${hm(b.debut)} – ${hm(b.fin)}</div></div><div class="row" style="gap:6px"><input id="h-${b.id}" type="number" min="0.5" max="24" step="0.5" value="${b.duree}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures effectuées"> h <button class="btn primary sm" onclick="act.declarer('${b.id}')">Déclarer</button></div></div>`).join('')}</div>`:''}
+      ${aDeclarer.map(b=>`<div class="row between stripe ${typeCls(b)}" style="padding-left:10px"><div><b>${fmtDate(b.date)}</b> · ${esc(vacNom(b))}<div class="small muted">${hm(b.debut)} – ${hm(b.fin)}</div></div><div class="row" style="gap:6px"><input id="h-${b.id}" type="number" min="0.5" max="24" step="0.5" value="${b.duree}" style="width:70px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)" aria-label="Heures effectuées"> h <button class="btn primary sm" onclick="act.declarer('${b.id}')">Déclarer</button></div></div>`).join('')}</div>`:''}
     ${mesProchaines()}
     ${monProfilCard(m)}
     ${mesTirsCard(m)}
@@ -986,9 +1023,14 @@ function gReglages(){
       <div class="dlist">${REG.themes.map((t,i)=>`<div><input id="th-${i}" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" value="${esc(t)}" aria-label="Nom du thème" onchange="regTheme('ren',${i},this.value)">${i?`<button class="btn danger sm" onclick="regTheme('del',${i})">${S.confirm==='th-'+i?'Confirmer':'Supprimer'}</button>`:'<span class="badge grey">Par défaut</span>'}</div>`).join('')}</div>
       <div class="row" style="gap:8px"><input id="th-new" class="dinput" style="flex:1 1 140px;min-width:0;width:auto;max-width:none" maxlength="40" placeholder="Nouveau thème, ex. Renfort" aria-label="Nom du nouveau thème"><button class="btn primary" onclick="regTheme('add')">Ajouter</button></div></div>
     <div class="card stack" id="reg-creneaux"><h3>Créneaux</h3>
-      <p class="small muted" style="margin:0">Le nom et les horaires des deux boutons de création. Les vacations déjà créées gardent leurs horaires.</p>
+      <p class="small muted" style="margin:0">Le nom et les horaires des boutons de création. Tu peux ajouter jusqu’à ${CREN_MAX} créneaux en plus des deux de base. Les vacations déjà créées gardent leurs horaires.</p>
       ${Object.entries(TYPES).map(([k,t])=>`<div class="stack" style="gap:8px;padding-top:10px;border-top:1px solid var(--line)"><label class="field">Nom<input id="cr-${k}-label" maxlength="20" value="${esc(t.label)}" onchange="regCren('${k}','label',this.value)"></label>
-        <div class="row" style="gap:8px;flex-wrap:nowrap"><label class="field" style="flex:1">Début<input type="time" id="cr-${k}-debut" value="${t.debut}" onchange="regCren('${k}','debut',this.value)"></label><label class="field" style="flex:1">Fin<input type="time" id="cr-${k}-fin" value="${t.fin}" onchange="regCren('${k}','fin',this.value)"></label></div></div>`).join('')}</div>`}`;
+        <div class="row" style="gap:8px;flex-wrap:nowrap"><label class="field" style="flex:1">Début<input type="time" id="cr-${k}-debut" value="${t.debut}" onchange="regCren('${k}','debut',this.value)"></label><label class="field" style="flex:1">Fin<input type="time" id="cr-${k}-fin" value="${t.fin}" onchange="regCren('${k}','fin',this.value)"></label></div>
+        ${crenPerso(k)?`<div class="row between"><span class="badge ${t.color}">Créneau ajouté</span><button class="btn danger sm" onclick="regCrenDel('${k}')">${S.confirm==='cr-'+k?'Confirmer la suppression':'Supprimer'}</button></div>`:''}</div>`).join('')}
+      ${Object.keys(TYPES).filter(crenPerso).length>=CREN_MAX?`<div class="small muted" style="padding-top:10px;border-top:1px solid var(--line)">Maximum atteint : ${CREN_MAX} créneaux ajoutés.</div>`:`<div class="stack" style="gap:8px;padding-top:10px;border-top:1px solid var(--line)"><b>Nouveau créneau</b>
+        <label class="field">Nom<input id="cr-new-label" maxlength="20" placeholder="ex. Nuit, Journée"></label>
+        <div class="row" style="gap:8px;flex-wrap:nowrap"><label class="field" style="flex:1">Début<input type="time" id="cr-new-debut" value="08:00"></label><label class="field" style="flex:1">Fin<input type="time" id="cr-new-fin" value="15:00"></label></div>
+        <button class="btn primary" onclick="regCrenAdd()">Ajouter le créneau</button></div>`}</div>`}`;
 }
 function regTheme(op,i,v){ if(!isEnc()) return; const th=REG.themes.slice(); let old=null;
   if(op==='add'){ v=habNom(document.getElementById('th-new')?.value); if(!v){ toast('Écris le nom du thème'); return; } if(th.some(x=>x.toLowerCase()===v.toLowerCase())){ toast('Ce thème existe déjà'); return; } if(th.length>=20){ toast('20 thèmes au maximum'); return; } th.push(v); }
@@ -997,6 +1039,16 @@ function regTheme(op,i,v){ if(!isEnc()) return; const th=REG.themes.slice(); let
   return act.regSet(Object.assign({},REG,{themes:th}), old?{old,neu:v}:null, op==='add'?'Thème ajouté':op==='ren'?'Nom modifié':'Thème supprimé — les vacations qui l’ont le gardent'); }
 function regCren(k,f,v){ if(!isEnc()) return; if(f==='label'){ v=habNom(v).slice(0,20); if(!v){ render(); toast('Le nom ne peut pas être vide'); return; } } else if(!hOk(v)){ render(); toast('Heure invalide'); return; }
   const cr=JSON.parse(JSON.stringify(REG.creneaux)); cr[k][f]=v; return act.regSet(Object.assign({},REG,{creneaux:cr}), null, 'Créneau enregistré'); }
+function regCrenAdd(){ if(!isEnc()) return; const g=id=>document.getElementById(id)?.value; const label=habNom(g('cr-new-label')).slice(0,20), debut=g('cr-new-debut'), fin=g('cr-new-fin');
+  if(!label){ toast('Écris le nom du créneau'); return; } if(!hOk(debut)||!hOk(fin)){ toast('Indique l’heure de début et de fin'); return; }
+  if(Object.values(TYPES).some(t=>t.label.toLowerCase()===label.toLowerCase())){ toast('Ce créneau existe déjà'); return; }
+  const perso=Object.keys(REG.creneaux).filter(crenPerso); if(perso.length>=CREN_MAX){ toast(CREN_MAX+' créneaux ajoutés au maximum'); return; }
+  const pris=perso.map(k=>REG.creneaux[k].c); const c=[1,2,3,4].find(n=>!pris.includes(n))||1;   // première couleur libre
+  const cr=JSON.parse(JSON.stringify(REG.creneaux)); cr['c_'+Math.random().toString(36).slice(2,10)]={label,debut,fin,c};
+  return act.regSet(Object.assign({},REG,{creneaux:cr}), null, 'Créneau ajouté — il apparaît dans les boutons de création'); }
+function regCrenDel(k){ if(!isEnc()||!crenPerso(k)) return; if(S.confirm!=='cr-'+k){ S.confirm='cr-'+k; render(); toast('Touche « Confirmer la suppression »'); return; } S.confirm=null;
+  const cr=JSON.parse(JSON.stringify(REG.creneaux)); delete cr[k];
+  return act.regSet(Object.assign({},REG,{creneaux:cr}), null, 'Créneau supprimé — les vacations déjà créées gardent leurs horaires'); }
 function regNew(k,v){ const o=Object.assign({},REG); if(k==='limite') o.limite=!!v; else { const n=parseInt(v); if(!(n>=1&&n<=40)) return null; o[k]=n; } return o; }
 
 function habTypesCard(){
@@ -1071,7 +1123,7 @@ function gPax(){
    =================================================================== */
 let sb=null, AUTHU=null, MEROW=null, BUSY=false;
 const LOCAL = Object.assign({}, act);   // versions « démo » des actions, réutilisées pour la mise à jour à l'écran
-const errMsg = e => { const m=(e&&e.message)||String(e); if(/row-level security|permission denied/i.test(m)) return 'Action non autorisée pour ton profil'; if(/Invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect'; if(/already registered/i.test(m)) return 'Un compte existe déjà avec cet email'; if(/duplicate key/i.test(m)) return 'Déjà enregistré'; if(/Failed to fetch|NetworkError/i.test(m)) return 'Pas de connexion internet'; if((e&&e.code==='PGRST202')||/Could not find the function/i.test(m)) return 'Lance d’abord le fichier « mise-a-jour-v25.sql » dans Supabase (une seule fois)'; return m; };
+const errMsg = e => { const m=(e&&e.message)||String(e); if(/besoins_type_check|check constraint/i.test(m)&&/besoins/i.test(m)) return 'pour utiliser un créneau ajouté, lance d’abord « mise-a-jour-v36.sql » dans Supabase'; if(/row-level security|permission denied/i.test(m)) return 'Action non autorisée pour ton profil'; if(/Invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect'; if(/already registered/i.test(m)) return 'Un compte existe déjà avec cet email'; if(/duplicate key/i.test(m)) return 'Déjà enregistré'; if(/Failed to fetch|NetworkError/i.test(m)) return 'Pas de connexion internet'; if((e&&e.code==='PGRST202')||/Could not find the function/i.test(m)) return 'Lance d’abord le fichier « mise-a-jour-v25.sql » dans Supabase (une seule fois)'; return m; };
 function setBusy(b){ BUSY=b; document.getElementById('app').classList.toggle('busy',b); }
 
 let LOADSEQ=0, HAB_ROWS=[], MAT_OK=false, LOADED_FROM='';
@@ -1113,15 +1165,16 @@ async function loadAll(){
 async function loadCpt(force){
   if(!S.user||(!force&&Date.now()-CPT.at<600000)) return; const first=!CPT.at; CPT.at=Date.now();
   try{ const t=iso(TODAY), jan=t.slice(0,4)+'-01-01';
-    const rb=await sb.from('besoins').select('id,date,duree').gte('date',jan).lt('date',t); if(rb.error) throw rb.error;
+    const rb=await sb.from('besoins').select('id,date,duree,debut,fin').gte('date',jan).lte('date',t); if(rb.error) throw rb.error;
     const ds=[]; for(let i=0;i<10;i++){ const r=await sb.from('demandes').select('id,besoin_id,member_id,statut').eq('statut','attribuee').gte('created_at',addDays(jan,-62)+'T00:00:00').order('id').range(i*1000,i*1000+999); if(r.error) throw r.error; ds.push(...(r.data||[])); if((r.data||[]).length<1000) break; }
-    const map=cptCalc((rb.data||[]).map(x=>({id:x.id,date:x.date,duree:Number(x.duree)})),ds.map(mapD),S.heures);
+    const map=cptCalc((rb.data||[]).map(x=>({id:x.id,date:x.date,duree:Number(x.duree),debut:String(x.debut||'').slice(0,5),fin:String(x.fin||'').slice(0,5)})),ds.map(mapD),S.heures);
     const ch=JSON.stringify(map)!==JSON.stringify(CPT.map); CPT.map=map; if(ch&&(first||!editing())&&!BUSY) render(); }
   catch(e){ CPT.at=0; } }
 // Exécute une écriture, recharge, réaffiche. fn renvoie un résultat Supabase (ou une liste).
 async function run(fn,msg){
   if(BUSY) return; setBusy(true);
   try{ const rs=[].concat(await fn()); rs.forEach(r=>{ if(r&&r.error) throw r.error; });
+    CPT.at=0;   // une action vient d'être enregistrée : le compteur est recalculé tout de suite
     await loadAll(); syncMe();
     setBusy(false); render(); if(msg) toast(typeof msg==='function'?msg():msg); }
   catch(e){ setBusy(false); try{ await loadAll(); }catch(_){} render(); toast('Erreur : '+errMsg(e)); }
@@ -1143,7 +1196,8 @@ function editing(){ const a=document.activeElement; if(!a||!/^(INPUT|SELECT|TEXT
   if(a.tagName==='SELECT'||a.type==='checkbox'||a.type==='date') return age<8000; return age<60000; }
 function majToday(){ const n=new Date(); n.setHours(0,0,0,0); if(n.getTime()!==TODAY.getTime()){ TODAY.setTime(n.getTime()); return true; } return false; }
 async function refresh(force){ if(!S.user||BUSY||LOADING) return; if(force!==true){ if(document.visibilityState!=='visible') return; if(editing()) return; }
-  if(majToday()) force=true;   // l'appli est restée ouverte après minuit
+  if(majToday()){ force=true; CPT.at=0; }
+  { const fk=finKey(); if(fk!==FINK){ FINK=fk; CPT.at=0; force=true; } }   // une vacation du jour vient de se terminer : elle entre dans le compteur   // l'appli est restée ouverte après minuit
   LOADING=true; try{ const before=JSON.stringify([S.members,S.besoins,S.demandes,S.heures,S.notifs,S.pending,S.user]); await loadAll(); syncMe();
     if(force===true||JSON.stringify([S.members,S.besoins,S.demandes,S.heures,S.notifs,S.pending,S.user])!==before) render(); }catch(e){ if(force===true) toast('Erreur : '+errMsg(e)); } LOADING=false; }
 
@@ -1169,7 +1223,7 @@ function renderAuth(){
     <p class="small muted" style="margin:0">Pas de compte ? Demande-le à un admin.</p>
     ${location.hash==='#installation'?`<button class="linkbtn" onclick="act.authMode('up')">Première installation</button>`:''}
     <p class="small muted" style="margin:0">Mot de passe oublié ? Un admin t’en donne un nouveau.</p>
-    <p class="small muted" style="margin:0">Version 28 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
+    <p class="small muted" style="margin:0">Version 36 · © 2026 Issam AKEZDAW — Tous droits réservés</p></div></div>`;
 }
 function pendingCard(){ const l=S.pending||[]; if(!l.length) return '';
   return `<div class="card stack" id="comptes-attente" style="border-color:var(--accent);border-width:2px"><div class="row between"><h3>Comptes à accepter</h3><span class="badge red">${l.length} en attente</span></div>
