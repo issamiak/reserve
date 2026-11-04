@@ -310,7 +310,8 @@ table.pgrid{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1
 .monthnav b{font-family:var(--display);font-size:20px;min-width:150px;text-align:center;text-transform:capitalize}
 .monthnav button{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:34px;font-size:18px}
 .pax-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
-.pax-item:last-child{border-bottom:0}
+.pax-item:last-child,.telmenu:last-child{border-bottom:0}
+.telmenu a.btn{text-decoration:none;color:var(--fg)}
 .av-lg{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .av-lg.inactive{background:var(--red-soft);color:var(--red)}
 .phone{font-family:var(--body);font-variant-numeric:tabular-nums;letter-spacing:.02em}
@@ -578,7 +579,7 @@ const pendingHeures = ()=>S.heures.filter(h=>h.statut==='declaree').length;
 window.act = {
   login(id){ S.user=id; S.confirm=null; const enc=member(id)?.role==='admin'; S.tab=enc?'gestion':'planning'; S.sub='demandes'; S.month=addDays(iso(TODAY),3).slice(0,7); save(); render(); },
   logout(){ S.user=null; S.ntfyCache=false; save(); render(); },
-  tab(t){ S.tab=t; S.confirm=null; save(); render(); },
+  tab(t){ S.tab=t; S.confirm=null; S.telOpen=null; save(); render(); },
   sub(t){ S.sub=t; S.paxOpen=null; save(); render(); },
   view(v){ S.view=v; save(); render(); },
   month(n){ shiftMonth(n); },
@@ -660,6 +661,7 @@ window.act = {
   lu(id){ const n=(S.notifs||[]).find(x=>x.id===id); if(n){ (n.lu = n.lu || {})[S.user]=true; save(); render(); } },
   voir(id,date){ const n=(S.notifs||[]).find(x=>x.id===id); if(n) (n.lu = n.lu || {})[S.user]=true; S.tab='besoins'; S.month=date.slice(0,7); S.day=date; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'nearest'}); },
   go(id,focus){ const el=document.getElementById(id); if(!el) return; el.scrollIntoView({block:'start',behavior:'smooth'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1400); if(focus) setTimeout(()=>document.getElementById(focus)?.focus({preventScroll:true}),450); },
+  telMenu(id,w){ S.telOpen=(S.telOpen&&S.telOpen.id===id&&S.telOpen.w===w)?null:{id,w}; render(); },   // v49 : menu Appeler / Message / Copier dans Équipe
   copy(txt,msg){ if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(msg||'Numéro copié'),()=>toast(txt)); } else toast(txt); },
   credOk(){ S.cred=null; render(); },
   ouvrir(date){ S.tab='besoins'; S.month=date.slice(0,7); S.day=date; S.confirm=null; save(); render(); document.getElementById('fiche-jour')?.scrollIntoView({block:'start',behavior:'smooth'}); },
@@ -1060,8 +1062,10 @@ function renderMoi(){
 const SIGNATURE = '<p class="small muted" style="margin:0;text-align:center">Planning BSTC · © 2026 Issam AKEZDAW — Tous droits réservés</p>';
 function renderEquipe(){
   const rows=S.members.filter(m=>m.id!=='m0').sort((a,b)=>(a.role==='admin'?0:1)-(b.role==='admin'?0:1)||a.nom.localeCompare(b.nom));
-  return `<div><h2>Équipe</h2><p class="small muted" style="margin:4px 0 0">${rows.filter(m=>m.actif).length} personnes actives · appuie sur un numéro pour le copier.</p></div>
-    <div class="card" style="padding-block:4px">${rows.map(m=>`<div class="pax-item" style="cursor:default"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · compte suspendu'}${m.neo?` · <button class="linkbtn phone" style="padding:0;font-size:13px" onclick="act.copy('${esc(m.neoTel||'')}','Numéro NEO copié')">${esc(neoTxt(m))}</button>`:''}</div></div><button class="btn sm phone" onclick="act.copy('${m.tel}')">${m.tel}</button></div>`).join('')}</div>
+  const o=S.telOpen; const href=n=>String(n||'').replace(/[^0-9+]/g,'');   // v49 : lien tel: / sms: sans espaces
+  const menu=(m,w)=>{ const n=w==='neo'?m.neoTel:m.tel; if(!n) return ''; return `<div class="row telmenu" style="gap:6px;padding:0 0 10px 46px;border-bottom:1px solid var(--line)"><span class="small muted" style="flex:1 1 100%">${w==='neo'?'Téléphone NEO':'Téléphone'} · ${esc(n)}</span><a class="btn sm" href="tel:${href(n)}">📞 Appeler</a><a class="btn sm" href="sms:${href(n)}">💬 Message</a><button class="btn sm" onclick="act.copy('${esc(n)}','Numéro copié')">Copier</button></div>`; };
+  return `<div><h2>Équipe</h2><p class="small muted" style="margin:4px 0 0">${rows.filter(m=>m.actif).length} personnes actives · appuie sur un numéro pour appeler, envoyer un message ou le copier.</p></div>
+    <div class="card" style="padding-block:4px">${rows.map(m=>`<div class="pax-item" style="cursor:default${o&&o.id===m.id?';border-bottom:0':''}"><div class="av-lg ${m.actif?'':'inactive'}">${initials(m)}</div><div style="flex:1;min-width:0"><div class="${m.actif?'':'name-inactive'}">${m.grade?esc(m.grade)+' ':''}${esc(fullName(m))}</div><div class="small muted">${roleLabel(m.role)}${m.actif?'':' · compte suspendu'}${m.neo?` · <button class="linkbtn phone" style="padding:0;font-size:13px" aria-expanded="${!!(o&&o.id===m.id&&o.w==='neo')}" onclick="act.telMenu('${m.id}','neo')">${esc(neoTxt(m))}</button>`:''}</div></div><button class="btn sm phone" aria-expanded="${!!(o&&o.id===m.id&&o.w==='tel')}" onclick="act.telMenu('${m.id}','tel')">${m.tel}</button></div>${o&&o.id===m.id?menu(m,o.w):''}`).join('')}</div>
     ${SIGNATURE}`;
 }
 
@@ -1547,7 +1551,7 @@ const RA = {
     const r=await sb.auth.updateUser({password:v}); if(r.error){ toast('Erreur : '+errMsg(r.error)); return; } el.value=''; S.pwdCourt=false; S.recup=false; render(); toast('Mot de passe changé'); },
   login(){}, reset(){},
   async refreshNow(){ await refresh(true); toast('À jour'); },
-  tab(t){ S.tab=t; S.confirm=null; render(); refresh(); },
+  tab(t){ S.tab=t; S.confirm=null; S.telOpen=null; render(); refresh(); },
   month(n){ LOCAL.month(n); if(S.month+'-01'<LOADED_FROM) refresh(true); },   // mois plus ancien que ce qui est chargé : on va le chercher
   sub(t){ S.sub=t; S.paxOpen=null; render(); refresh(); },
   approuver(id){ return run(()=>sb.from('members').update({approuve:true}).eq('id',id),'Compte accepté'); },
