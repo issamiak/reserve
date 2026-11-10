@@ -2,13 +2,13 @@
 <!--
   Planning RO — Suivi de réserve opérationnelle (Police Nationale / Gendarmerie)
   Créé par Issam Akezdaw ("Sam")
-  Version 2.1 (novembre 2026) : nouvel accueil, agenda, rappel, heures au-delà de 7 h, mail à la RH. Même format de données que la version 1.
+  Version 2.2 (novembre 2026) : nouvel accueil, agenda, rappel, heures au-delà de 7 h, mail à la RH. Même format de données que la version 1.
   Contact : i.akezdaw@gmail.com
 -->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -67,8 +67,11 @@
   }
   button{ font-family:inherit; }
   button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible{ outline:3px solid var(--or); outline-offset:2px; }
-  #app{ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow-x:hidden; max-width:100vw; }
-  .screen{ flex:1; overflow-y:auto; overflow-x:hidden; display:none; -webkit-overflow-scrolling:touch; padding-bottom:96px; }
+  /* v2.2 : l'appli est accrochée aux quatre bords de la zone visible, au lieu de dépendre de « 100vh ».
+     Sur certains téléphones (barre d'adresse, aperçu de fichier, navigateur intégré) 100vh est plus haut que l'écran visible
+     et la barre du bas sortait de l'écran. */
+  #app{ position:fixed; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; overflow:hidden; }
+  .screen{ flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; display:none; -webkit-overflow-scrolling:touch; padding-bottom:96px; }
   .screen.active{ display:block; }
   h2{ font-family:var(--display); font-weight:700; font-size:24px; line-height:1.1; letter-spacing:.005em; margin:0; color:var(--encre); }
 
@@ -289,7 +292,7 @@
   .empty{ text-align:center; padding:26px 16px; color:var(--slate); font-size:14.5px; background:var(--paper); border:1px dashed var(--gris-bord2); border-radius:var(--r); }
 
   /* ---------- NAVIGATION BASSE + BOUTON D'AJOUT ---------- */
-  .tabbar{ display:flex; background:var(--paper); border-top:1px solid var(--gris-bord2); padding:6px 4px max(6px, env(safe-area-inset-bottom)); flex-shrink:0; }
+  .tabbar{ position:relative; z-index:5; display:flex; background:var(--paper); border-top:1px solid var(--gris-bord2); padding:6px 4px max(6px, env(safe-area-inset-bottom)); flex-shrink:0; }
   .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--slate); font-size:11.5px; font-weight:600; padding:6px 0 4px; border-radius:12px; cursor:pointer; min-width:0; }
   .tab svg{ width:23px; height:23px; }
   .tab.active{ color:var(--bleu); background:var(--bleu-clair-bg); }
@@ -722,7 +725,7 @@
       <div style="text-align:center; padding:16px 0 8px;">
         <div style="font-size:14px; font-weight:700; color:var(--encre);">Made by Sam</div>
         <div style="font-size:13px; color:var(--slate); margin-top:2px;">Issam Akezdaw — i.akezdaw@gmail.com</div>
-        <div style="font-size:13px; color:var(--slate); margin-top:6px;" id="app-version">Planning RO version 2.1</div>
+        <div style="font-size:13px; color:var(--slate); margin-top:6px;" id="app-version">Planning RO version 2.2</div>
       </div>
     </div>
   </div>
@@ -1545,7 +1548,7 @@ async function refreshWeather(){
 }
 
 /* ===================== v2 : accueil, agenda, rappel ===================== */
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.2';
 
 function hm(t){ if(!t) return ''; const p = t.split(':'); return String(+p[0]) + 'h' + (p[1] === '00' ? '' : p[1]); }
 function hmRange(e){ return (e.debut && e.fin) ? hm(e.debut) + ' – ' + hm(e.fin) : 'Horaires à préciser'; }
