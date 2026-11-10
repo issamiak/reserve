@@ -2,7 +2,7 @@
 <!--
   Planning RO — Suivi de réserve opérationnelle (Police Nationale / Gendarmerie)
   Créé par Issam Akezdaw ("Sam")
-  Version 2.0 (novembre 2026) : nouvel accueil, agenda, rappel. Même format de données que la version 1.
+  Version 2.1 (novembre 2026) : nouvel accueil, agenda, rappel, heures au-delà de 7 h, mail à la RH. Même format de données que la version 1.
   Contact : i.akezdaw@gmail.com
 -->
 <html lang="fr">
@@ -387,6 +387,7 @@
   .month-row{ display:grid; grid-template-columns:76px 1fr 1fr 1fr; gap:6px; align-items:center; padding:9px 0; border-bottom:1px solid var(--gris-bord); font-size:13.5px; }
   .month-row.head{ font-weight:700; color:var(--slate); font-size:12.5px; border-bottom:1px solid var(--gris-bord2); }
   .month-row .m-name{ font-weight:700; color:var(--encre); text-transform:capitalize; }
+  .month-row .m-name[style]{ text-transform:none; }
   .month-row .m-flag{ color:var(--rouge); font-weight:800; }
   .bilan-type-bar-outer{ flex:1; height:8px; background:var(--gris-fond); border-radius:4px; overflow:hidden; }
   .bilan-type-bar-inner{ height:100%; background:var(--police); }
@@ -409,6 +410,66 @@
     .form-actions .btn{ font-size:14px; }
   }
   @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+
+  /* ---------- v2.1 : heures au-delà de 7 h, mail à la RH, relevé imprimable ---------- */
+  .dur-hint{ font-size:13.5px; color:var(--slate); margin-top:10px; }
+  .dur-hint:empty{ display:none; }
+  .dur-hint b{ color:var(--encre); }
+  .card-note{ font-size:14px; color:var(--slate); margin:0 0 12px; line-height:1.5; }
+  .regle{ background:var(--bleu-clair-bg); border:1px solid var(--bleu-clair-bd); border-radius:var(--r-sm); padding:12px 14px; font-size:14px; line-height:1.5; margin-bottom:12px; color:var(--texte); }
+  .regle b{ color:var(--encre); }
+  .regle .attn{ display:block; margin-top:8px; padding-top:8px; border-top:1px solid var(--bleu-clair-bd); }
+  .extra-box{ border:1px solid var(--gris-bord); border-radius:var(--r-sm); padding:14px; margin-bottom:10px; }
+  .extra-box:last-child{ margin-bottom:0; }
+  .extra-title{ font-weight:800; color:var(--encre); margin-bottom:10px; font-size:14.5px; }
+  .extra-none{ font-size:14px; color:var(--slate); }
+  .extra-eq{ display:flex; align-items:flex-start; gap:6px; }
+  .eq-cell{ flex:1; min-width:0; }
+  .eq-n{ font-family:var(--display); font-size:30px; font-weight:700; color:var(--encre); line-height:1; white-space:nowrap; }
+  .eq-l{ font-size:12.5px; color:var(--slate); margin-top:4px; line-height:1.3; }
+  .eq-op{ font-family:var(--display); font-size:24px; font-weight:600; color:var(--slate-light); padding-top:2px; }
+  .extra-box .bonus-progress-outer{ margin:14px 0 6px; background:var(--gris-fond); }
+  .extra-box .bonus-progress-inner{ background:var(--or-fonce); }
+  .extra-next{ font-size:13.5px; color:var(--slate); }
+  .extra-detail{ margin-top:12px; border-top:1px solid var(--gris-bord); padding-top:4px; }
+  .extra-detail > summary{ cursor:pointer; font-weight:700; color:var(--bleu); font-size:14px; padding:8px 0; }
+  .extra-table{ font-size:13.5px; }
+  .xt-row{ display:grid; grid-template-columns:48px 1fr 70px 62px; gap:6px; padding:8px 0; border-top:1px solid var(--gris-bord); align-items:start; color:var(--texte); }
+  .xt-row span:nth-child(n+3){ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .xt-row span:nth-child(4){ font-weight:700; color:var(--encre); }
+  .xt-row small{ color:var(--slate); font-size:12.5px; }
+  .xt-head{ font-weight:700; color:var(--slate); font-size:12.5px; border-top:0; }
+  .xt-gain{ background:var(--vert-bg); color:var(--vert); border:1px solid var(--vert-bd); border-radius:8px; padding:7px 10px; font-size:13.5px; font-weight:700; margin:2px 0 8px; }
+  .extra-paid{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gris-bord); }
+  .extra-paid .bl{ font-size:14px; font-weight:700; color:var(--encre); }
+  .extra-sub{ font-size:13px; color:var(--slate); margin-top:2px; }
+  .extra-paid .bv{ font-family:var(--display); font-size:20px; font-weight:700; color:var(--encre); white-space:nowrap; }
+  .extra-paid .bonus-adjust button{ border-color:var(--gris-bord2); color:var(--encre); }
+  .mail-note{ font-size:13.5px; color:var(--slate); margin-bottom:8px; }
+  .mail{ border:1px solid var(--gris-bord2); border-radius:var(--r-sm); overflow:hidden; margin-bottom:12px; background:var(--paper); }
+  .mail-head{ background:var(--gris-fond); padding:10px 12px; font-size:13.5px; border-bottom:1px solid var(--gris-bord2); color:var(--encre); overflow-wrap:anywhere; }
+  .mail-head > div + div{ margin-top:5px; }
+  .mail-head span{ display:inline-block; min-width:44px; color:var(--slate); font-weight:600; }
+  .mail-head i{ color:var(--jaune-texte); font-style:normal; }
+  .mail-body{ padding:12px; font-size:14px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; max-height:340px; overflow-y:auto; color:var(--texte); }
+  .mail-btns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mail-btns .btn{ flex:1 1 150px; }
+  #print-area{ display:none; }
+  @media print{
+    #app, .fab, #sheet-overlay, #dlg-overlay, #toast{ display:none !important; }
+    html, body{ height:auto; overflow:visible; background:#fff; }
+    #print-area{ display:block; color:#000; font:11pt/1.4 Arial, Helvetica, sans-serif; padding:0; }
+    #print-area h1{ font:700 18pt Arial, sans-serif; margin:0 0 4pt; }
+    #print-area h2{ font:700 13pt Arial, sans-serif; margin:16pt 0 6pt; color:#000; }
+    #print-area .pr-id{ margin:0 0 12pt; color:#333; }
+    #print-area table{ width:100%; border-collapse:collapse; font-size:10pt; }
+    #print-area th, #print-area td{ border:1px solid #888; padding:4pt 6pt; text-align:left; vertical-align:top; }
+    #print-area th{ background:#e8ebf2; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    #print-area .num{ text-align:right; white-space:nowrap; }
+    #print-area tfoot td{ font-weight:700; }
+    #print-area .pr-total{ font:700 13pt Arial, sans-serif; text-align:right; margin-top:12pt; }
+    @page{ margin:15mm; }
+  }
 </style>
 </head>
 <body>
@@ -532,12 +593,14 @@
     <div class="content">
       <div class="card">
         <div class="card-title">Identité</div>
-        <div class="profile-field"><label>Nom</label><input id="p-nom" placeholder="Votre nom" onchange="saveProfile()"></div>
+        <div class="profile-field"><label for="p-nom">Nom et prénom</label><input id="p-nom" placeholder="NOM Prénom" onchange="saveProfile()"></div>
         <div class="form-row2">
           <div class="profile-field"><label>Matricule</label><input id="p-matricule" placeholder="RO-XXXX" onchange="saveProfile()"></div>
           <div class="profile-field"><label>Brigade / unité</label><input id="p-brigade" placeholder="Brigade Centre" onchange="saveProfile()"></div>
         </div>
         <div class="profile-field"><label>Ville (pour les actualités)</label><input id="p-ville" placeholder="Ex : Metz" onchange="saveProfile()"></div>
+        <div class="profile-field"><label for="p-grade">Grade dans la réserve police (fixe le montant d'une vacation)</label><select id="p-grade" onchange="saveProfile()"></select></div>
+        <div class="profile-field"><label for="p-rh-mail">Adresse mail de la RH (pour le mail de réclamation)</label><input id="p-rh-mail" type="email" inputmode="email" autocomplete="off" placeholder="Ex : rh@exemple.gouv.fr" onchange="saveProfile()"></div>
         <div class="profile-field"><label>Taux Gendarmerie (€/vacation, si connu)</label><input id="p-taux-gendarmerie" type="number" placeholder="Ex : 74" onchange="saveProfile()"></div>
         <div class="profile-field" style="margin-bottom:0;"><label>Département officiel de rattachement</label><select id="p-departement" onchange="saveProfile()"></select></div>
       </div>
@@ -566,20 +629,15 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Activité de l'année</div>
-        <div class="trend-chart" id="trend-chart"></div>
-      </div>
-
-      <div class="card">
         <div class="card-title">Bilan financier</div>
         <div id="bilan-summary"></div>
-        <div id="bonus-days-box" style="margin-top:12px;"></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Répartition</div>
-        <div id="corps-compare" style="margin-bottom:14px;"></div>
-        <div id="bilan-types"></div>
+      <div class="card" id="extra-card">
+        <div class="card-title">Heures au-delà de 7 h</div>
+        <div class="regle"><b>Comment l'appli compte.</b> Une vacation est payée pour 7 h. Quand elle dure plus longtemps, les heures en plus sont mises de côté, par corps et par département. Dès que le compte atteint 7 h, cela fait <b>1 journée en plus</b>, au même tarif qu'une vacation.
+          <span class="attn"><b>À faire confirmer par votre RH.</b> Les textes publics fixent la vacation à 7 h (12 h 08 au maximum) et son montant, mais ne disent pas comment les heures en plus sont payées. Le mail ci-dessous leur pose la question, avec le détail.</span></div>
+        <div id="bonus-days-box"></div>
       </div>
 
       <div class="card" id="dept-card" style="display:none;">
@@ -588,22 +646,37 @@
         <div id="dept-breakdown"></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Rapport pour la RH</div>
-        <p style="font-size:13px; color:var(--slate); margin:0 0 12px;">Liste détaillée des vacations effectuées non encore réglées, prête à envoyer pour réclamer le paiement.</p>
-        <div id="report-preview" style="font-size:13px; color:var(--slate); background:var(--gris-fond); border-radius:6px; padding:10px 12px; margin-bottom:12px; white-space:pre-wrap; max-height:160px; overflow-y:auto;"></div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-ghost" style="flex:1;" onclick="copyReport()">Copier</button>
-          <button class="btn btn-primary" style="flex:1;" onclick="emailReport()">Envoyer par mail</button>
+      <div class="card" id="mail-card">
+        <div class="card-title">Mail à la RH</div>
+        <p class="card-note">Vos vacations effectuées et pas encore payées, et vos heures au-delà de 7 h, dans un mail prêt à partir. Vérifiez-le avant d'envoyer.</p>
+        <div id="report-depts"></div>
+        <div id="report-preview"></div>
+        <div id="report-btns">
+          <div class="mail-btns">
+            <button class="btn btn-primary" onclick="emailReport()">Ouvrir dans ma messagerie</button>
+            <button class="btn btn-ghost" onclick="copyReport()">Copier le texte</button>
+          </div>
+          <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="printReleve()">Relevé en tableau, à imprimer ou enregistrer en PDF</button>
         </div>
-        <div id="report-last-sent" style="font-size:13px; color:var(--slate); margin-top:9px; text-align:center;"></div>
+        <div id="report-last-sent" style="color:var(--slate); margin-top:10px; text-align:center;"></div>
       </div>
 
       <div class="card">
         <div class="card-title">Rapport mois par mois</div>
-        <p style="font-size:13px; color:var(--slate); margin:0 0 10px;">Utile pour repérer un mois où l'administration n'a pas encore réglé une vacation effectuée. Les journées bonus (heures cumulées) sont ajoutées en bas, séparément, car elles ne sont pas liées à un mois précis.</p>
+        <p style="font-size:13px; color:var(--slate); margin:0 0 10px;">Utile pour repérer un mois où l'administration n'a pas encore réglé une vacation effectuée. Les journées en plus (heures au-delà de 7 h) sont ajoutées en bas, séparément, car elles ne sont pas liées à un mois précis.</p>
         <div id="bilan-monthly"></div>
       </div>
+      <div class="card">
+        <div class="card-title">Activité de l'année</div>
+        <div class="trend-chart" id="trend-chart"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Répartition</div>
+        <div id="corps-compare" style="margin-bottom:14px;"></div>
+        <div id="bilan-types"></div>
+      </div>
+
     </div>
   </div>
 
@@ -649,7 +722,7 @@
       <div style="text-align:center; padding:16px 0 8px;">
         <div style="font-size:14px; font-weight:700; color:var(--encre);">Made by Sam</div>
         <div style="font-size:13px; color:var(--slate); margin-top:2px;">Issam Akezdaw — i.akezdaw@gmail.com</div>
-        <div style="font-size:13px; color:var(--slate); margin-top:6px;" id="app-version">Planning RO version 2.0</div>
+        <div style="font-size:13px; color:var(--slate); margin-top:6px;" id="app-version">Planning RO version 2.1</div>
       </div>
     </div>
   </div>
@@ -697,6 +770,7 @@
             <div><label for="f-fin">Fin</label><input id="f-fin" type="time" onchange="renderTimePresets()"></div>
           </div>
           <div class="presets" id="time-presets"></div>
+          <div class="dur-hint" id="dur-hint"></div>
         </div>
       </div>
 
@@ -720,8 +794,9 @@
       </div>
 
       <details class="plus" id="more-options">
-        <summary><span>Plus d'options</span><small>ville, département, statut, paiement, notes</small></summary>
+        <summary><span>Plus d'options</span><small>pause, ville, département, statut, paiement, notes</small></summary>
         <div class="field-box">
+          <div class="profile-field"><label for="f-pause">Pause non comptée, en minutes (repas par exemple)</label><input id="f-pause" type="number" min="0" max="240" step="5" inputmode="numeric" placeholder="0" oninput="updateDurHint()"></div>
           <div class="profile-field"><label for="f-ville">Ville, pour afficher la météo</label><input id="f-ville" list="ville-suggestions" placeholder="Ex : Évry, Metz, Lyon"><datalist id="ville-suggestions"></datalist></div>
           <div class="profile-field" style="margin-bottom:0;"><label for="f-departement">Département qui paie, s'il est différent du vôtre</label><select id="f-departement"></select></div>
         </div>
@@ -766,6 +841,7 @@
   <div id="dlg" role="dialog" aria-modal="true"></div>
 </div>
 <div id="toast" role="status"></div>
+<div id="print-area"></div>
 
 <script>
 let entries = [];
@@ -819,6 +895,7 @@ function loadData(){
   document.getElementById('p-ville').value = profile.ville || '';
   document.getElementById('p-taux-gendarmerie').value = profile.tauxGendarmerie != null ? profile.tauxGendarmerie : '';
   populateDeptSelect('p-departement', profile.departement);
+  fillProfileExtras();
 
   if(localStorage.getItem('reserve_dark') === '1'){
     document.body.classList.add('dark');
@@ -838,9 +915,16 @@ function persist(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entrie
 function persistHabil(){ try{ localStorage.setItem(HABIL_KEY, JSON.stringify(habilitations)); }catch(e){} }
 function saveProfile(){
   const tauxGendVal = document.getElementById('p-taux-gendarmerie').value.trim();
-  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim(), ville:document.getElementById('p-ville').value.trim(), tauxGendarmerie: tauxGendVal ? parseFloat(tauxGendVal) : null, departement: document.getElementById('p-departement').value };
+  profile = { nom:document.getElementById('p-nom').value.trim(), matricule:document.getElementById('p-matricule').value.trim(), brigade:document.getElementById('p-brigade').value.trim(), ville:document.getElementById('p-ville').value.trim(), tauxGendarmerie: tauxGendVal ? parseFloat(tauxGendVal) : null, departement: document.getElementById('p-departement').value,
+    grade: document.getElementById('p-grade').value, rhMail: document.getElementById('p-rh-mail').value.trim() };
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }catch(e){}
+  renderAll();
   showToast('Profil enregistré');
+}
+function fillProfileExtras(){
+  const g = document.getElementById('p-grade');
+  if(g){ g.innerHTML = GRADES.map(x => `<option value="${x[0]}">${x[1]} : ${x[2]} € en Île-de-France, ${x[3]} € ailleurs</option>`).join(''); g.value = gradeInfo().key; }
+  const m = document.getElementById('p-rh-mail'); if(m) m.value = profile.rhMail || '';
 }
 
 function openNews(){
@@ -930,7 +1014,7 @@ function closeSheet(){
 function closeSheetIfOverlay(ev){ if(ev.target.id === 'sheet-overlay') closeSheet(); }
 
 function clearForm(){
-  ['f-lieu','f-ville','f-date','f-debut','f-fin','f-notes','f-montant'].forEach(id => document.getElementById(id).value = '');
+  ['f-lieu','f-ville','f-date','f-debut','f-fin','f-notes','f-montant','f-pause'].forEach(id => document.getElementById(id).value = '');
   populateTypeSelect(null);
   populateDeptSelect('f-departement', profile.departement);
   setStatut('prevue'); setPaiement('non_paye'); setCorps('police');
@@ -995,6 +1079,7 @@ function saveEntry(keepOpen){
   const fin = document.getElementById('f-fin').value;
   const notes = document.getElementById('f-notes').value.trim();
   const montant = document.getElementById('f-montant').value;
+  const pause = parseInt(document.getElementById('f-pause').value, 10) || 0;
 
   if(!date){ showToast('Choisissez la date'); document.getElementById('f-date').focus(); return; }
   if(!type){ showToast('Précisez le type de mission'); document.getElementById('f-type').focus(); return; }
@@ -1014,6 +1099,7 @@ function saveEntry(keepOpen){
   }
 
   const payload = { type, date, lieu, ville, departement, debut, fin, statut: currentStatut, paiement: currentPaiement, corps: currentCorps, montant: montant ? parseFloat(montant) : null, notes };
+  if(pause > 0) payload.pause = pause; else if(editingId) payload.pause = 0;
   const wasEditing = editingId;
   let saved = null, msg = '';
 
@@ -1068,6 +1154,7 @@ function editEntry(id){
   document.getElementById('f-fin').value = e.fin || '';
   document.getElementById('f-notes').value = e.notes || '';
   document.getElementById('f-montant').value = e.montant != null ? e.montant : '';
+  document.getElementById('f-pause').value = e.pause || '';
   setStatut(e.statut || 'prevue'); setPaiement(e.paiement || 'non_paye'); setCorps(e.corps || 'police');
   document.getElementById('form-tip').textContent = longDate(e.date).replace(/^./, c => c.toUpperCase()) + (e.agenda ? (e.agendaPerime ? ' · agenda à remettre à jour' : ' · déjà dans votre agenda') : '');
   document.getElementById('more-options').open = true;
@@ -1101,6 +1188,7 @@ function duplicateEntry(id){
   document.getElementById('f-fin').value = e.fin || '';
   document.getElementById('f-notes').value = '';
   document.getElementById('f-montant').value = '';
+  document.getElementById('f-pause').value = e.pause || '';
   setStatut('prevue'); setPaiement('non_paye'); setCorps(e.corps || 'police');
   document.getElementById('form-tip').textContent = 'Copie de la vacation : choisissez la nouvelle date.';
   document.getElementById('more-options').open = false;
@@ -1191,13 +1279,69 @@ function handleTypeSelect(val){
 
 const IDF_VILLES = ['paris','boulogne-billancourt','saint-denis','argenteuil','montreuil','nanterre','créteil','versailles','courbevoie','vitry-sur-seine','colombes','asnières-sur-seine','aulnay-sous-bois','rueil-malmaison','champigny-sur-marne','saint-maur-des-fossés','drancy','issy-les-moulineaux','levallois-perret','noisy-le-grand','antony','neuilly-sur-seine','sarcelles','ivry-sur-seine','cergy','bobigny'];
 
+/* ===================== v2.1 : taux officiels, heures au-delà de 7 h, mail à la RH =====================
+   Taux journaliers : arrêté du 22 septembre 2022 (réserve opérationnelle de la police nationale),
+   colonne « zone de défense et de sécurité de Paris » (Île-de-France) / hors zone. Une vacation = 7 h de travail effectif. */
+const VAC_HOURS = 7;
+const GRADES = [
+  ['policier_adjoint','Policier adjoint',80,74], ['gardien','Gardien de la paix',95,88], ['brigadier_chef','Brigadier-chef',111,103],
+  ['major','Major',119,112], ['capitaine','Capitaine',138,132], ['commandant','Commandant',149,143],
+  ['commissaire','Commissaire',185,177], ['commissaire_div','Commissaire divisionnaire',249,240]
+];
+const IDF_DEPTS = ['75','77','78','91','92','93','94','95'];
+function gradeInfo(){ const g = GRADES.find(x => x[0] === profile.grade) || GRADES[0]; return { key:g[0], label:g[1], paris:g[2], province:g[3] }; }
+/* Zone de Paris ? D'abord le département de la vacation, sinon la ville, sinon le département du profil. */
+function isParisZone(e){
+  const d = normalizeDept(e.departement || '');
+  if(/^\d+$/.test(d)) return IDF_DEPTS.includes(d);
+  const v = (e.ville || '').toLowerCase().trim();
+  if(v && IDF_VILLES.includes(v)) return true;
+  return IDF_DEPTS.includes(normalizeDept(profile.departement || ''));
+}
+function policeRate(e){ const g = gradeInfo(); return isParisZone(e) ? g.paris : g.province; }
 function suggestedMontant(e){
   if(e.montant != null) return e.montant;
   if((e.corps || 'police') !== 'police'){
     return (profile.tauxGendarmerie != null && !isNaN(profile.tauxGendarmerie)) ? profile.tauxGendarmerie : null;
   }
-  const villeNorm = (e.ville || '').toLowerCase().trim();
-  return IDF_VILLES.includes(villeNorm) ? 80 : 74;
+  return policeRate(e);
+}
+/* Durée réellement comptée : de l'heure de début à l'heure de fin, moins la pause non comptée (si renseignée). */
+function hoursOf(e){ return Math.max(0, computeHours(e.debut, e.fin) - (parseFloat(e.pause) || 0) / 60); }
+function fmtH(h){
+  const mins = Math.round(h * 60); const hh = Math.floor(mins / 60), mm = mins % 60;
+  return hh + ' h' + (mm ? ' ' + String(mm).padStart(2,'0') : '');
+}
+function fmtEUR(n){ return n.toFixed(2).replace('.', ',') + ' €'; }
+function bucketDept(e){ return (e.departement && e.departement.trim()) || profile.departement || 'Département non précisé'; }
+
+/* Le compte des heures au-delà de 7 h, par corps et par département, vacation par vacation.
+   Chaque vacation de plus de 7 h ajoute son surplus au compte ; chaque tranche de 7 h du compte = 1 journée en plus. */
+function getExtraLedger(year){
+  const out = [];
+  ['police','gendarmerie'].forEach(corps => {
+    const done = entries.filter(e => e.statut === 'effectuee' && e.date && (e.corps || 'police') === corps && new Date(e.date+'T00:00:00').getFullYear() === year).sort(sortChrono);
+    if(!done.length) return;
+    const by = {};
+    done.forEach(e => { const d = bucketDept(e); (by[d] = by[d] || []).push(e); });
+    Object.keys(by).forEach(dept => {
+      const list = by[dept]; let cumul = 0, days = 0; const rows = [];
+      list.forEach(e => {
+        const h = hoursOf(e), ex = h - VAC_HOURS;
+        if(ex <= 0.0001) return;
+        cumul += ex;
+        const nd = Math.floor(cumul / VAC_HOURS + 1e-9);
+        rows.push({ e, h, ex, cumul, gained: nd - days }); days = nd;
+      });
+      let rate = null;
+      if(corps === 'police'){ const g = gradeInfo(); rate = list.filter(isParisZone).length * 2 >= list.length ? g.paris : g.province; }
+      else if(profile.tauxGendarmerie != null && !isNaN(profile.tauxGendarmerie)) rate = profile.tauxGendarmerie;
+      const extra = days, pending = cumul - extra * VAC_HOURS;
+      const bonusPaid = Math.min(extra, getBonusPaid(dept, corps, year)), bonusDue = extra - bonusPaid;
+      out.push({ dept, corps, rows, count: list.length, excess: cumul, extra, pending, rate, bonusPaid, bonusDue, dueMontant: rate != null ? bonusDue * rate : null });
+    });
+  });
+  return out;
 }
 function effectiveMontant(e){
   const s = suggestedMontant(e);
@@ -1401,7 +1545,7 @@ async function refreshWeather(){
 }
 
 /* ===================== v2 : accueil, agenda, rappel ===================== */
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 
 function hm(t){ if(!t) return ''; const p = t.split(':'); return String(+p[0]) + 'h' + (p[1] === '00' ? '' : p[1]); }
 function hmRange(e){ return (e.debut && e.fin) ? hm(e.debut) + ' – ' + hm(e.fin) : 'Horaires à préciser'; }
@@ -1620,9 +1764,19 @@ function prefillFromLast(){
   document.getElementById('f-debut').value = l.debut || '';
   document.getElementById('f-fin').value = l.fin || '';
   setCorps(l.corps || 'police');
+  document.getElementById('f-pause').value = l.pause || '';
   if(tip) tip.textContent = 'Prérempli comme votre dernière vacation : choisissez la date, corrigez si besoin.';
 }
+function updateDurHint(){
+  const el = document.getElementById('dur-hint'); if(!el) return;
+  const d = document.getElementById('f-debut').value, f = document.getElementById('f-fin').value;
+  if(!d || !f){ el.textContent = ''; return; }
+  const h = hoursOf({ debut:d, fin:f, pause:document.getElementById('f-pause').value });
+  const ex = h - VAC_HOURS;
+  el.innerHTML = 'Durée comptée : <b>' + fmtH(h) + '</b>' + (ex > 0.0001 ? ', soit 7 h + <b>' + fmtH(ex) + ' au-delà</b> (mises au compte, voir Paiements)' : ex < -0.0001 ? ' (moins de 7 h)' : ', une vacation complète');
+}
 function renderTimePresets(){
+  updateDurHint();
   const el = document.getElementById('time-presets');
   if(!el) return;
   const counts = {};
@@ -1694,11 +1848,8 @@ function animateNumber(el, target){
 function computeJourneesActivite(engagedEntries){
   const journeesBase = engagedEntries.length;
   let excessHours = 0;
-  engagedEntries.forEach(e => {
-    const h = computeHours(e.debut, e.fin);
-    if(h > 7) excessHours += (h - 7);
-  });
-  const extraJournees = Math.floor(excessHours / 7);
+  engagedEntries.forEach(e => { const h = hoursOf(e); if(h > VAC_HOURS) excessHours += (h - VAC_HOURS); });
+  const extraJournees = Math.floor(excessHours / VAC_HOURS + 1e-9);
   return { total: journeesBase + extraJournees, base: journeesBase, extra: extraJournees, excessHours };
 }
 
@@ -1749,7 +1900,7 @@ function renderStats(){
   const weekDone = done.filter(e => isoWeekKey(new Date(e.date+'T00:00:00')) === thisWeekKey);
   const monthDone = done.filter(e => { const d=new Date(e.date+'T00:00:00'); return d.getMonth()===thisMonth && d.getFullYear()===thisYear; });
   const aPercevoir = done.filter(e => e.paiement !== 'paye');
-  const sumH = arr => arr.reduce((s,e) => s + computeHours(e.debut,e.fin), 0);
+  const sumH = arr => arr.reduce((s,e) => s + hoursOf(e), 0);
   const sumMontant = arr => arr.reduce((s,e) => s + effectiveMontant(e), 0);
   const block = (label, arr) => `<div class="stat"><div class="n">${arr.length}</div><div class="h">${sumH(arr).toFixed(1)} h</div><div class="l">${label}</div></div>`;
   const paiementBlock = aPercevoir.length > 0
@@ -1931,14 +2082,14 @@ function renderList(){
   try{ reported = JSON.parse(localStorage.getItem('reserve_last_report_ids') || '[]'); }catch(err){}
   const thisYear = new Date().getFullYear();
   list.innerHTML = shown.map(e => {
-    const h = computeHours(e.debut, e.fin);
+    const h = hoursOf(e); const enPlus = h - VAC_HOURS;
     const corps = e.corps || 'police';
     const year = e.date ? new Date(e.date+'T00:00:00').getFullYear() : thisYear;
     const montantTxt = e.statut==='effectuee' ? (e.montant != null ? e.montant + ' €' : (suggestedMontant(e)!=null ? 'environ ' + suggestedMontant(e) + ' € (estimé)' : '')) : '';
     const isOutOfDept = e.departement && profile.departement && !sameDept(e.departement, profile.departement);
     const wx = weatherByEntry[e.id];
     const meta = [
-      (e.debut&&e.fin) ? hmRange(e) + ' (' + String(Math.round(h*10)/10).replace('.',',') + ' h)' : '',
+      (e.debut&&e.fin) ? hmRange(e) + ' (' + fmtH(h) + (enPlus > 0.0001 ? ', dont ' + fmtH(enPlus) + ' au-delà de 7 h' : '') + ')' : '',
       e.lieu ? escapeHtml(e.lieu) : '',
       montantTxt,
       wx ? `${wx.icon} ${wx.tmin}° / ${wx.tmax}°` : '',
@@ -2037,7 +2188,7 @@ function renderDeptBreakdown(unpaidEntries){
     if(!byDept[d]) byDept[d] = { count: 0, total: 0, heures: 0, villes: new Set(), bonus: 0 };
     byDept[d].count++;
     byDept[d].total += effectiveMontant(e);
-    byDept[d].heures += computeHours(e.debut, e.fin);
+    byDept[d].heures += hoursOf(e);
     if(e.ville) byDept[d].villes.add(e.ville);
   });
   getBonusByDeptCorps(bilanYear).forEach(it => {
@@ -2046,7 +2197,7 @@ function renderDeptBreakdown(unpaidEntries){
   el.innerHTML = Object.entries(byDept).sort((a,b) => (b[1].total+b[1].bonus) - (a[1].total+a[1].bonus)).map(([dept, v]) => {
     const isHome = sameDept(dept, profile.departement);
     const villesTxt = v.villes.size > 0 ? ' — ' + [...v.villes].map(escapeHtml).join(', ') : '';
-    const bonusTxt = v.bonus > 0 ? ` <span style="font-weight:600; color:var(--jaune-texte);">(dont ${v.bonus.toFixed(0)}€ bonus)</span>` : '';
+    const bonusTxt = v.bonus > 0 ? ` <span style="font-weight:600; color:var(--jaune-texte);">(dont ${v.bonus.toFixed(0)} € de journée en plus)</span>` : '';
     return `<div class="dept-row">
       <div><div class="dept-name">${isHome ? '🏠 ' : '✈ '}${escapeHtml(dept)}</div><div class="dept-sub">${v.count} vacation(s) · ${v.heures.toFixed(1)} h${isHome ? ' · votre département' : ' · hors département'}${villesTxt}${bonusTxt}</div></div>
       <div class="dept-amount ${isHome?'home':''}">${(v.total+v.bonus).toFixed(0)} €</div>
@@ -2083,48 +2234,39 @@ function adjustBonusPaid(dept, corps, year, delta){
   vibrate();
 }
 
-function getBonusByDeptCorps(year){
-  // Retourne un tableau { dept, corps, extra, pending, rate, bonusPaid, bonusDue, dueMontant }
-  const results = [];
-  ['police','gendarmerie'].forEach(corps => {
-    const rate = corps === 'police' ? 74 : (profile.tauxGendarmerie != null && !isNaN(profile.tauxGendarmerie) ? profile.tauxGendarmerie : null);
-    const doneCorps = entries.filter(e => e.statut === 'effectuee' && e.date && (e.corps||'police')===corps && new Date(e.date+'T00:00:00').getFullYear() === year);
-    if(doneCorps.length === 0) return;
-    const byDept = {};
-    doneCorps.forEach(e => {
-      const d = (e.departement && e.departement.trim()) || profile.departement || 'Département non précisé';
-      (byDept[d] = byDept[d] || []).push(e);
-    });
-    Object.entries(byDept).forEach(([dept, list]) => {
-      const { extra, excessHours } = computeJourneesActivite(list);
-      const pending = excessHours - (extra * 7);
-      const bonusPaid = Math.min(extra, getBonusPaid(dept, corps, year));
-      const bonusDue = extra - bonusPaid;
-      const dueMontant = rate != null ? bonusDue * rate : null;
-      results.push({ dept, corps, extra, pending, rate, bonusPaid, bonusDue, dueMontant });
-    });
-  });
-  return results;
-}
+function getBonusByDeptCorps(year){ return getExtraLedger(year); }
 
 function renderBonusBox(year){
   const el = document.getElementById('bonus-days-box');
   if(!el) return;
-  const items = getBonusByDeptCorps(year);
-  if(items.length === 0){ el.innerHTML = ''; return; }
-
+  const items = getExtraLedger(year);
+  if(!items.length){ el.innerHTML = `<div class="empty">Aucune vacation effectuée en ${year}.</div>`; return; }
+  const several = items.length > 1;
   el.innerHTML = items.map(it => {
-    const rateTxt = it.rate != null ? it.rate + ' €' : 'taux inconnu';
-    return `<div class="bonus-box" style="margin-bottom:10px;">
-      <div class="bonus-box-title">Journées bonus — ${CORPS_LABELS[it.corps]} — ${escapeHtml(it.dept)}</div>
-      <div style="font-size:14px; color:var(--encre);">${it.pending.toFixed(1)} h cumulées sur 7h avant la prochaine journée bonus (dans ce département)</div>
-      <div class="bonus-progress-outer"><div class="bonus-progress-inner" style="width:${Math.min(100,(it.pending/7)*100)}%;"></div></div>
-      <div class="bonus-row">
-        <div><div class="bl">Journées bonus gagnées ici cette année</div><div style="font-size:13px; color:var(--slate); margin-top:2px;">${it.extra} journée(s) × ${rateTxt}${it.bonusPaid>0 ? ' · '+it.bonusPaid+' déjà réglée(s)' : ''}</div></div>
-        <div class="bonus-adjust">
-          ${it.extra > 0 ? `<button onclick="adjustBonusPaid('${escapeHtml(it.dept)}', '${it.corps}', ${year}, -1)">−</button><span class="bv">${it.dueMontant!=null ? it.dueMontant.toFixed(0)+' €' : it.bonusDue}</span><button onclick="adjustBonusPaid('${escapeHtml(it.dept)}', '${it.corps}', ${year}, 1)">+</button>` : `<span class="bv" style="font-size:14px; color:var(--slate);">0</span>`}
-        </div>
+    const titre = `${it.corps === 'police' ? 'Police' : 'Gendarmerie'} · ${escapeHtml(it.dept)}`;
+    if(!it.rows.length) return `<div class="extra-box"><div class="extra-title">${titre}</div><div class="extra-none">Aucune vacation de plus de 7 h en ${year} : rien à compter ici.</div></div>`;
+    const rateTxt = it.rate != null ? fmtEUR(it.rate) : null;
+    const reste = VAC_HOURS - it.pending;
+    return `<div class="extra-box">
+      ${several ? `<div class="extra-title">${titre}</div>` : ''}
+      <div class="extra-eq">
+        <div class="eq-cell"><div class="eq-n">${fmtH(it.excess)}</div><div class="eq-l">au-delà de 7 h en ${year}</div></div>
+        <div class="eq-op">=</div>
+        <div class="eq-cell"><div class="eq-n">${it.extra}</div><div class="eq-l">journée${it.extra > 1 ? 's' : ''} en plus${it.rate != null && it.extra ? '<br>soit ' + fmtEUR(it.extra * it.rate) : ''}</div></div>
+        <div class="eq-op">+</div>
+        <div class="eq-cell"><div class="eq-n">${fmtH(it.pending)}</div><div class="eq-l">en attente</div></div>
       </div>
+      <div class="bonus-progress-outer"><div class="bonus-progress-inner" style="width:${Math.min(100, (it.pending / VAC_HOURS) * 100)}%;"></div></div>
+      <div class="extra-next">Encore ${fmtH(reste)} au-delà de 7 h pour gagner la journée suivante${rateTxt ? ' (' + rateTxt + ')' : ''}.</div>
+      <details class="extra-detail"><summary>D’où viennent ces heures : ${it.rows.length} vacation${it.rows.length > 1 ? 's' : ''}</summary>
+        <div class="extra-table">
+          <div class="xt-row xt-head"><span>Date</span><span>Horaires</span><span>En plus</span><span>Compte</span></div>
+          ${it.rows.map(r => `<div class="xt-row"><span>${new Date(r.e.date+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})}</span><span>${hmRange(r.e)}<br><small>${fmtH(r.h)}${r.e.pause ? ', pause ' + r.e.pause + ' min déduite' : ''}</small></span><span>+ ${fmtH(r.ex)}</span><span>${fmtH(r.cumul)}</span></div>${r.gained > 0 ? `<div class="xt-gain">Le compte atteint ${fmtH(r.cumul)} : ${r.gained > 1 ? r.gained + ' journées en plus gagnées' : '1 journée en plus gagnée'}${rateTxt ? ' (' + fmtEUR(r.gained * it.rate) + ')' : ''}</div>` : ''}`).join('')}
+        </div>
+      </details>
+      ${it.extra > 0 ? `<div class="extra-paid"><div><div class="bl">Journées en plus déjà payées</div><div class="extra-sub">${it.bonusDue > 0 ? 'Reste dû : ' + (it.dueMontant != null ? fmtEUR(it.dueMontant) : it.bonusDue + ' journée' + (it.bonusDue > 1 ? 's' : '')) : 'Tout est payé'}</div></div>
+        <div class="bonus-adjust"><button onclick="adjustBonusPaid('${escapeHtml(it.dept)}', '${it.corps}', ${year}, -1)" aria-label="Une de moins">−</button><span class="bv">${it.bonusPaid} / ${it.extra}</span><button onclick="adjustBonusPaid('${escapeHtml(it.dept)}', '${it.corps}', ${year}, 1)" aria-label="Une de plus">+</button></div></div>` : ''}
+      ${it.rate == null ? `<div class="extra-none">Taux gendarmerie inconnu : indiquez-le dans « Profil » pour avoir le montant.</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -2134,6 +2276,7 @@ function getBonusUnpaidTotal(year){
 }
 
 function renderProfilScreen(){
+  fillProfileExtras();
   renderHabilitations();
 }
 
@@ -2144,7 +2287,7 @@ function renderPaiementsScreen(){
   renderReportPreview();
   renderCorpsCompare();
   const done = entries.filter(e => e.statut === 'effectuee' && e.date && new Date(e.date+'T00:00:00').getFullYear() === bilanYear);
-  const totalH = done.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
+  const totalH = done.reduce((s,e)=>s+hoursOf(e),0);
   const percu = done.filter(e=>e.paiement==='paye').reduce((s,e)=>s+effectiveMontant(e),0);
   const bonusUnpaid = getBonusUnpaidTotal(bilanYear);
   const unpaidEntries = done.filter(e=>e.paiement!=='paye');
@@ -2163,7 +2306,7 @@ function renderPaiementsScreen(){
         <div class="money-amount ok">${percu.toFixed(0)} €</div>
       </div>
       <div class="money-row">
-        <div><div class="money-label">Argent toujours dû par l'administration</div><div class="money-sub">${[nonPayeCount > 0 ? nonPayeCount + ' vacation(s) non réglée(s)' : '', bonusUnpaid > 0 ? 'dont journée(s) bonus' : ''].filter(Boolean).join(' + ') || 'Tout est réglé'}</div></div>
+        <div><div class="money-label">Argent toujours dû par l'administration</div><div class="money-sub">${[nonPayeCount > 0 ? nonPayeCount + ' vacation(s) non réglée(s)' : '', bonusUnpaid > 0 ? 'journée(s) en plus (heures au-delà de 7 h)' : ''].filter(Boolean).join(' + ') || 'Tout est réglé'}</div></div>
         <div class="money-amount ${aPercevoir>0?'due':'ok'}">${aPercevoir.toFixed(0)} €</div>
       </div>
     </div>
@@ -2192,7 +2335,7 @@ function renderPaiementsScreen(){
   for(let m=0; m<12; m++){
     const monthDone = done.filter(e => new Date(e.date+'T00:00:00').getMonth() === m);
     if(monthDone.length === 0) continue;
-    const h = monthDone.reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
+    const h = monthDone.reduce((s,e)=>s+hoursOf(e),0);
     const montant = monthDone.reduce((s,e)=>s+effectiveMontant(e),0);
     const nonPaye = monthDone.filter(e=>e.paiement!=='paye').length;
     yearMontantTotal += montant;
@@ -2215,7 +2358,7 @@ function renderPaiementsScreen(){
         </div>`).join('') +
       (bonusItems.length > 0 ? `
         <div class="month-row" style="border-top:2px solid var(--jaune-texte); background:var(--jaune-bg); margin-top:2px;">
-          <div class="m-name" style="grid-column:1/5; font-size:13px; letter-spacing:0.03em; color:var(--jaune-texte); font-weight:800; padding-top:4px;">Journées bonus par département (non liées à un mois précis)</div>
+          <div class="m-name" style="grid-column:1/5; font-size:13px; letter-spacing:0.03em; color:var(--jaune-texte); font-weight:800; padding-top:4px;">Journées en plus (heures au-delà de 7 h), par département</div>
         </div>` +
         bonusItems.map(it => `
         <div class="month-row" style="background:var(--jaune-bg);">
@@ -2238,117 +2381,150 @@ function padCol(str, width){
   return str.length >= width ? str.slice(0, width) : str + ' '.repeat(width - str.length);
 }
 
-function buildReportText(){
-  const unpaid = entries.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye' && e.date)
-    .sort((a,b) => a.date.localeCompare(b.date));
-
-  const identityLine = [
-    profile.nom ? profile.nom : '[Nom Prénom]',
-    profile.matricule ? 'Matricule ' + profile.matricule : null,
-    profile.brigade ? profile.brigade : null
-  ].filter(Boolean).join(' — ');
-
-  if(unpaid.length === 0){
-    return `Madame, Monsieur,\n\nJe n'ai actuellement aucune vacation en attente de règlement. Ce message est transmis à titre purement informatif.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
-  }
-
-  const byDept = {};
-  unpaid.forEach(e => {
-    const d = (e.departement && e.departement.trim()) || profile.departement || 'Département non précisé';
-    if(!byDept[d]) byDept[d] = [];
-    byDept[d].push(e);
-  });
-
-  const rows = unpaid.map(e => ({
-    date: new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR'),
-    type: e.type,
-    duree: computeHours(e.debut, e.fin) ? computeHours(e.debut, e.fin).toFixed(1) + ' h' : '-',
-    ville: e.ville || e.lieu || '-',
-    montant: effectiveMontant(e).toFixed(2) + ' EUR'
-  }));
-  const w = {
-    date: Math.max(10, ...rows.map(r=>r.date.length)),
-    type: Math.max(20, ...rows.map(r=>r.type.length)),
-    duree: Math.max(7, ...rows.map(r=>r.duree.length)),
-    ville: Math.max(15, ...rows.map(r=>r.ville.length)),
-    montant: Math.max(12, ...rows.map(r=>r.montant.length))
-  };
-
-  const deptNames = Object.keys(byDept);
-  let total = 0;
-  let body = `Madame, Monsieur,\n\nRéserviste opérationnel, je me permets de porter à votre connaissance les vacations suivantes, effectuées mais dont le règlement n'apparaît pas encore avoir été effectué à ce jour`;
-  body += deptNames.length > 1 ? `.\n\nCe rapport couvre plusieurs départements ; merci de ne considérer que la section concernant votre département de rattachement, ou de le transmettre au service compétent.\n` : ` :\n`;
-
-  deptNames.forEach(dept => {
-    body += `\n=== DÉPARTEMENT : ${dept.toUpperCase()} ===\n`;
-    const byCorps = { police: [], gendarmerie: [] };
-    byDept[dept].forEach(e => { byCorps[e.corps || 'police'].push(e); });
-    ['police','gendarmerie'].forEach(corps => {
-      if(byCorps[corps].length === 0) return;
-      body += `\n${CORPS_LABELS[corps].toUpperCase()}\n`;
-      body += padCol('Date', w.date) + '  ' + padCol('Mission', w.type) + '  ' + padCol('Duree', w.duree) + '  ' + padCol('Ville', w.ville) + '  ' + padCol('Montant', w.montant) + '\n';
-      body += '-'.repeat(w.date + w.type + w.duree + w.ville + w.montant + 8) + '\n';
-      byCorps[corps].forEach(e => {
-        const d = new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR');
-        const h = computeHours(e.debut, e.fin);
-        const dureeTxt = h ? h.toFixed(1) + ' h' : '-';
-        const montantTxt = effectiveMontant(e).toFixed(2) + ' EUR';
-        total += effectiveMontant(e);
-        body += padCol(d, w.date) + '  ' + padCol(e.type, w.type) + '  ' + padCol(dureeTxt, w.duree) + '  ' + padCol(e.ville || e.lieu || '-', w.ville) + '  ' + padCol(montantTxt, w.montant) + '\n';
-      });
-    });
-    const deptTotal = byDept[dept].reduce((s,e)=>s+effectiveMontant(e),0);
-    const deptHeures = byDept[dept].reduce((s,e)=>s+computeHours(e.debut,e.fin),0);
-    const currentYear = new Date().getFullYear();
-    const deptBonus = getBonusByDeptCorps(currentYear).filter(it => it.dept === dept).reduce((s,it)=>s+(it.dueMontant||0),0);
-    body += `Sous-total missions ${dept} : ${deptHeures.toFixed(1)} h — ${deptTotal.toFixed(2)} EUR\n`;
-    if(deptBonus > 0) body += `+ Journee(s) bonus ${dept} (heures cumulees au-dela de 7h) : ${deptBonus.toFixed(2)} EUR\n`;
-    body += `TOTAL DU PAR ${dept.toUpperCase()} : ${(deptTotal+deptBonus).toFixed(2)} EUR\n`;
-    total += deptBonus;
-  });
-
-  body += `\nTotal general (tous departements, montants renseignes) : ${total.toFixed(2)} EUR\n\nJe reste à votre disposition pour tout complément d'information, et vous remercie par avance de l'attention portée à ce message.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de ma considération respectueuse.\n\n${identityLine}`;
-  return body;
+/* ---------- Mail à la RH : un mail par département, lisible dans n'importe quelle messagerie ---------- */
+let reportDept = null;
+function unpaidDone(){ return entries.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye' && e.date).sort(sortChrono); }
+function reportDepts(){
+  const set = [];
+  unpaidDone().forEach(e => { const d = bucketDept(e); if(!set.includes(d)) set.push(d); });
+  getExtraLedger(new Date().getFullYear()).forEach(it => { if(it.rows.length && !set.includes(it.dept)) set.push(it.dept); });
+  return set;
 }
+function currentReportDept(){ const ds = reportDepts(); if(!ds.includes(reportDept)) reportDept = ds[0] || null; return reportDept; }
+function setReportDept(d){ reportDept = d; renderReportPreview(); }
+function reportData(dept){
+  const year = new Date().getFullYear();
+  const unpaid = unpaidDone().filter(e => bucketDept(e) === dept);
+  const ledger = getExtraLedger(year).filter(it => it.dept === dept && it.rows.length);
+  const totalVac = unpaid.reduce((s,e) => s + effectiveMontant(e), 0);
+  const unknown = unpaid.filter(e => suggestedMontant(e) == null).length;
+  const bonusDays = ledger.reduce((s,it) => s + it.bonusDue, 0);
+  const bonusMontant = ledger.reduce((s,it) => s + (it.dueMontant || 0), 0);
+  return { year, dept, unpaid, ledger, totalVac, unknown, bonusDays, bonusMontant, total: totalVac + bonusMontant };
+}
+function buildReport(dept){
+  const r = reportData(dept);
+  const multi = reportDepts().length > 1;
+  const who = profile.nom || '[Nom Prénom]';
+  const sign = [who, profile.matricule ? 'Matricule ' + profile.matricule : null, profile.brigade || null, 'Réserviste opérationnel' + (r.unpaid.concat(r.ledger.map(it => ({corps:it.corps}))).every(x => (x.corps || 'police') === 'police') ? ' de la police nationale, ' + gradeInfo().label.toLowerCase() : '')].filter(Boolean).join('\n');
+  const nothing = !r.unpaid.length && !r.ledger.length;
+  const subject = 'Réserve opérationnelle : ' + (r.unpaid.length ? r.unpaid.length + ' vacation' + (r.unpaid.length > 1 ? 's' : '') + ' non réglée' + (r.unpaid.length > 1 ? 's' : '') : 'heures au-delà de 7 h') + ' (' + who + ')';
+  if(nothing) return { subject, body: '', nothing: true, r };
+  const mixCorps = new Set(r.unpaid.map(e => e.corps || 'police')).size > 1;
+  const L = [];
+  L.push('Madame, Monsieur,', '');
+  if(r.unpaid.length){
+    L.push('Réserviste opérationnel, je vous signale que ' + (r.unpaid.length > 1 ? r.unpaid.length + ' vacations effectuées n’ont' : 'une vacation effectuée n’a') + ' pas encore été réglée' + (r.unpaid.length > 1 ? 's' : '') + ' à ce jour' + (multi || dept !== 'Département non précisé' ? ' (' + dept + ')' : '') + '.');
+  } else {
+    L.push('Réserviste opérationnel, je souhaite faire le point sur les heures effectuées au-delà de 7 h lors de mes vacations' + (dept !== 'Département non précisé' ? ' (' + dept + ')' : '') + '.');
+  }
+  L.push('', 'EN RÉSUMÉ');
+  if(r.unpaid.length) L.push('- Vacations non réglées : ' + r.unpaid.length + ', soit ' + fmtEUR(r.totalVac) + (r.unknown ? ' (hors ' + r.unknown + ' vacation' + (r.unknown > 1 ? 's' : '') + ' au montant à préciser)' : ''));
+  r.ledger.forEach(it => {
+    L.push('- Heures au-delà de 7 h en ' + r.year + (r.ledger.length > 1 ? ' (' + (it.corps === 'police' ? 'police' : 'gendarmerie') + ')' : '') + ' : ' + fmtH(it.excess) + (it.extra ? ', soit ' + it.extra + ' journée' + (it.extra > 1 ? 's' : '') + ' supplémentaire' + (it.extra > 1 ? 's' : '') + (it.bonusPaid ? ' dont ' + it.bonusPaid + ' déjà réglée' + (it.bonusPaid > 1 ? 's' : '') : '') + (it.dueMontant ? ', reste ' + fmtEUR(it.dueMontant) : '') : ''));
+  });
+  if(r.total > 0) L.push('- Total demandé : ' + fmtEUR(r.total));
+  if(r.unpaid.length){
+    L.push('', 'VACATIONS NON RÉGLÉES');
+    r.unpaid.forEach((e, i) => {
+      const h = hoursOf(e), m = suggestedMontant(e);
+      const quand = longDate(e.date).replace(/^./, c => c.toUpperCase()) + ' ' + new Date(e.date+'T00:00:00').getFullYear();
+      L.push((i + 1) + '. ' + quand + (e.debut && e.fin ? ', de ' + hm(e.debut) + ' à ' + hm(e.fin) + ' (' + fmtH(h) + (e.pause ? ', pause de ' + e.pause + ' min déduite' : '') + ')' : ''));
+      L.push('   ' + e.type + ([e.lieu, e.ville].filter(Boolean).length ? ', ' + [e.lieu, e.ville].filter((x, k, a) => x && a.indexOf(x) === k).join(', ') : '') + (mixCorps ? ' (' + CORPS_LABELS[e.corps || 'police'] + ')' : ''));
+      L.push('   Montant : ' + (m != null ? fmtEUR(m) : 'à préciser'));
+    });
+  }
+  r.ledger.forEach(it => {
+    L.push('', 'HEURES AU-DELÀ DE 7 H EN ' + r.year + (r.ledger.length > 1 ? ' (' + CORPS_LABELS[it.corps].toUpperCase() + ')' : ''));
+    L.push('Les vacations suivantes ont duré plus de 7 heures :');
+    it.rows.forEach(x => L.push('- ' + new Date(x.e.date+'T00:00:00').toLocaleDateString('fr-FR') + ', de ' + hm(x.e.debut) + ' à ' + hm(x.e.fin) + ' : ' + fmtH(x.h) + (x.e.pause ? ' (pause de ' + x.e.pause + ' min déduite)' : '') + ', soit ' + fmtH(x.ex) + ' au-delà de 7 h'));
+    L.push('Total : ' + fmtH(it.excess) + ' au-delà de 7 h.');
+    if(it.extra) L.push('' + (it.extra ? 'Par tranche de 7 heures, cela représente ' + it.extra + ' journée' + (it.extra > 1 ? 's' : '') + ' supplémentaire' + (it.extra > 1 ? 's' : '') + (it.pending > 0.0001 ? ', et il reste ' + fmtH(it.pending) + ' en compte.' : '.') : ''));
+    L.push('Pourriez-vous me confirmer que ces heures sont bien prises en compte, et de quelle manière elles sont indemnisées ?');
+  });
+  L.push('', 'Je reste à votre disposition pour tout justificatif.', '', 'Je vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations respectueuses.', '', sign);
+  return { subject, body: L.join('\n'), nothing: false, r };
+}
+function buildReportText(){ const d = currentReportDept(); return d ? buildReport(d).body : ''; }
 
 function renderReportPreview(){
   const el = document.getElementById('report-preview');
-  if(el) el.textContent = buildReportText();
+  if(!el) return;
+  const depts = reportDepts(); const dept = currentReportDept();
+  const chips = document.getElementById('report-depts');
+  if(chips) chips.innerHTML = depts.length > 1 ? `<div class="mail-note">Chaque département paie ses propres vacations : un mail par département.</div><div class="filters">` + depts.map(d => `<button type="button" class="filter-chip ${d === dept ? 'active' : ''}" onclick="setReportDept('${escapeHtml(d).replace(/'/g, '&#39;')}')">${escapeHtml(d)}</button>`).join('') + `</div>` : '';
+  const rep = dept ? buildReport(dept) : { nothing: true };
+  const btns = document.getElementById('report-btns');
+  if(rep.nothing){
+    el.innerHTML = `<div class="empty">Rien à réclamer : toutes vos vacations effectuées sont notées payées, et aucune n’a dépassé 7 h.</div>`;
+    if(btns) btns.style.display = 'none';
+  } else {
+    if(btns) btns.style.display = '';
+    el.innerHTML = `<div class="mail">
+      <div class="mail-head"><div><span>À</span>${profile.rhMail ? escapeHtml(profile.rhMail) : '<i>adresse de la RH à indiquer dans « Profil »</i>'}</div><div><span>Objet</span>${escapeHtml(rep.subject)}</div></div>
+      <div class="mail-body">${escapeHtml(rep.body)}</div></div>`;
+  }
   const lastSent = localStorage.getItem('reserve_last_report_sent');
   const statusEl = document.getElementById('report-last-sent');
   if(statusEl){
     if(lastSent){
       const d = new Date(lastSent);
       const daysAgo = Math.round((Date.now() - d.getTime()) / 86400000);
-      statusEl.textContent = 'Dernière relance envoyée le ' + d.toLocaleDateString('fr-FR') + (daysAgo > 0 ? ' (il y a ' + daysAgo + ' j)' : " (aujourd'hui)");
+      statusEl.textContent = 'Dernier mail préparé le ' + d.toLocaleDateString('fr-FR') + (daysAgo > 0 ? ' (il y a ' + daysAgo + ' j)' : ' (aujourd’hui)') + (daysAgo >= 15 ? '. Sans réponse, vous pouvez relancer.' : '');
       statusEl.style.color = daysAgo >= 15 ? 'var(--rouge)' : 'var(--slate)';
     } else {
-      statusEl.textContent = 'Aucune relance envoyée pour l\'instant';
+      statusEl.textContent = '';
     }
   }
 }
 
 function markReportSent(){
-  const unpaidIds = entries.filter(e => e.statut === 'effectuee' && e.paiement !== 'paye').map(e => e.id);
+  const dept = currentReportDept();
+  const ids = unpaidDone().filter(e => bucketDept(e) === dept).map(e => e.id);
+  let old = [];
+  try{ old = JSON.parse(localStorage.getItem('reserve_last_report_ids') || '[]'); }catch(err){}
   localStorage.setItem('reserve_last_report_sent', new Date().toISOString());
-  localStorage.setItem('reserve_last_report_ids', JSON.stringify(unpaidIds));
+  localStorage.setItem('reserve_last_report_ids', JSON.stringify([...new Set(old.concat(ids))]));
   renderReportPreview();
   renderList();
 }
 
 function copyReport(){
-  const text = buildReportText();
+  const dept = currentReportDept(); if(!dept) return;
+  const rep = buildReport(dept); if(rep.nothing) return;
+  const text = 'Objet : ' + rep.subject + '\n\n' + rep.body;
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(() => { showToast('Rapport copié — collez-le dans un mail'); markReportSent(); }).catch(() => fallbackCopy(text));
+    navigator.clipboard.writeText(text).then(() => { showToast('Texte copié : collez-le dans votre mail'); markReportSent(); }).catch(() => fallbackCopy(text));
   } else fallbackCopy(text);
 }
 
 function emailReport(){
-  const text = buildReportText();
-  const subject = 'Demande de règlement — vacations réserve opérationnelle';
-  const url = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text);
+  const dept = currentReportDept(); if(!dept) return;
+  const rep = buildReport(dept); if(rep.nothing) return;
+  const url = 'mailto:' + encodeURIComponent(profile.rhMail || '') + '?subject=' + encodeURIComponent(rep.subject) + '&body=' + encodeURIComponent(rep.body);
   window.location.href = url;
   markReportSent();
+}
+/* Relevé à imprimer ou à enregistrer en PDF, à joindre au mail : un vrai tableau, que le mail en texte ne peut pas offrir. */
+function printReleve(){
+  const dept = currentReportDept(); if(!dept) return;
+  const rep = buildReport(dept); if(rep.nothing) return;
+  const r = rep.r; const td = x => '<td>' + x + '</td>';
+  const ident = [profile.nom || '[Nom Prénom]', profile.matricule ? 'Matricule ' + escapeHtml(profile.matricule) : '', profile.brigade ? escapeHtml(profile.brigade) : ''].filter(Boolean).map((x, i) => i ? x : escapeHtml(x)).join(' · ');
+  let h = `<h1>Relevé des vacations non réglées</h1><p class="pr-id">${ident}<br>${escapeHtml(dept)} · établi le ${new Date().toLocaleDateString('fr-FR')}</p>`;
+  if(r.unpaid.length){
+    h += `<table><thead><tr><th>N°</th><th>Date</th><th>Horaires</th><th>Durée</th><th>Mission</th><th>Lieu</th><th class="num">Montant</th></tr></thead><tbody>` +
+      r.unpaid.map((e, i) => { const m = suggestedMontant(e); return '<tr>' + td(i + 1) + td(new Date(e.date+'T00:00:00').toLocaleDateString('fr-FR')) + td(e.debut && e.fin ? hm(e.debut) + ' – ' + hm(e.fin) : '') + td(e.debut && e.fin ? fmtH(hoursOf(e)) : '') + td(escapeHtml(e.type)) + td(escapeHtml([e.lieu, e.ville].filter((x, k, a) => x && a.indexOf(x) === k).join(', '))) + '<td class="num">' + (m != null ? fmtEUR(m) : 'à préciser') + '</td></tr>'; }).join('') +
+      `</tbody><tfoot><tr><td colspan="6">Total des vacations non réglées</td><td class="num">${fmtEUR(r.totalVac)}</td></tr></tfoot></table>`;
+  }
+  r.ledger.forEach(it => {
+    h += `<h2>Heures au-delà de 7 h en ${r.year}${r.ledger.length > 1 ? ' (' + CORPS_LABELS[it.corps] + ')' : ''}</h2><table><thead><tr><th>Date</th><th>Horaires</th><th>Durée</th><th class="num">Au-delà de 7 h</th><th class="num">Compte</th></tr></thead><tbody>` +
+      it.rows.map(x => '<tr>' + td(new Date(x.e.date+'T00:00:00').toLocaleDateString('fr-FR')) + td(hm(x.e.debut) + ' – ' + hm(x.e.fin)) + td(fmtH(x.h)) + '<td class="num">' + fmtH(x.ex) + '</td><td class="num">' + fmtH(x.cumul) + '</td></tr>').join('') +
+      `</tbody><tfoot><tr><td colspan="3">Total : ${it.extra} journée${it.extra > 1 ? 's' : ''} supplémentaire${it.extra > 1 ? 's' : ''} (tranches de 7 h), ${fmtH(it.pending)} en compte${it.bonusPaid ? ', ' + it.bonusPaid + ' déjà réglée' + (it.bonusPaid > 1 ? 's' : '') : ''}</td><td class="num">${fmtH(it.excess)}</td><td class="num">${it.dueMontant ? fmtEUR(it.dueMontant) : ''}</td></tr></tfoot></table>`;
+  });
+  if(r.total > 0) h += `<p class="pr-total">Total demandé : ${fmtEUR(r.total)}</p>`;
+  document.getElementById('print-area').innerHTML = h;
+  window.print();
 }
 
 function fallbackCopy(text){
@@ -2388,6 +2564,7 @@ function importData(file){
       document.getElementById('p-nom').value = profile.nom || '';
       document.getElementById('p-matricule').value = profile.matricule || '';
       document.getElementById('p-brigade').value = profile.brigade || '';
+      fillProfileExtras();
       renderAll();
       status.textContent = '✓ Sauvegarde restaurée.';
       status.style.color = 'var(--vert)';
