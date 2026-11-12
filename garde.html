@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning de garde</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1c3f8f">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-screen app shell — top bar, scrolling content, bottom tab bar. Same system as Planning BSTC. */
+:root{
+  --bg:#f3f4f7; --surface:#ffffff; --surface2:#e9ecf2; --fg:#151a26; --muted:#5d667a; --line:#d6dae3;
+  --accent:#1c3f8f; --accent-fg:#ffffff; --accent-soft:#e3e9f8;
+  --red:#c8202f; --red-soft:#fbe4e6; --green:#1d8a4b; --green-soft:#dff3e6; --amber:#b67a00; --amber-soft:#fff1cc;
+  --orange:#d9600c; --orange-soft:#fde7d5; --on-strong:#ffffff; --violet:#7a3fc4; --violet-soft:#eadcfb;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --radius:10px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#12151d; --surface:#1b1f2a; --surface2:#242936; --fg:#eceef3; --muted:#9aa3b5; --line:#323847;
+  --accent:#7ea0ee; --accent-fg:#0f1830; --accent-soft:#232d47;
+  --red:#ff6b76; --red-soft:#3d1c21; --green:#5fcf8a; --green-soft:#16301f; --amber:#f2c14e; --amber-soft:#3a2e0e;
+  --orange:#ff9d5c; --orange-soft:#3d2312; --on-strong:#10131a; --violet:#b99cf5; --violet-soft:#35285a; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#12151d; --surface:#1b1f2a; --surface2:#242936; --fg:#eceef3; --muted:#9aa3b5; --line:#323847;
+  --accent:#7ea0ee; --accent-fg:#0f1830; --accent-soft:#232d47;
+  --red:#ff6b76; --red-soft:#3d1c21; --green:#5fcf8a; --green-soft:#16301f; --amber:#f2c14e; --amber-soft:#3a2e0e;
+  --orange:#ff9d5c; --orange-soft:#3d2312; --on-strong:#10131a; --violet:#b99cf5; --violet-soft:#35285a; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:.01em}
+h2{font-size:22px;font-weight:700} h3{font-size:18px;font-weight:600}
+button,input,select{font:inherit;color:inherit} button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+#app{height:100%;display:flex;flex-direction:column;max-width:640px;margin:0 auto}
+.topbar{background:var(--accent);color:var(--accent-fg);padding:10px 16px;flex-shrink:0}
+.topbar .brand{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em;line-height:1}
+.topbar .brand small{display:block;font-family:var(--body);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.85;margin-top:3px}
+.content{flex:1;min-height:0;overflow-y:auto;padding:16px 16px 24px}
+.wrap{display:flex;flex-direction:column;gap:14px}
+.wrap[hidden]{display:none}
+.tabbar{display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px;flex-shrink:0}
+.tabbar button{flex:1;background:none;border:0;padding:6px 2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted)}
+.tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button.active{color:var(--accent);background:var(--accent-soft)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .between{justify-content:space-between}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 12px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.ok{background:var(--green);color:var(--on-strong);border-color:var(--green)}
+.btn.back{background:var(--orange);color:var(--on-strong);border-color:var(--orange)}
+.btn.big{font-size:17px;padding:14px 12px;width:100%}
+.btn.sm{padding:5px 9px;font-size:13px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;line-height:1.5;white-space:nowrap}
+.card>.badge{align-self:flex-start;white-space:normal}
+.badge.green{background:var(--green-soft);color:var(--green)} .badge.orange{background:var(--orange-soft);color:var(--orange)}
+.badge.blue{background:var(--accent-soft);color:var(--accent)} .badge.grey{background:var(--surface2);color:var(--muted)}
+.badge.amber{background:var(--amber-soft);color:var(--amber)} .badge.red{background:var(--red-soft);color:var(--red)}
+.stripe{border-left:5px solid var(--line)} .stripe.take{border-left-color:var(--green)} .stripe.give{border-left-color:var(--orange)} .stripe.mine{border-left-color:var(--accent)} .stripe.vc{border-left-color:var(--violet)}
+.bigline{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.05}
+
+.calhead .m{font-family:var(--display);font-size:24px;font-weight:700;text-transform:capitalize}
+.grid{display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px}
+.grid .dow,.grid .wk{font-size:11px;font-weight:600;color:var(--muted);text-align:center;align-self:center;font-variant-numeric:tabular-nums}
+.grid .wk.even{color:var(--accent);font-weight:700}
+.cell{position:relative;aspect-ratio:1/1.08;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-variant-numeric:tabular-nums}
+.cell b{font-family:var(--display);font-size:20px;line-height:1;font-weight:700}
+.cell span{font-size:8.5px;font-weight:700;line-height:1;text-transform:uppercase;letter-spacing:.02em;min-height:9px}
+.cell.out{opacity:.35}
+.cell.full{background:var(--accent-soft);border-color:var(--accent-soft)}
+.cell.start{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.cell.end{background:var(--accent-soft);border:2px solid var(--accent)}
+.cell.vc.full{background:var(--violet-soft);border-color:var(--violet-soft)}
+.cell.vc.start{background:var(--violet);border-color:var(--violet);color:var(--on-strong)}
+.cell.vc.end{background:var(--violet-soft);border:2px solid var(--violet)}
+.cell.vac:not(.start):not(.end):not(.full){background:var(--surface2)}
+.cell.vac{box-shadow:inset 0 -4px 0 var(--amber)}
+.cell.fer::before{content:"";position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid var(--surface)}
+.rep{display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+.pcard{background:var(--green-soft);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.pcard.bad{background:var(--red-soft)}
+.pcard img{width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.pcard .ph{font-family:var(--display);font-size:24px;font-weight:700;line-height:1}
+.ktog{flex:1;padding:12px 4px;font-size:14px}
+.ktog.on{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.lab{font-size:13px;font-weight:600}
+.msg{background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:14px}
+.pphoto{max-width:100%;border-radius:8px}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--display);font-size:26px;line-height:1;font-weight:700}
+.kpi span{font-size:12px;color:var(--muted)}
+.cell.today b{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.cell.sel{outline:3px solid var(--fg);outline-offset:-1px;z-index:1}
+.cell.ovr{border-style:dashed;border-color:var(--red);border-width:2px}
+.cell.proof::after{content:"";position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--fg);border:1.5px solid var(--surface)}
+.legend{display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.todo{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:start}
+.todo .h{font-family:var(--display);font-size:22px;font-weight:700;line-height:1;background:var(--surface2);border-radius:8px;padding:8px 0;text-align:center}
+.proofrow{display:flex;gap:10px;align-items:center;background:var(--green-soft);border-radius:8px;padding:8px 10px}
+.proofrow img{width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.proofrow .x{flex:1;min-width:0;font-weight:600}
+.dayrow{display:grid;grid-template-columns:52px 1fr;gap:10px}
+.dayrow .d{text-align:center;background:var(--surface2);border-radius:8px;padding:6px 0;align-self:start;border:0;width:100%}
+.dayrow .d b{display:block;font-family:var(--display);font-size:22px;line-height:1}
+.dayrow .d span{font-size:11px;text-transform:uppercase;color:var(--muted)}
+.lrow{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:var(--radius);padding:8px 12px 8px 8px}
+.lrow.vc{border-left-color:var(--violet)}
+.lrow .d{text-align:center;line-height:1}
+.lrow .d b{display:block;font-family:var(--display);font-size:24px}
+.lrow .d span{font-size:11px;text-transform:uppercase;color:var(--muted)}
+.lrow .t{font-weight:700}
+.lrow .r{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.mhead{font-family:var(--display);font-size:18px;font-weight:600;text-transform:capitalize;margin-top:4px}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.slot .t{font-weight:600}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;min-width:0}
+.field input,.field select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-weight:400;font-size:15px;width:100%;min-width:0;min-height:38px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.empty{text-align:center;color:var(--muted);padding:24px 12px;border:1px dashed var(--line);border-radius:var(--radius)}
+details.card{display:block} details.card summary{font-family:var(--display);font-size:18px;font-weight:600;cursor:pointer}
+details.card ul{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:20;max-width:90%;text-align:center}
+.toast[hidden]{display:none}
+.scrim{position:fixed;inset:0;background:rgba(10,14,24,.5);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.scrim[hidden]{display:none}
+.sheet{background:var(--surface);width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:18px 16px 24px;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow:auto}
+.sheet fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.sheet legend{font-weight:700;padding:0;margin-bottom:6px}
+.sheet .opt{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:11px;font-weight:500}
+.sheet .opt input{width:18px;height:18px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar"><div class="brand">Planning de garde<small id="kidsline">Mes enfants</small></div></header>
+  <div class="content" id="content">
+    <div class="wrap" id="s-planning">
+      <div class="card stripe" id="banner"></div>
+      <div class="card">
+        <div class="row between calhead">
+          <button class="btn sm" id="prev" aria-label="Mois précédent">‹</button>
+          <div class="m" id="mlabel"></div>
+          <button class="btn sm" id="next" aria-label="Mois suivant">›</button>
+        </div>
+        <div class="small muted" id="parity" style="text-align:center"></div>
+        <div class="grid" id="grid"></div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Week-end avec moi</span>
+          <span><i style="background:var(--violet)"></i>Vacances avec moi</span>
+          <span><i style="background:var(--surface2)"></i>Vacances scolaires sans moi</span>
+          <span><i style="background:var(--amber);height:4px;vertical-align:2px"></i>Vacances scolaires zone B</span>
+          <span><i style="background:var(--red);border-radius:50%"></i>Jour férié</span>
+          <span><i style="background:var(--fg);border-radius:50%"></i>Preuve enregistrée</span>
+        </div>
+        <div class="small muted">Case foncée « Prise » : le jour où je vais les chercher. Case encadrée « Retour » : le jour où je les ramène.</div>
+        <div class="small muted" id="calnote"></div>
+        <h3>Repères du mois (Metz)</h3>
+        <div id="reperes" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <div class="card stripe" id="detail"></div>
+    </div>
+    <div class="wrap" id="s-avenir" hidden></div>
+    <div class="wrap" id="s-preuves" hidden>
+      <h2>Mes preuves de passage</h2>
+      <div class="kpi" id="psum"></div>
+      <div class="grid2">
+        <button class="btn ok big" id="now-in">Je suis arrivé</button>
+        <button class="btn back big" id="now-out">Je les ai ramenés</button>
+      </div>
+      <p class="muted small" style="margin:0">L'heure est enregistrée dès l'appui. Ensuite vous cochez chaque enfant, signalez un problème, joignez une photo et copiez un message tout prêt.</p>
+      <div class="wrap" id="entries"></div>
+      <button class="btn primary" id="dl" hidden>Télécharger le relevé complet</button>
+      <button class="btn" id="copylog">Copier le relevé en texte</button>
+    </div>
+    <div class="wrap" id="s-reglages" hidden>
+      <div class="small muted" id="savestate">Sauvegarde : sur cet appareil.</div>
+      <div class="card">
+        <h3>Les enfants</h3>
+        <label class="field" for="kids-input">Prénoms, séparés par des virgules
+          <input type="text" id="kids-input" maxlength="120" placeholder="Prénom 1, Prénom 2" autocomplete="off"></label>
+        <label class="field" for="gym-input">Enfant à chercher à la sortie de la gymnastique (facultatif)
+          <input type="text" id="gym-input" maxlength="40" autocomplete="off"></label>
+        <div class="small muted">Les prénoms restent sur cet appareil.</div>
+      </div>
+      <details class="card">
+        <summary>Les règles du jugement</summary>
+        <ul>
+          <li>Week-ends des semaines paires, du vendredi 18h00 au dimanche 18h00.</li>
+          <li>Vendredi : au domicile des enfants, ou à la sortie de la gymnastique pour l'enfant concerné. Dimanche : retour au domicile.</li>
+          <li>Les trajets sont à ma charge, ou à celle d'une personne de confiance connue des enfants.</li>
+          <li>Petites vacances : 1re moitié les années paires, 2e moitié les années impaires.</li>
+          <li>Été : 1er et 3e quarts les années paires, 2e et 4e quarts les années impaires.</li>
+          <li>Week-end : plus d'une heure de retard (après 19h00) vaut renonciation.</li>
+          <li>Vacances : absence dans la première demi-journée vaut renonciation à toute la période.</li>
+          <li>Empêchement : prévenir 1 semaine avant un week-end, 1 mois avant des vacances.</li>
+          <li>Compétitions et stages sportifs d'un enfant : à la demande de la mère, avec un délai raisonnable, et le week-end perdu est rattrapé sur un autre week-end.</li>
+        </ul>
+      </details>
+      <details class="card">
+        <summary>Comment l'application calcule</summary>
+        <ul>
+          <li>Les vacances vont du vendredi 18h00 (sortie des classes) au dimanche 18h00 avant la reprise.</li>
+          <li>La moitié se coupe exactement au milieu : pour 16 jours, 8 jours chacun, passage le samedi à 18h00.</li>
+          <li>Pour Noël, l'année retenue est celle de décembre.</li>
+          <li>Un week-end pair qui touche des vacances suit la règle des vacances.</li>
+          <li>Le jugement ne fixe ni jour ni heure de passage pour les vacances : l'application reprend 18h00, comme pour les week-ends. Un accord écrit entre les parents peut fixer autre chose.</li>
+          <li>En cas de doute, le texte du jugement fait foi.</li>
+        </ul>
+      </details>
+      <h2>Vacances scolaires (zone B)</h2>
+      <div class="wrap" id="hols"></div>
+    </div>
+  </div>
+  <nav class="tabbar" aria-label="Écrans">
+    <button data-s="planning" class="active"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Planning</button>
+    <button data-s="avenir"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>À venir</button>
+    <button data-s="preuves"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.500-7-4.500-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Preuves</button>
+    <button data-s="reglages"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Réglages</button>
+  </nav>
+</div>
+<input type="file" id="photo" accept="image/*" hidden>
+<div class="scrim" id="pscrim" hidden><div class="sheet" role="dialog" aria-modal="true" id="pbody"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-title">
+    <h2 id="sh-title"></h2>
+    <fieldset>
+      <legend>Ce jour-là, les enfants sont</legend>
+      <label class="opt"><input type="radio" name="ovr" id="ovr-none" value=""> Comme prévu par le jugement</label>
+      <label class="opt"><input type="radio" name="ovr" id="ovr-p" value="P"> Avec moi (changement)</label>
+      <label class="opt"><input type="radio" name="ovr" id="ovr-m" value="M"> Pas avec moi (changement)</label>
+    </fieldset>
+    <label class="field" for="ovr-note">Note (ex. compétition, rattrapé le…)
+      <input type="text" id="ovr-note" maxlength="120"></label>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn" id="sh-cancel">Fermer</button>
+      <button class="btn primary" id="sh-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<script id="logic">
+// ---------- Pure date logic (no DOM) ----------
+var DEFAULT_HOLIDAYS = [
+  {id:"t26", name:"Toussaint 2026", type:"petite", start:"2026-10-17", resume:"2026-11-02"},
+  {id:"n26", name:"Noël 2026",      type:"petite", start:"2026-12-19", resume:"2027-01-04"},
+  {id:"h27", name:"Hiver 2027",     type:"petite", start:"2027-02-20", resume:"2027-03-08"},
+  {id:"p27", name:"Printemps 2027", type:"petite", start:"2027-04-17", resume:"2027-05-03"},
+  {id:"e27", name:"Été 2027",       type:"ete",    start:"2027-07-03", resume:"2027-09-02"},
+  {id:"t27", name:"Toussaint 2027", type:"petite", start:"2027-10-23", resume:"2027-11-08"},
+  {id:"n27", name:"Noël 2027",      type:"petite", start:"2027-12-18", resume:"2028-01-03"},
+  {id:"h28", name:"Hiver 2028",     type:"petite", start:"2028-02-05", resume:"2028-02-21"},
+  {id:"p28", name:"Printemps 2028", type:"petite", start:"2028-04-08", resume:"2028-04-24"},
+  {id:"e28", name:"Été 2028",       type:"ete",    start:"2028-07-04", resume:"2028-09-01"}
+];
+function pad(n){return (n<10?"0":"")+n;}
+function key(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function parse(k){var p=k.split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
+function addDays(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);}
+function diffDays(a,b){return Math.round((Date.UTC(b.getFullYear(),b.getMonth(),b.getDate())-Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()))/864e5);}
+function isoWeek(d){
+  var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day);
+  var y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  return Math.ceil(((t-y0)/864e5+1)/7);
+}
+var PART_NAMES={2:["1re moitié","2e moitié"],4:["1er quart","2e quart","3e quart","4e quart"]};
+function holidayParts(h){
+  var s=parse(h.start), r=parse(h.resume), out=[];
+  if(s.getDay()===6) s=addDays(s,-1); // official Saturday date = classes end Friday evening
+  var n=diffDays(s,addDays(r,-1));
+  if(!(n>0)) return out;
+  var parts=h.type==="ete"?4:2, even=s.getFullYear()%2===0;
+  var mine=parts===2?(even?[0]:[1]):(even?[0,2]:[1,3]);
+  mine.forEach(function(i){
+    var a=Math.round(n*i/parts), b=Math.round(n*(i+1)/parts);
+    out.push({type:"vac", holiday:h, part:PART_NAMES[parts][i], s:addDays(s,a), e:addDays(s,b), days:b-a});
+  });
+  return out;
+}
+function buildModel(holidays, from, to){
+  var vacDays={}, days={}, periods=[];
+  holidays.forEach(function(h){
+    var s=parse(h.start), n=diffDays(s,parse(h.resume));
+    for(var i=0;i<n;i++) vacDays[key(addDays(s,i))]=h;
+    holidayParts(h).forEach(function(p){
+      periods.push(p);
+      for(var j=0;j<=p.days;j++) days[key(addDays(p.s,j))]={kind:j===0?"start":j===p.days?"end":"full",period:p};
+    });
+  });
+  var d=new Date(from.getFullYear(),from.getMonth(),from.getDate());
+  while(d.getDay()!==5) d=addDays(d,1);
+  for(;d<=to;d=addDays(d,7)){
+    var w=isoWeek(d); if(w%2) continue;
+    var sat=addDays(d,1), sun=addDays(d,2);
+    if(vacDays[key(d)]||vacDays[key(sat)]||vacDays[key(sun)]) continue;
+    var p={type:"we", week:w, s:d, e:sun, days:3};
+    periods.push(p);
+    days[key(d)]={kind:"start",period:p}; days[key(sat)]={kind:"full",period:p}; days[key(sun)]={kind:"end",period:p};
+  }
+  periods.sort(function(a,b){return a.s-b.s;});
+  return {vacDays:vacDays, days:days, periods:periods};
+}
+function noticeDate(p){
+  if(p.type==="we") return addDays(p.s,-7);
+  return new Date(p.s.getFullYear(),p.s.getMonth()-1,p.s.getDate());
+}
+function startAt(p){return new Date(p.s.getFullYear(),p.s.getMonth(),p.s.getDate(),18,0);}
+function endAt(p){return new Date(p.e.getFullYear(),p.e.getMonth(),p.e.getDate(),18,0);}
+if(typeof module!=="undefined") module.exports={DEFAULT_HOLIDAYS:DEFAULT_HOLIDAYS,buildModel:buildModel,key:key,isoWeek:isoWeek,noticeDate:noticeDate};
+</script>
+<script>
+(function(){
+  var STORE="planning-garde-v1", PSTORE="planning-garde-photos-v1";
+  var DEFAULT_KIDS=[], DEFAULT_GYM="";
+  var state={holidays:JSON.parse(JSON.stringify(DEFAULT_HOLIDAYS)), overrides:{}, journal:[], updated:0, kids:DEFAULT_KIDS.slice(), gym:DEFAULT_GYM};
+  var photos={};
+  function adopt(s){
+    if(!s||!Array.isArray(s.holidays)) return false;
+    state.holidays=s.holidays; state.overrides=s.overrides||{}; state.journal=Array.isArray(s.journal)?s.journal:[]; state.updated=s.updated||0;
+    if(Array.isArray(s.kids)){state.kids=s.kids; state.gym=s.gym||"";}
+    state.journal.forEach(function(e){ if(!e.id) e.id="e"+new Date(e.t).getTime(); });
+    return true;
+  }
+  try{var raw=localStorage.getItem(STORE); if(raw) adopt(JSON.parse(raw));}catch(e){}
+  try{var pr=localStorage.getItem(PSTORE); if(pr) photos=JSON.parse(pr)||{};}catch(e){}
+
+  // Account storage, private to the signed-in person. The page works without it.
+  var col=null, writing=Promise.resolve();
+  function unwrap(r){return r&&typeof r.data==="function"?r.data():(r&&r.data&&typeof r.data==="object"&&!r.holidays&&!r.img?r.data:r);}
+  function queue(fn){writing=writing.then(fn).catch(function(){});}
+  function pushCloud(){ if(!col) return; var snap=JSON.parse(JSON.stringify(state)); queue(function(){return col.doc("planning").set(snap);}); }
+  function save(){
+    state.updated=Date.now();
+    try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}
+    pushCloud();
+  }
+  function savePhoto(id,img){
+    photos[id]=img;
+    try{localStorage.setItem(PSTORE,JSON.stringify(photos));}catch(e){}
+    if(col) queue(function(){return col.doc("photo-"+id).set({img:img});});
+  }
+  function dropPhoto(id){
+    delete photos[id];
+    try{localStorage.setItem(PSTORE,JSON.stringify(photos));}catch(e){}
+    if(col) queue(function(){return col.doc("photo-"+id).delete();});
+  }
+  function pullPhotos(){
+    state.journal.forEach(function(e){
+      if(e.hasPhoto&&!photos[e.id]&&col) col.doc("photo-"+e.id).get().then(function(r){var d=unwrap(r); if(d&&d.img){photos[e.id]=d.img; renderDetail(); renderProofs();}}).catch(function(){});
+    });
+  }
+  (async function(){
+    try{
+      if(!window.claude||!window.claude.use) return;
+      var db=await window.claude.use("db"), user=await window.claude.use("user");
+      if(!db||!user) return;
+      var id=await user.id(); if(!id) return;
+      var c=db.collection("data/users/"+id);
+      var data=unwrap(await c.doc("planning").get());
+      col=c;
+      if(data&&Array.isArray(data.holidays)&&(data.updated||0)>(state.updated||0)){
+        adopt(data); try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){} renderAll();
+      }else if(state.updated) pushCloud();
+      pullPhotos();
+      $("savestate").textContent="Sauvegarde : dans votre compte Claude.";
+    }catch(e){}
+  })();
+
+  var $=function(id){return document.getElementById(id);};
+  function el(tag,cls,text){var n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n;}
+  function btn(cls,text,fn){var b=el("button","btn "+cls,text); b.type="button"; b.addEventListener("click",fn); return b;}
+  var fDay=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+  var fLong=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  var fMonth=new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
+  var fDow=new Intl.DateTimeFormat("fr-FR",{weekday:"short"});
+  var fMon=new Intl.DateTimeFormat("fr-FR",{month:"short"});
+  function hm(d){return pad(d.getHours())+"h"+pad(d.getMinutes());}
+  function today(){var n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());}
+  function rel(d){
+    var n=diffDays(today(),d);
+    if(n===0) return "Aujourd'hui"; if(n===1) return "Demain";
+    return n>0?("Dans "+n+" jours"):("Il y a "+(-n)+" jours");
+  }
+  function allKids(){var k=state.kids; if(!k.length) return "les enfants"; if(k.length===1) return k[0]; return k.slice(0,-1).join(", ")+" et "+k[k.length-1];}
+  function pickupText(){
+    var g=state.gym, o=state.kids.filter(function(n){return n!==g;});
+    if(!g||state.kids.indexOf(g)<0) return "Au domicile des enfants.";
+    return (o.length?(o.length===1?o[0]:o.slice(0,-1).join(", ")+" et "+o[o.length-1])+" au domicile. ":"")+g+" à la sortie de la gymnastique.";
+  }
+  var toastT;
+  function toast(msg){var t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(function(){t.hidden=true;},2800);}
+
+  var model, shown=8, view=today(), sel=key(today()); view.setDate(1);
+  function rebuild(){var t=today(); model=buildModel(state.holidays,new Date(t.getFullYear()-1,0,1),new Date(t.getFullYear()+4,11,31));}
+  function lastKnown(){var m=null; state.holidays.forEach(function(h){var r=parse(h.resume); if(!m||r>m) m=r;}); return m;}
+  function statusOf(k){
+    var o=state.overrides[k];
+    if(o&&o.who) return {who:o.who, kind:"full", ovr:true, note:o.note||""};
+    var d=model.days[k];
+    return d?{who:"P",kind:d.kind,period:d.period}:{who:"M",kind:"none"};
+  }
+  function proofsOf(k){return state.journal.filter(function(e){return key(new Date(e.t))===k;});}
+  function situation(){
+    var now=new Date(), o=state.overrides[key(today())], cur=null, next=null;
+    model.periods.forEach(function(p){
+      if(!cur&&startAt(p)<=now&&now<=endAt(p)) cur=p;
+      if(!next&&startAt(p)>now) next=p;
+    });
+    var withMe=o&&o.who?o.who==="P":!!cur;
+    return {withMe:withMe, cur:withMe?cur:null, next:next};
+  }
+  function goDay(d){sel=key(d); view=new Date(d.getFullYear(),d.getMonth(),1); renderCal(); renderDetail(); show("planning"); $("detail").scrollIntoView({block:"nearest"});}
+
+  // ----- banner -----
+  function renderBanner(){
+    var s=situation(), b=$("banner"); b.textContent=""; b.className="card stripe "+(s.withMe?"give":"take");
+    if(s.withMe&&s.cur){
+      var p=s.cur;
+      b.appendChild(el("div","eyebrow","Les enfants sont avec moi"));
+      b.appendChild(el("div","bigline","Retour "+fDay.format(p.e)+" à 18h00"));
+      b.appendChild(btn("sm","Voir le jour du retour",function(){goDay(p.e);}));
+    }else if(s.withMe){
+      b.appendChild(el("div","eyebrow","Aujourd'hui")); b.appendChild(el("div","bigline","Les enfants sont avec moi"));
+    }else if(s.next){
+      var q=s.next, nd=noticeDate(q), left=diffDays(today(),nd);
+      b.appendChild(el("div","eyebrow","Prochain jour où je vais les chercher"));
+      b.appendChild(el("div","bigline",rel(q.s)+" · "+fDay.format(q.s)+" à 18h00"));
+      b.appendChild(el("div","small muted",q.type==="we"?("Week-end de la semaine "+q.week+", jusqu'à "+fDay.format(q.e)+" 18h00"):(q.holiday.name+", "+q.part+", jusqu'à "+fDay.format(q.e)+" 18h00")));
+      if(left>=0&&left<=10) b.appendChild(el("span","badge amber","Empêchement à signaler avant "+(left===0?"ce soir":"le "+fDay.format(nd))));
+      b.appendChild(btn("sm primary","Voir ce jour",function(){goDay(q.s);}));
+    }else b.appendChild(el("div","muted","Ajoutez les prochaines vacances dans Réglages."));
+  }
+
+  // ----- public holidays (France + Moselle local law) and school landmarks -----
+  var ferCache={};
+  function feries(y){
+    if(ferCache[y]) return ferCache[y];
+    var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+    var mo=Math.floor((h+l-7*m+114)/31), da=((h+l-7*m+114)%31)+1, E=new Date(y,mo-1,da), o={};
+    function fx(mm,dd,n){o[key(new Date(y,mm-1,dd))]=n;} function ea(n,name){o[key(addDays(E,n))]=name;}
+    fx(1,1,"Jour de l'an"); ea(-2,"Vendredi saint (Moselle)"); ea(1,"Lundi de Pâques"); fx(5,1,"Fête du Travail"); fx(5,8,"Victoire 1945");
+    ea(39,"Ascension"); ea(50,"Lundi de Pentecôte"); fx(7,14,"Fête nationale"); fx(8,15,"Assomption"); fx(11,1,"Toussaint");
+    fx(11,11,"Armistice 1918"); fx(12,25,"Noël"); fx(12,26,"Saint-Étienne (Moselle)");
+    return ferCache[y]=o;
+  }
+  function ferie(k){return feries(+k.slice(0,4))[k];}
+  var PONTS={"2027-05-07":"Pont de l'Ascension : pas de classe","2028-05-26":"Pont de l'Ascension : pas de classe"};
+  function renderReperes(){
+    var box=$("reperes"); box.textContent="";
+    var y=view.getFullYear(), m=view.getMonth(), first=new Date(y,m,1), last=new Date(y,m+1,0), lines=[];
+    state.holidays.forEach(function(h){
+      var s=parse(h.start), r=parse(h.resume);
+      if(s<=last&&r>=first) lines.push(["amber","Vacances · "+h.name,"du "+fDay.format(s)+" après la classe au "+fDay.format(r)+" (reprise)"]);
+    });
+    var f=feries(y);
+    Object.keys(f).sort().forEach(function(k){var d=parse(k); if(d.getMonth()===m) lines.push(["red","Férié · "+f[k],fDay.format(d)]);});
+    Object.keys(PONTS).forEach(function(k){var d=parse(k); if(d.getFullYear()===y&&d.getMonth()===m) lines.push(["grey",PONTS[k],fDay.format(d)]);});
+    if(!lines.length){box.appendChild(el("div","small muted","Ni férié ni vacances scolaires ce mois-ci."));return;}
+    lines.forEach(function(x){var r=el("div","rep"); r.appendChild(el("span","badge "+x[0],x[1])); r.appendChild(el("span","small",x[2])); box.appendChild(r);});
+  }
+
+  // ----- month -----
+  function renderCal(){
+    $("mlabel").textContent=fMonth.format(view);
+    var yy=view.getFullYear();
+    $("parity").textContent=yy+(yy%2?" est une année impaire : 2e moitié des vacances, 2e et 4e quarts l'été.":" est une année paire : 1re moitié des vacances, 1er et 3e quarts l'été.");
+    var g=$("grid"); g.textContent="";
+    g.appendChild(el("div","dow","S."));
+    ["L","M","M","J","V","S","D"].forEach(function(x){g.appendChild(el("div","dow",x));});
+    var first=new Date(view.getFullYear(),view.getMonth(),1);
+    var d=addDays(first,-((first.getDay()+6)%7)), tk=key(today());
+    for(var r=0;r<6;r++){
+      if(r>0&&d.getMonth()!==view.getMonth()&&d>first) break;
+      var w=isoWeek(d);
+      g.appendChild(el("div","wk"+(w%2?"":" even"),String(w)));
+      for(var i=0;i<7;i++){
+        var k=key(d), st=statusOf(k), c=el("button","cell"); c.type="button";
+        c.appendChild(el("b",null,String(d.getDate())));
+        var tag="";
+        if(st.who==="P"){
+          c.classList.add(st.kind);
+          if(st.period&&st.period.type==="vac") c.classList.add("vc");
+          if(st.kind==="start") tag="Prise";
+          if(st.kind==="end") tag="Retour";
+        }
+        c.appendChild(el("span",null,tag));
+        if(d.getMonth()!==view.getMonth()) c.classList.add("out");
+        if(st.ovr) c.classList.add("ovr");
+        if(model.vacDays[k]) c.classList.add("vac");
+        if(ferie(k)) c.classList.add("fer");
+        if(k===tk) c.classList.add("today");
+        if(k===sel) c.classList.add("sel");
+        if(proofsOf(k).length) c.classList.add("proof");
+        c.setAttribute("aria-label",fLong.format(d)+", "+(st.who!=="P"?"pas avec moi":st.kind==="start"?"je vais les chercher":st.kind==="end"?"je les ramène":"avec moi"));
+        c.dataset.k=k; g.appendChild(c); d=addDays(d,1);
+      }
+    }
+    var lk=lastKnown(), end=new Date(view.getFullYear(),view.getMonth()+1,0);
+    $("calnote").textContent=(lk&&end>=lk)?"Les vacances ne sont pas renseignées après le "+fDay.format(lk)+" "+lk.getFullYear()+". Ajoutez-les dans Réglages.":"";
+  }
+  var _rc=renderCal; renderCal=function(){_rc(); renderReperes();};
+  function shift(n){view=new Date(view.getFullYear(),view.getMonth()+n,1);renderCal();}
+  $("grid").addEventListener("click",function(e){var c=e.target.closest(".cell"); if(c){sel=c.dataset.k; renderCal(); renderDetail();}});
+  $("prev").addEventListener("click",function(){shift(-1);});
+  $("next").addEventListener("click",function(){shift(1);});
+  var tx=null;
+  $("grid").addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
+  $("grid").addEventListener("touchend",function(e){if(tx==null) return; var dx=e.changedTouches[0].clientX-tx; tx=null; if(Math.abs(dx)>60) shift(dx<0?1:-1);},{passive:true});
+
+  // ----- selected day -----
+  function todo(h,title,sub){
+    var r=el("div","todo"); r.appendChild(el("div","h",h));
+    var x=el("div"); x.appendChild(el("div",null,title)).style.fontWeight="700"; if(sub) x.appendChild(el("div","small muted",sub));
+    r.appendChild(x); return r;
+  }
+  function renderDetail(){
+    var k=sel, d=parse(k), st=statusOf(k), base=model.days[k], h=model.vacDays[k], w=isoWeek(d), isToday=k===key(today()), box=$("detail");
+    box.textContent=""; box.className="card stripe "+(st.who!=="P"?"":st.kind==="start"?"take":st.kind==="end"?"give":"mine");
+    box.appendChild(el("div","eyebrow",isToday?"Aujourd'hui":"Jour choisi"));
+    box.appendChild(el("h2",null,fLong.format(d)));
+    var bd=el("div","row"); bd.style.gap="6px";
+    bd.appendChild(el("span","badge "+(w%2?"grey":"blue"),"Semaine "+w+(w%2?" impaire":" paire")));
+    if(h) bd.appendChild(el("span","badge grey",h.name));
+    if(ferie(k)) bd.appendChild(el("span","badge red","Férié · "+ferie(k)));
+    if(st.ovr) bd.appendChild(el("span","badge red","Changement noté"));
+    box.appendChild(bd);
+    var p=st.period;
+    if(st.ovr){
+      box.appendChild(el("div",null,st.who==="P"?"Les enfants sont avec moi ce jour-là (changement).":"Les enfants ne sont pas avec moi ce jour-là (changement)."));
+      if(st.note) box.appendChild(el("div","small muted","Note : "+st.note));
+    }else if(st.who!=="P"){
+      box.appendChild(el("div",null,"Les enfants ne sont pas avec moi ce jour-là."));
+    }else if(p.type==="we"){
+      if(st.kind==="start"){
+        box.appendChild(todo("18h00","Je vais chercher les enfants",pickupText()));
+        box.appendChild(el("span","badge red","Après 19h00, le week-end est perdu"));
+        if(isToday){var mn=1080-(new Date().getHours()*60+new Date().getMinutes()); box.appendChild(el("div","small",mn>0?"Rendez-vous dans "+fmtMin(mn)+".":mn>-60?"Il reste "+fmtMin(60+mn)+" avant la limite de 19h00.":"La limite de 19h00 est passée."));}
+      }else if(st.kind==="end") box.appendChild(todo("18h00","Je ramène les enfants au domicile","Fin du week-end."));
+      else box.appendChild(el("div",null,"Les enfants sont avec moi toute la journée."));
+    }else{
+      if(st.kind==="start"){
+        box.appendChild(todo("18h00","Je vais chercher les enfants",p.holiday.name+", "+p.part+" ("+p.days+" jours). Le jugement ne fixe pas d'heure pour les vacances : 18h00 est repris de la règle des week-ends."));
+        box.appendChild(el("span","badge red","À faire dans la première demi-journée, sinon toute la période est perdue"));
+      }else if(st.kind==="end") box.appendChild(todo("18h00","Je ramène les enfants au domicile","Fin de ma période ("+p.holiday.name+", "+p.part+")."));
+      else box.appendChild(el("div",null,"Les enfants sont avec moi ("+p.holiday.name+", "+p.part+")."));
+    }
+    if(p&&st.kind==="start"&&!st.ovr&&d>today()){
+      var nd=noticeDate(p), left=diffDays(today(),nd);
+      box.appendChild(el("div","small muted",left<0?"Le délai pour signaler un empêchement est dépassé.":"Empêchement à signaler au plus tard le "+fDay.format(nd)+"."));
+    }
+    var pr=proofsOf(k);
+    pr.forEach(function(e){box.appendChild(proofCard(e,false));});
+    if(isToday){
+      var isEnd=st.who==="P"&&st.kind==="end";
+      var hasIn=pr.some(function(e){return e.kind==="in";}), hasOut=pr.some(function(e){return e.kind==="out";});
+      if(!isEnd&&!hasIn) box.appendChild(st.who==="P"?btn("ok big","Je suis arrivé les chercher",function(){addEntry("in");}):btn("sm","Enregistrer quand même une arrivée",function(){addEntry("in");}));
+      if((isEnd||hasIn||st.who==="P")&&!hasOut) box.appendChild(btn((isEnd?"back big":""),"Je les ai ramenés",function(){addEntry("out");}));
+      if(!pr.length&&st.who==="P") box.appendChild(el("div","small muted","Un appui enregistre la date et l'heure exactes, puis propose de prendre une photo."));
+    }else if(st.who==="P"&&st.kind!=="full"&&d>today()){
+      box.appendChild(el("div","small muted","Le jour venu, le bouton de preuve apparaîtra ici."));
+    }
+    box.appendChild(btn("sm","Noter un changement pour ce jour",function(){openSheet(k);}));
+  }
+
+  // ----- proofs -----
+  function kidList(){return state.kids.map(function(n){return [n,n];});}
+  var ISSUES={ok:"Tout s'est bien passé",absent:"Personne au rendez-vous",refus:"Les enfants ne m'ont pas été remis",autre:"Autre problème"};
+  function fmtMin(n){return n<60?n+" min":Math.floor(n/60)+" h "+pad(n%60);}
+  function verdict(kind,d){
+    var st=model.days[key(d)]; if(!st||st.period.type!=="we") return null;
+    if(!((kind==="in"&&st.kind==="start")||(kind==="out"&&st.kind==="end"))) return null;
+    var m=d.getHours()*60+d.getMinutes()-1080;
+    if(m<=0) return {c:"green",t:m===0?"à l'heure":"à l'heure, "+fmtMin(-m)+" d'avance"};
+    if(kind==="in"&&m<=60) return {c:"amber",t:fmtMin(m)+" de retard, dans l'heure autorisée"};
+    return {c:"red",t:kind==="in"?"arrivée après 19h00":fmtMin(m)+" après 18h00"};
+  }
+  function entry(id){return state.journal.filter(function(x){return x.id===id;})[0];}
+  function addEntry(kind){
+    var d=new Date(), st=model.days[key(d)], v=verdict(kind,d);
+    var e={id:"e"+d.getTime(),t:d.toISOString(),kind:kind,v:v?v.t:"",vc:v?v.c:"",planned:!!st&&((kind==="in"&&st.kind==="start")||(kind==="out"&&st.kind==="end")),kids:{},issue:"ok",who:"",note:""};
+    state.journal.unshift(e); save(); renderAll();
+    openPassage(e.id);
+    try{
+      if(navigator.geolocation) navigator.geolocation.getCurrentPosition(function(p){
+        e.gps={lat:p.coords.latitude,lon:p.coords.longitude,acc:Math.round(p.coords.accuracy)}; save();
+        if(passId===e.id) renderPassage(); else renderAll();
+      },function(){e.gps=null; if(passId===e.id) renderPassage();},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+    }catch(x){}
+  }
+  function exifText(x){
+    if(!x||(!x.time&&x.lat==null)) return "La photo ne contient ni heure ni position.";
+    var s="";
+    if(x.time){var p=x.time.split(/[: ]/); s="Photo prise le "+p[2]+"/"+p[1]+"/"+p[0]+" à "+p[3]+"h"+p[4];}
+    if(x.lat!=null) s+=(s?" · ":"Photo : ")+"position "+x.lat.toFixed(5)+", "+x.lon.toFixed(5);
+    else s+=" · sans position";
+    return s;
+  }
+  function gpsText(e){return e.gps?"Position GPS à l'appui : "+e.gps.lat.toFixed(5)+", "+e.gps.lon.toFixed(5)+" (à "+e.gps.acc+" m près)":"";}
+  function message(e){
+    var d=new Date(e.t), h=hm(d);
+    if(e.issue==="absent") return "Bonjour, je suis sur place depuis "+h+" pour "+(e.kind==="in"?"chercher":"ramener")+" les enfants et il n'y a personne. Merci de me répondre.";
+    if(e.issue==="refus") return "Bonjour, je suis venu à "+h+" chercher "+allKids()+" comme le prévoit le jugement et ils ne m'ont pas été remis. Je vous demande de me dire pourquoi par écrit.";
+    return e.kind==="in"?"Bonjour, je suis arrivé à "+h+" pour chercher "+allKids()+".":"Bonjour, je viens de ramener "+allKids()+", il est "+h+".";
+  }
+  function proofCard(e,withDelete){
+    var d=new Date(e.t), c=el("div","pcard"+(e.issue&&e.issue!=="ok"?" bad":"")), top=el("div","row");
+    top.style.flexWrap="nowrap";
+    if(photos[e.id]){var im=el("img"); im.src=photos[e.id]; im.alt="Photo jointe"; top.appendChild(im);}
+    var x=el("div"); x.style.flex="1";
+    x.appendChild(el("div","ph",hm(d)+" · "+(e.kind==="in"?"Arrivée":"Retour")));
+    x.appendChild(el("div","small muted",fLong.format(d)));
+    top.appendChild(x); c.appendChild(top);
+    var b=el("div","row"); b.style.gap="6px";
+    if(e.v) b.appendChild(el("span","badge "+(e.vc||"grey"),e.v));
+    if(e.planned===false) b.appendChild(el("span","badge grey","Hors planning"));
+    if(e.issue&&e.issue!=="ok") b.appendChild(el("span","badge red",ISSUES[e.issue]));
+    if(e.gps) b.appendChild(el("span","badge blue","Position GPS"));
+    if(e.exif&&e.exif.lat!=null) b.appendChild(el("span","badge blue","Photo avec position"));
+    if(b.childNodes.length) c.appendChild(b);
+    var ks=kidList().filter(function(k){return e.kids&&e.kids[k[0]];}).map(function(k){return k[1]+" "+hm(new Date(e.kids[k[0]]));});
+    if(ks.length) c.appendChild(el("div","small",(e.kind==="in"?"Avec moi : ":"Ramenés : ")+ks.join(" · ")));
+    if(e.who) c.appendChild(el("div","small",(e.kind==="in"?"Remis par : ":"Remis à : ")+e.who));
+    if(e.note) c.appendChild(el("div","small muted","Note : "+e.note));
+    if(e.gps) c.appendChild(el("div","small muted",gpsText(e)));
+    if(e.hasPhoto) c.appendChild(el("div","small muted",exifText(e.exif)));
+    var a=el("div","row"); a.style.justifyContent="flex-end";
+    if(withDelete){
+      var del=btn("sm","Effacer",function(){
+        if(del.dataset.sure){dropPhoto(e.id); state.journal.splice(state.journal.indexOf(e),1); save(); renderAll();}
+        else{del.dataset.sure="1"; del.textContent="Confirmer l'effacement";}
+      });
+      a.appendChild(del);
+    }
+    a.appendChild(btn("sm primary","Compléter",function(){openPassage(e.id);}));
+    c.appendChild(a);
+    return c;
+  }
+
+  // passage sheet: the time is already saved when it opens; everything here adds detail.
+  var passId=null;
+  function openPassage(id){passId=id; renderPassage(); $("pscrim").hidden=false;}
+  function closePassage(){$("pscrim").hidden=true; passId=null; renderAll();}
+  $("pscrim").addEventListener("click",function(ev){if(ev.target===$("pscrim")) closePassage();});
+  function renderPassage(){
+    var e=entry(passId), box=$("pbody"); if(!e){closePassage();return;}
+    var d=new Date(e.t); box.textContent="";
+    box.appendChild(el("div","eyebrow","Enregistré, vous pouvez compléter"));
+    box.appendChild(el("h2",null,(e.kind==="in"?"Arrivée à ":"Retour à ")+hm(d)));
+    box.appendChild(el("div","small muted",fLong.format(d)));
+    if(e.v){var vb=el("span","badge "+(e.vc||"grey"),e.v); vb.style.alignSelf="flex-start"; box.appendChild(vb);}
+    if(e.gps) box.appendChild(el("div","small",gpsText(e)));
+    else if(!IN_CLAUDE) box.appendChild(el("div","small muted",e.gps===null?"Position GPS non disponible (autorisez la localisation pour ce site).":"Recherche de la position GPS…"));
+    if(state.kids.length) box.appendChild(el("div","lab",e.kind==="in"?"Touchez chaque enfant quand il est avec vous":"Touchez chaque enfant quand il est remis"));
+    var kr=el("div","row"); kr.style.flexWrap="nowrap";
+    kidList().forEach(function(k){
+      var on=e.kids&&e.kids[k[0]], t=btn("ktog"+(on?" on":""),k[1]+(on?" · "+hm(new Date(on)):""),function(){
+        e.kids=e.kids||{}; if(e.kids[k[0]]) delete e.kids[k[0]]; else e.kids[k[0]]=new Date().toISOString();
+        save(); renderPassage();
+      });
+      t.setAttribute("aria-pressed",on?"true":"false"); kr.appendChild(t);
+    });
+    box.appendChild(kr);
+    var l1=el("label","field","Comment ça s'est passé"), sl=el("select"); sl.id="p-issue";
+    Object.keys(ISSUES).forEach(function(k){var o=el("option",null,ISSUES[k]); o.value=k; sl.appendChild(o);});
+    sl.value=e.issue||"ok"; sl.addEventListener("change",function(){e.issue=sl.value; save(); renderPassage();});
+    l1.appendChild(sl); box.appendChild(l1);
+    var l2=el("label","field",e.kind==="in"?"Qui m'a remis les enfants":"À qui j'ai remis les enfants"), w=el("input"); w.type="text"; w.id="p-who"; w.maxLength=60; w.value=e.who||"";
+    w.addEventListener("change",function(){e.who=w.value.trim(); save();}); l2.appendChild(w); box.appendChild(l2);
+    var l3=el("label","field","Note"), n=el("input"); n.type="text"; n.id="p-note"; n.maxLength=200; n.value=e.note||"";
+    n.addEventListener("change",function(){e.note=n.value.trim(); save();}); l3.appendChild(n); box.appendChild(l3);
+    box.appendChild(el("div","lab","Photo"));
+    if(photos[e.id]){var im=el("img","pphoto"); im.src=photos[e.id]; im.alt="Photo jointe"; box.appendChild(im); box.appendChild(el("div","small muted",exifText(e.exif)));}
+    else box.appendChild(el("div","small muted","Prenez la photo avec l'appareil photo du téléphone, puis choisissez-la ici : l'application lit l'heure et la position enregistrées dans la photo quand le téléphone les fournit."));
+    box.appendChild(btn("",photos[e.id]?"Changer la photo":"Ajouter une photo",function(){photoFor=e.id; try{$("photo").value=""; $("photo").click();}catch(x){}}));
+    box.appendChild(el("div","lab","Message à envoyer à la mère (le SMS garde une trace datée chez elle aussi)"));
+    var msg=message(e); box.appendChild(el("div","msg",msg));
+    box.appendChild(btn("","Copier le message",function(){
+      try{navigator.clipboard.writeText(msg).then(function(){toast("Message copié, collez-le dans vos SMS");},function(){toast("Copie impossible ici");});}catch(x){toast("Copie impossible ici");}
+    }));
+    box.appendChild(btn("primary big","Terminer",closePassage));
+  }
+
+  // photo: read the capture time and GPS position stored in the file, then keep a small copy
+  function readExif(buf){
+    try{
+      var v=new DataView(buf); if(v.getUint16(0)!==0xFFD8) return null;
+      var o=2;
+      while(o<v.byteLength-12){
+        var m=v.getUint16(o), len=v.getUint16(o+2);
+        if(m===0xFFE1&&v.getUint32(o+4)===0x45786966) return tiff(v,o+10);
+        if((m&0xFF00)!==0xFF00) break;
+        o+=2+len;
+      }
+    }catch(e){}
+    return null;
+  }
+  function tiff(v,s){
+    var le=v.getUint16(s)===0x4949;
+    function u16(o){return v.getUint16(o,le);} function u32(o){return v.getUint32(o,le);}
+    function ifd(off){var n=u16(s+off), t={}; for(var i=0;i<n;i++){var e=s+off+2+i*12; t[u16(e)]={count:u32(e+4),vo:e+8};} return t;}
+    function str(en){var off=en.count>4?s+u32(en.vo):en.vo, r=""; for(var i=0;i<en.count-1;i++) r+=String.fromCharCode(v.getUint8(off+i)); return r;}
+    function deg(en){var off=s+u32(en.vo), a=[]; for(var i=0;i<3;i++) a.push(u32(off+i*8)/u32(off+i*8+4)); return a[0]+a[1]/60+a[2]/3600;}
+    var out={}, i0=ifd(u32(s+4));
+    if(i0[0x8769]){var ex=ifd(u32(i0[0x8769].vo)); if(ex[0x9003]) out.time=str(ex[0x9003]);}
+    if(!out.time&&i0[0x0132]) out.time=str(i0[0x0132]);
+    if(i0[0x8825]){
+      var g=ifd(u32(i0[0x8825].vo));
+      if(g[2]&&g[4]){
+        var lat=deg(g[2]), lon=deg(g[4]);
+        if(g[1]&&v.getUint8(g[1].vo)===83) lat=-lat;
+        if(g[3]&&v.getUint8(g[3].vo)===87) lon=-lon;
+        if(isFinite(lat)&&isFinite(lon)){out.lat=lat; out.lon=lon;}
+      }
+    }
+    if(out.time&&!/^\d{4}:\d\d:\d\d \d\d:\d\d/.test(out.time)) delete out.time;
+    return out;
+  }
+  var photoFor=null;
+  $("photo").addEventListener("change",function(){
+    var f=this.files&&this.files[0], id=photoFor; if(!f||!id) return;
+    var e=entry(id); if(!e) return;
+    f.slice(0,524288).arrayBuffer().then(readExif,function(){return null;}).then(function(x){
+      var url=URL.createObjectURL(f), im=new Image();
+      im.onload=function(){
+        var s=Math.min(1,720/Math.max(im.width,im.height)), c=document.createElement("canvas");
+        c.width=Math.round(im.width*s); c.height=Math.round(im.height*s);
+        c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+        URL.revokeObjectURL(url);
+        e.hasPhoto=true; e.exif=x||null;
+        savePhoto(id,c.toDataURL("image/jpeg",.6)); save();
+        if(passId===id) renderPassage(); else renderAll();
+        toast(x&&x.lat!=null?"Photo ajoutée, avec heure et position":x&&x.time?"Photo ajoutée, avec son heure":"Photo ajoutée");
+      };
+      im.onerror=function(){URL.revokeObjectURL(url); toast("Photo illisible, réessayez");};
+      im.src=url;
+    });
+  });
+
+  function entryText(e){
+    var d=new Date(e.t), s=fLong.format(d)+" à "+hm(d)+" : "+(e.kind==="in"?"arrivée pour chercher les enfants":"retour des enfants");
+    if(e.v) s+=" ("+e.v+")";
+    if(e.issue&&e.issue!=="ok") s+=". "+ISSUES[e.issue];
+    var ks=kidList().filter(function(k){return e.kids&&e.kids[k[0]];}).map(function(k){return k[1]+" "+hm(new Date(e.kids[k[0]]));});
+    if(ks.length) s+=". Enfants : "+ks.join(", ");
+    if(e.who) s+=". "+(e.kind==="in"?"Remis par ":"Remis à ")+e.who;
+    if(e.note) s+=". Note : "+e.note;
+    if(e.gps) s+=". "+gpsText(e);
+    if(e.hasPhoto) s+=". "+exifText(e.exif);
+    return s+".";
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function report(){
+    var rows=state.journal.slice().reverse().map(function(e){
+      return "<tr><td>"+esc(entryText(e))+"</td><td>"+(photos[e.id]?'<img src="'+photos[e.id]+'" style="max-width:220px">':"")+"</td></tr>";
+    }).join("");
+    return '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Relevé des passages</title><style>body{font-family:Arial,sans-serif;margin:24px}td{border:1px solid #999;padding:8px;vertical-align:top}table{border-collapse:collapse;width:100%}</style></head><body><h1>Relevé des passages</h1><p>Enfants : '+esc(allKids())+'. Relevé établi le '+esc(fLong.format(new Date()))+' à '+hm(new Date())+'. Heures enregistrées par le téléphone au moment de l\'appui.</p><table>'+rows+'</table></body></html>';
+  }
+  var dl=null, IN_CLAUDE=!!(window.claude&&window.claude.use);
+  try{ if(window.claude&&window.claude.use) window.claude.use("downloads").then(function(x){dl=x; renderProofs();},function(){}); }catch(e){}
+  $("dl").addEventListener("click",function(){
+    if(!dl){
+      try{var a=document.createElement("a"), u=URL.createObjectURL(new Blob([report()],{type:"text/html"})); a.href=u; a.download="releve-passages-"+key(today())+".html"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},5000);}catch(x){toast("Téléchargement impossible ici");}
+      return;
+    }
+    dl.save({filename:"releve-passages-"+key(today())+".html",data:report()}).then(function(){toast("Relevé enregistré");},function(err){toast(err&&err.code==="declined"?"Téléchargement annulé":"Téléchargement impossible ici");});
+  });
+  function renderProofs(){
+    var v=$("entries"); v.textContent="";
+    var n=state.journal.length, ok=state.journal.filter(function(e){return e.vc==="green";}).length, bad=state.journal.filter(function(e){return e.issue&&e.issue!=="ok";}).length;
+    var s=$("psum"); s.textContent="";
+    [[n,"passages"],[ok,"à l'heure"],[bad,"incidents"]].forEach(function(x){var c=el("div"); c.appendChild(el("b",null,String(x[0]))); c.appendChild(el("span",null,x[1])); s.appendChild(c);});
+    if(!n) v.appendChild(el("div","empty","Aucun passage enregistré. Essayez maintenant avec un des deux boutons, vous pourrez l'effacer ensuite."));
+    state.journal.forEach(function(e){v.appendChild(proofCard(e,true));});
+    $("copylog").hidden=!n; $("dl").hidden=!n||(IN_CLAUDE&&!dl);
+  }
+  $("now-in").addEventListener("click",function(){addEntry("in");});
+  $("now-out").addEventListener("click",function(){addEntry("out");});
+  $("copylog").addEventListener("click",function(){
+    var txt=state.journal.slice().reverse().map(entryText).join("\n");
+    try{navigator.clipboard.writeText(txt).then(function(){toast("Relevé copié");},function(){toast("Copie impossible ici");});}catch(e){toast("Copie impossible ici");}
+  });
+
+  // ----- upcoming -----
+  function renderList(){
+    var v=$("s-avenir"); v.textContent=""; v.appendChild(el("h2",null,"Mes prochaines dates"));
+    var t=today(), list=model.periods.filter(function(q){return q.e>=t;}), lastM="";
+    list.slice(0,shown).forEach(function(q){
+      var m=fMonth.format(q.s); if(m!==lastM){v.appendChild(el("div","mhead",m)); lastM=m;}
+      var r=el("button","lrow"+(q.type==="vac"?" vc":"")); r.type="button";
+      var d=el("div","d"); d.appendChild(el("b",null,String(q.s.getDate()))); d.appendChild(el("span",null,fDow.format(q.s)));
+      var x=el("div"); x.appendChild(el("div","t",q.type==="we"?"Week-end":(q.holiday.name+" · "+q.part)));
+      x.appendChild(el("div","small muted","jusqu'au "+fDay.format(q.e)+(q.type==="vac"?" · "+q.days+" jours":"")));
+      r.appendChild(d); r.appendChild(x); r.appendChild(el("div","r",q.s<=t?"en cours":rel(q.s).toLowerCase()));
+      r.addEventListener("click",function(){goDay(q.s);});
+      v.appendChild(r);
+    });
+    if(list.length>shown) v.appendChild(btn("","Voir plus de dates",function(){shown+=12;renderList();}));
+  }
+
+  // ----- change sheet -----
+  var sheetKey=null;
+  function openSheet(k){
+    sheetKey=k; var o=state.overrides[k];
+    $("sh-title").textContent=fLong.format(parse(k));
+    $("ovr-none").checked=!o; $("ovr-p").checked=!!o&&o.who==="P"; $("ovr-m").checked=!!o&&o.who==="M";
+    $("ovr-note").value=o&&o.note?o.note:"";
+    $("scrim").hidden=false; $("sh-cancel").focus();
+  }
+  function closeSheet(){$("scrim").hidden=true;}
+  $("sh-cancel").addEventListener("click",closeSheet);
+  $("scrim").addEventListener("click",function(e){if(e.target===$("scrim")) closeSheet();});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape") closeSheet();});
+  $("sh-save").addEventListener("click",function(){
+    var who=$("ovr-p").checked?"P":$("ovr-m").checked?"M":"";
+    if(who) state.overrides[sheetKey]={who:who,note:$("ovr-note").value.trim()}; else delete state.overrides[sheetKey];
+    save(); closeSheet(); renderAll(); toast("Changement enregistré");
+  });
+
+  // ----- holidays -----
+  function renderKids(){
+    $("kidsline").textContent=state.kids.length?state.kids.join(" · "):"Mes enfants";
+    var ki=$("kids-input"), gi=$("gym-input");
+    if(document.activeElement!==ki) ki.value=state.kids.join(", ");
+    if(document.activeElement!==gi) gi.value=state.gym||"";
+  }
+  $("kids-input").addEventListener("change",function(){
+    state.kids=this.value.split(",").map(function(x){return x.trim();}).filter(Boolean).slice(0,8); save(); renderAll(); toast("Prénoms enregistrés sur cet appareil");
+  });
+  $("gym-input").addEventListener("change",function(){state.gym=this.value.trim(); save(); renderAll();});
+  function renderHol(){
+    var v=$("hols"); v.textContent="";
+    state.holidays.forEach(function(h,idx){
+      var c=el("div","card"), top=el("div","row between");
+      top.appendChild(el("h3",null,h.name));
+      top.appendChild(btn("sm","Supprimer",function(){state.holidays.splice(idx,1);save();renderAll();}));
+      c.appendChild(top);
+      var row=el("div","grid2");
+      [["start","Début (samedi)"],["resume","Reprise des cours"]].forEach(function(f){
+        var l=el("label","field",f[1]), inp=el("input"); inp.type="date"; inp.id="h-"+h.id+"-"+f[0]; inp.value=h[f[0]];
+        inp.addEventListener("change",function(){if(inp.value){h[f[0]]=inp.value;save();renderAll();}});
+        l.appendChild(inp); row.appendChild(l);
+      });
+      c.appendChild(row);
+      var parts=holidayParts(h);
+      if(!parts.length) c.appendChild(el("span","badge red","La reprise doit être après le début"));
+      parts.forEach(function(p){c.appendChild(el("div","small","Avec moi, "+p.part+" : "+fDay.format(p.s)+" 18h00 → "+fDay.format(p.e)+" 18h00 ("+p.days+" jours)"));});
+      if(h.id==="e28") c.appendChild(el("div","small muted","Date de rentrée 2028 à confirmer."));
+      v.appendChild(c);
+    });
+    var add=el("div","card"); add.appendChild(el("h3",null,"Ajouter des vacances"));
+    var r1=el("div","grid2"), r2=el("div","grid2");
+    var ln=el("label","field","Nom"), nm=el("input"); nm.type="text"; nm.id="new-name"; nm.placeholder="Toussaint 2028"; nm.maxLength=40; ln.appendChild(nm);
+    var lt=el("label","field","Type"), ty=el("select"); ty.id="new-type";
+    [["petite","Petites vacances"],["ete","Été"]].forEach(function(o){var op=el("option",null,o[1]);op.value=o[0];ty.appendChild(op);}); lt.appendChild(ty);
+    var ls=el("label","field","Début"), ns=el("input"); ns.type="date"; ns.id="new-start"; ls.appendChild(ns);
+    var lr=el("label","field","Reprise des cours"), nr=el("input"); nr.type="date"; nr.id="new-resume"; lr.appendChild(nr);
+    r1.appendChild(ln); r1.appendChild(lt); r2.appendChild(ls); r2.appendChild(lr); add.appendChild(r1); add.appendChild(r2);
+    add.appendChild(btn("primary","Ajouter",function(){
+      if(!nm.value.trim()||!ns.value||!nr.value||nr.value<=ns.value){toast("Indiquez un nom, un début et une reprise après le début");return;}
+      state.holidays.push({id:"u"+Date.now(),name:nm.value.trim(),type:ty.value,start:ns.value,resume:nr.value});
+      state.holidays.sort(function(a,b){return a.start<b.start?-1:1;});
+      save(); renderAll(); toast("Vacances ajoutées");
+    }));
+    v.appendChild(add);
+    v.appendChild(btn("","Rétablir les dates officielles",function(){state.holidays=JSON.parse(JSON.stringify(DEFAULT_HOLIDAYS));save();renderAll();toast("Dates officielles rétablies");}));
+  }
+
+  // ----- tabs -----
+  var tabs=document.querySelectorAll(".tabbar button");
+  function show(name){
+    tabs.forEach(function(x){x.classList.toggle("active",x.dataset.s===name); $("s-"+x.dataset.s).hidden=x.dataset.s!==name;});
+  }
+  tabs.forEach(function(b){b.addEventListener("click",function(){show(b.dataset.s); $("content").scrollTop=0;});});
+
+  function renderAll(){rebuild();renderKids();renderBanner();renderCal();renderDetail();renderList();renderProofs();renderHol();}
+  renderAll();
+  setInterval(function(){renderBanner(); if($("pscrim").hidden&&$("scrim").hidden) renderDetail();},60000);
+})();
+</script>
+</body>
+</html>
